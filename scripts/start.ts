@@ -1,40 +1,29 @@
 /**
- * Launcher for the standalone production server.
+ * Launcher for the standalone production server (`bun run start`).
  *
- * `.next/standalone/server.js` calls `process.chdir(__dirname)` before booting,
- * so every relative path inside it resolves against `.next/standalone/` rather
- * than the project root. For the sandbox SQLite setup that means Prisma's
- * relative `file:` URL points at a directory that does not exist and every
- * query fails with "Unable to open the database file".
- *
- * Resolving the URL to an absolute path here — before the server starts — keeps
- * `bun run dev`, `bun run db:push`, `bun scripts/seed.ts` and `bun run start`
- * all pointing at the same database. Postgres/Supabase URLs pass through
- * untouched, as do paths that are already absolute.
+ * `.next/standalone/server.js` calls `process.chdir(__dirname)` on boot and the
+ * build strips .env out of the artifact, so configuration has to arrive as real
+ * environment variables. Checking them here turns a cryptic Prisma failure on
+ * the first request into one clear line at startup.
  */
 import { spawn } from "node:child_process";
 import path from "node:path";
 
-const projectRoot = process.cwd();
-const SERVER = path.join(projectRoot, ".next", "standalone", "server.js");
+const SERVER = path.join(process.cwd(), ".next", "standalone", "server.js");
 
-function resolveDatabaseUrl(url: string | undefined): string | undefined {
-  if (!url?.startsWith("file:")) return url;
-  const filePath = url.slice("file:".length);
-  if (filePath === "" || path.isAbsolute(filePath)) return url;
-  // Prisma resolves relative SQLite paths against the schema directory.
-  return `file:${path.resolve(projectRoot, "prisma", filePath)}`;
+const REQUIRED = ["DATABASE_URL", "SESSION_SECRET"] as const;
+const missing = REQUIRED.filter((key) => !process.env[key]);
+if (missing.length > 0) {
+  console.error(
+    `[esifit] Refusing to start — missing environment variable(s): ${missing.join(", ")}.\n` +
+      "Set them in .env (local) or in the host's environment, then start again.",
+  );
+  process.exit(1);
 }
-
-const databaseUrl = resolveDatabaseUrl(process.env.DATABASE_URL);
 
 const child = spawn(process.execPath, [SERVER], {
   stdio: "inherit",
-  env: {
-    ...process.env,
-    NODE_ENV: "production",
-    ...(databaseUrl ? { DATABASE_URL: databaseUrl } : {}),
-  },
+  env: { ...process.env, NODE_ENV: "production" },
 });
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {

@@ -34,16 +34,23 @@
 # 1) نصب وابستگی‌ها
 bun install
 
-# 2) پیکربندی محیط
-cp .env.example .env        # مقدار SESSION_SECRET را در تولید حتماً عوض کنید
+# 2) ساخت دو دیتابیس روی Postgres محلی (دومی مخصوص تست‌هاست)
+createdb esifit
+createdb esifit_test
 
-# 3) ساخت پایگاه داده + داده اولیه (deterministic seed)
+# 3) پیکربندی محیط
+cp .env.example .env        # DATABASE_URL را با یوزر/پسورد Postgres خودتان پر کنید
+
+# 4) ساخت جدول‌ها + داده اولیه (deterministic seed)
 bun run db:push
-bun scripts/seed.ts
+bun run db:seed
 
-# 4) اجرا
+# 5) اجرا
 bun run dev                 # http://localhost:3000
 ```
+
+سپس با یکی از حساب‌های دمو وارد شوید (`09120000000` / `09130000000` / `09140000000`).
+در `bun run dev` کد OTP مستقیماً روی صفحه‌ی ورود نشان داده می‌شود.
 
 ## تست‌ها و کیفیت
 
@@ -59,7 +66,8 @@ bunx tsc --noEmit   # تایپ‌چک کامل (strict)
 
 | متغیر | توضیح |
 |---|---|
-| `DATABASE_URL` | مسیر فایل SQLite (پیش‌فرض sandbox) یا رشته Postgres/Supabase در تولید |
+| `DATABASE_URL` | رشته اتصال Postgres — `postgresql://user:pass@host:5432/db` |
+| `TEST_DATABASE_URL` | دیتابیس جدا برای تست‌ها (بین تست‌ها پاک می‌شود — هرگز دیتابیس اصلی نباشد) |
 | `SESSION_SECRET` | کلید امضای سشن‌ها — **در تولید الزامی**؛ بدون آن سرور از ساخت/بررسی سشن سر باز می‌زند (fail-closed) |
 | `NEXT_PUBLIC_SITE_URL` | دامنه عمومی؛ مبنای canonical، `og:url`، `robots.txt` و `sitemap.xml` |
 | `SMS_PROVIDER` | `dev` (پیش‌فرض) \| `kavenegar` \| `melipayamak` \| `smsir` |
@@ -75,7 +83,7 @@ bunx tsc --noEmit   # تایپ‌چک کامل (strict)
 - **فریم‌ورک:** Next.js 16 App Router + React 19 + TypeScript strict
 - **استایل:** Tailwind CSS 4 + توکن‌های معنایی DESIGN_BIBLE (mint/graphite) با پاریتی کامل dark/light
 - **فونت:** Vazirmatn (self-hosted woff2)
-- **داده:** Prisma + SQLite در sandbox؛ مرز ریپازیتوری به‌گونه‌ای طراحی شده که جایگزینی با Postgres/Supabase فقط تعویض آداپتور باشد
+- **داده:** Prisma + PostgreSQL؛ مرز ریپازیتوری حفظ شده
 - **احراز هویت:** اول‌حساب موبایل+OTP؛ آداپتور پیامک ایرانی؛ سشن opaque + JWT در کوکی httpOnly؛ rate-limit و انقضای کد
 - **نقش‌ها:** `member | coach | admin` در `lib/auth/session.ts` (`requireRole`) + گارد صفحه‌ها (`requireRolePage`) + بخش‌های ناوبری نقش‌محور
 - **حقوق دسترسی:** محاسبه سرور-ساید از tier (free/vip/vip_plus/coach) — UI فقط نمایش است
@@ -95,7 +103,8 @@ bunx tsc --noEmit   # تایپ‌چک کامل (strict)
 
 ## نکات تولید
 
-- جابه‌جایی به Supabase/Postgres: فقط `DATABASE_URL` و `prisma generate` (مرز ریپازیتوری حفظ شده)
+- جابه‌جایی به Supabase یا هر Postgres مدیریت‌شده: فقط `DATABASE_URL` عوض می‌شود
+- اپ به یک پروسه‌ی زنده‌ی Node نیاز دارد (رندر سمت سرور + روت‌های API)؛ روی هاست استاتیک/PHP اجرا نمی‌شود
 - `SESSION_SECRET` تصادفی الزامی است. اگر تنظیم نشده باشد، در تولید سرور به‌جای استفاده از کلید توسعه
   **خطا برمی‌گرداند** و یک پیام `FATAL` در لاگ می‌نویسد (صفحه‌های عمومی همچنان سرو می‌شوند).
   تولید کلید: `openssl rand -hex 32`
