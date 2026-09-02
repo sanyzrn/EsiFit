@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
     "build": "next build && DIST=\"${NEXT_DIST_DIR:-.next}\" && cp -r \"$DIST/static\" \"$DIST/standalone/$DIST/\" && cp -r public \"$DIST/standalone/\" && rm -f \"$DIST/standalone/.env\" \"$DIST/standalone/.env.local\" \"$DIST/standalone/.env.production\" \"$DIST/standalone/.env.production.local\"",
-    "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
+    "start": "bun scripts/start.ts 2>&1 | tee server.log",
     "lint": "eslint .",
     "db:push": "prisma db push --accept-data-loss",
     "db:generate": "prisma generate",
