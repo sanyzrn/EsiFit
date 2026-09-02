@@ -3,6 +3,7 @@ import { createHash, randomInt } from "crypto";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors/app-error";
 import { getSmsProvider } from "@/lib/sms/provider";
+import { serverSecret } from "@/lib/auth/session";
 
 /**
  * OTP flow with abuse protection:
@@ -34,13 +35,11 @@ export function normalizeIranMobile(input: string): string | null {
 }
 
 function hashCode(phone: string, code: string): string {
-  const secret = process.env.SESSION_SECRET ?? "esifit-dev-secret-do-not-use-in-production-0123456789";
-  return createHash("sha256").update(`${phone}:${code}:${secret}`).digest("hex");
+  return createHash("sha256").update(`${phone}:${code}:${serverSecret()}`).digest("hex");
 }
 
 export type RequestOtpResult = {
   phone: string;
-  isNewUser: boolean;
   resendAfterSeconds: number;
   /** dev-only convenience; undefined in production */
   devCode?: string;
@@ -97,11 +96,10 @@ export async function requestOtp(rawPhone: string, ip: string | null): Promise<R
     throw new AppError("provider", { userMessage: "ارسال پیامک با مشکل مواجه شد. لطفاً دوباره تلاش کنید.", cause: error });
   }
 
-  const existingUser = await db.user.findUnique({ where: { phone } });
-
+  // Deliberately does NOT report whether the phone already has an account:
+  // an unauthenticated caller must not be able to enumerate registered users.
   return {
     phone,
-    isNewUser: !existingUser,
     resendAfterSeconds: RESEND_COOLDOWN_MS / 1000,
     ...(process.env.NODE_ENV !== "production" ? { devCode: code } : {}),
   };

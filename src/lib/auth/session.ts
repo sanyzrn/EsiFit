@@ -17,16 +17,34 @@ import type { User } from "@prisma/client";
 const COOKIE_NAME = "esifit_session";
 const SESSION_TTL_DAYS = 30;
 
-function secretKey(): Uint8Array {
-  const secret =
-    process.env.SESSION_SECRET ??
-    process.env.AUTH_SECRET ??
-    // Sandbox fallback; production deployments MUST set SESSION_SECRET.
-    "esifit-dev-secret-do-not-use-in-production-0123456789";
-  if (!process.env.SESSION_SECRET && !process.env.AUTH_SECRET && process.env.NODE_ENV === "production") {
-    console.warn("[esifit] SESSION_SECRET is not set — using the built-in development secret. Sessions are NOT secure in this state.");
+/** Sandbox-only signing key. Never reachable in production (see secretKey). */
+export const DEV_SESSION_SECRET = "esifit-dev-secret-do-not-use-in-production-0123456789";
+
+/**
+ * The single server signing secret. Every consumer (session JWTs, OTP hashes)
+ * resolves it here so a misconfigured deployment fails the same way everywhere.
+ */
+export function serverSecret(): string {
+  const secret = process.env.SESSION_SECRET ?? process.env.AUTH_SECRET;
+  if (!secret) {
+    // Fail closed: a public build signed with a published constant would let
+    // anyone mint a valid session cookie.
+    if (process.env.NODE_ENV === "production") {
+      console.error(
+        "[esifit] FATAL: SESSION_SECRET (or AUTH_SECRET) is not set. Refusing to sign or verify sessions with the built-in development secret — anyone could forge a session cookie. Set it and restart.",
+      );
+      throw new AppError("unexpected", {
+        userMessage: "پیکربندی سرور ناقص است. لطفاً بعداً تلاش کنید.",
+        cause: new Error("SESSION_SECRET is not set"),
+      });
+    }
+    return DEV_SESSION_SECRET;
   }
-  return new TextEncoder().encode(secret);
+  return secret;
+}
+
+function secretKey(): Uint8Array {
+  return new TextEncoder().encode(serverSecret());
 }
 
 function hashToken(raw: string): string {
@@ -111,14 +129,18 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   if (dot < 0) return null;
   const [raw, jwt] = [cookieValue.slice(0, dot), cookieValue.slice(dot + 1)];
 
+  const tokenHash = hashToken(raw);
   try {
-    await jwtVerify(jwt, secretKey());
+    const { payload } = await jwtVerify(jwt, secretKey());
+    // The JWT binds this specific opaque token: a validly signed wrapper from
+    // another session must not authenticate a token it was not issued for.
+    if (payload.sid !== tokenHash) return null;
   } catch {
     return null;
   }
 
   const session = await db.session.findUnique({
-    where: { tokenHash: hashToken(raw) },
+    where: { tokenHash },
     include: { user: { include: { profile: true } } },
   });
   if (!session || session.revokedAt || session.user.status !== "active") return null;

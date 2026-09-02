@@ -11,7 +11,7 @@ import { rankSwaps, type SwapCandidate } from "@/lib/domain/swap-engine";
  */
 export async function GET(req: Request) {
   try {
-    await requireUser();
+    const user = await requireUser();
     const url = new URL(req.url);
     const exerciseId = url.searchParams.get("exerciseId");
     if (!exerciseId) {
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
         where: { id: { not: source.id } },
         include: { muscles: { include: { muscleGroup: true } } },
       }),
-      db.painReport.findMany({ where: { userId: (await requireUser()).id, status: "active" }, select: { bodyRegion: true } }),
+      db.painReport.findMany({ where: { userId: user.id, status: "active" }, select: { bodyRegion: true } }),
     ]);
 
     const toCandidate = (e: (typeof candidates)[number]): SwapCandidate => ({

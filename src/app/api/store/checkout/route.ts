@@ -29,14 +29,18 @@ export async function POST(req:NextRequest) {
       return NextResponse.json({ ok: false, code: "not_found", message: "برخی اقلام موجود نیستند." }, { status: 400 });
     }
 
+    // Round per unit, exactly as /api/store/products advertises finalPriceToman —
+    // rounding the subtotal instead would charge a price the catalog never showed.
     let subtotal = 0;
+    let total = 0;
     const itemsJson = body.items.map((i) => {
       const p = products.find((x) => x.id === i.productId)!;
+      const unitPrice = Math.round(p.priceToman * (1 - ent.storeDiscountPercent / 100));
       subtotal += p.priceToman * i.qty;
+      total += unitPrice * i.qty;
       return { productId: p.id, nameFa: p.nameFa, priceToman: p.priceToman, qty: i.qty, emoji: p.emoji };
     });
-    const discount = Math.round(subtotal * ent.storeDiscountPercent / 100);
-    const total = subtotal - discount;
+    const discount = subtotal - total;
 
     const order = await db.order.create({
       data: {

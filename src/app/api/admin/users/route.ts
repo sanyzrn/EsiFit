@@ -88,9 +88,14 @@ export async function PATCH(req: Request) {
       );
     }
 
-    // Guardrail 2: don't demote the last active admin.
+    // Guardrail 2: don't remove the last *active* admin. A target that is
+    // already suspended is not one of them, so changing it can never lock us out.
     const demotingAdmin = role != null && target.role === "admin" && role !== "admin";
-    if (demotingAdmin || (status === "suspended" && target.role === "admin")) {
+    const losesAdminAccess =
+      target.role === "admin" &&
+      target.status === "active" &&
+      (demotingAdmin || status === "suspended");
+    if (losesAdminAccess) {
       const adminCount = await db.user.count({ where: { role: "admin", status: "active" } });
       if (adminCount <= 1) {
         return NextResponse.json(

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/session";
-import { toAppError } from "@/lib/errors/app-error";
+import { appErrorResponse } from "@/lib/errors/respond";
 import { claimMission } from "@/lib/domain/gamification-engine";
 import { z } from "zod";
 
@@ -13,10 +13,6 @@ export async function POST(req: NextRequest) {
     const result = await claimMission(session.id, body.missionId);
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
-    const appError = toAppError(error);
-    return NextResponse.json(
-      { ok: false, ...appError.toJSON() },
-      { status: appError.code === "authentication" ? 401 : appError.code === "conflict" ? 409 : 400 },
-    );
+    return appErrorResponse(error);
   }
 }

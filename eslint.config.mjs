@@ -44,7 +44,9 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "no-useless-escape": "off",
   },
 }, {
-  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills"]
+  // ".next*" covers every NEXT_DIST_DIR the build supports (see next.config.ts),
+  // not just the default — otherwise an isolated prod build floods lint output.
+  ignores: ["node_modules/**", ".next*/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills"]
 }];
 
 export default eslintConfig;

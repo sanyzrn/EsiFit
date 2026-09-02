@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyOtp } from "@/lib/auth/otp";
 import { createSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { toAppError } from "@/lib/errors/app-error";
+import { appErrorResponse } from "@/lib/errors/respond";
 import { createUserWithSeedHistory } from "@/lib/auth/provisioning";
 import { z } from "zod";
 
@@ -35,10 +35,6 @@ export async function POST(req: NextRequest) {
       user: { id: user.id, displayName: user.displayName, tier: user.tier },
     });
   } catch (error) {
-    const appError = toAppError(error);
-    return NextResponse.json(
-      { ok: false, ...appError.toJSON() },
-      { status: appError.code === "validation" ? 400 : appError.code === "rate_limit" ? 429 : 500 },
-    );
+    return appErrorResponse(error);
   }
 }

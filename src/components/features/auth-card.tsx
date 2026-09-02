@@ -23,7 +23,6 @@ export function AuthCard() {
   const [step, setStep] = React.useState<Step>("phone");
   const [phone, setPhone] = React.useState("");
   const [code, setCode] = React.useState("");
-  const [isNewUser, setIsNewUser] = React.useState(false);
   const [devCode, setDevCode] = React.useState<string | null>(null);
   const [cooldown, setCooldown] = React.useState(0);
   const [loading, setLoading] = React.useState(false);
@@ -67,7 +66,6 @@ export function AuthCard() {
         method: "POST",
         json: { phone: toLatinDigits(phone), code: value },
       });
-      setIsNewUser(res.isNewUser);
       router.push(res.isNewUser ? "/auth/onboarding" : "/dashboard");
     } catch (e) {
       setError(errorMessage(e));

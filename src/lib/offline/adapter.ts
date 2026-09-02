@@ -81,7 +81,9 @@ export async function enqueueOperation(
 export async function getQueuedOperations(): Promise<QueuedOperation[]> {
   try {
     const all = await tx<QueuedOperation[]>(STORE_OPS, "readonly", (s) => s.getAll() as IDBRequest<QueuedOperation[]>);
-    return all.filter((o) => o.status !== "synced");
+    // "conflict" is terminal: the server has rejected the op for good (deleted
+    // session, wrong account). Retrying it forever would pin the pending badge on.
+    return all.filter((o) => o.status !== "synced" && o.status !== "conflict");
   } catch {
     return [];
   }
@@ -175,5 +177,42 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
     return row?.value ?? null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Drop every trace of the signed-in account from this device.
+ * Called on sign-out: the queue and the read-through cache are per-device, so
+ * without this the next person to sign in on the same browser would replay the
+ * previous user's unsynced sets and read their cached dashboard.
+ */
+export async function clearLocalUserData(): Promise<void> {
+  try {
+    if (dbPromise) {
+      const db = await dbPromise;
+      db.close();
+    }
+  } catch {
+    // already closed / never opened
+  }
+  dbPromise = null;
+
+  await new Promise<void>((resolve) => {
+    if (typeof indexedDB === "undefined") return resolve();
+    const req = indexedDB.deleteDatabase(DB_NAME);
+    req.onsuccess = () => resolve();
+    req.onerror = () => resolve();
+    req.onblocked = () => resolve();
+  });
+
+  // Personalized HTML held by the service worker (see public/sw.js).
+  try {
+    navigator.serviceWorker?.controller?.postMessage({ type: "esifit:clear-private-cache" });
+  } catch {
+    // no service worker in this context
+  }
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("esifit:queue-changed"));
   }
 }

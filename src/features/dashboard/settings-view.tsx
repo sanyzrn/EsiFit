@@ -12,6 +12,7 @@ import { useSession } from "@/lib/client/use-session";
 import { TIER_LABELS, getEntitlements, type UserTier } from "@/lib/entitlements/entitlements";
 import { toPersianDigits, parseLocaleNumber } from "@/lib/formatting/numbers";
 import { formatRelative } from "@/lib/dates/jalali";
+import { clearLocalUserData } from "@/lib/offline/adapter";
 
 type Device = { id: string; deviceLabel: string; lastSeenAt: string };
 
@@ -41,7 +42,11 @@ export function SettingsView({
 
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
+    // Server-side revocation is not enough: the offline queue, the read-through
+    // cache and the cached pages live on this device and must go with it.
+    await clearLocalUserData();
     router.push("/");
+    router.refresh();
   };
 
   const exportData = () => {

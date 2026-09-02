@@ -33,14 +33,19 @@ export async function POST(req: NextRequest) {
 
     const allSets = session.exerciseLogs.flatMap((l) => l.sets);
     const volume = sessionVolume(allSets);
-    const duration = body.durationSeconds ?? (session.endedAt ?? new Date()).getTime() - session.startedAt.getTime();
+    // The client reports elapsed time in SECONDS; the wall-clock fallback is in
+    // milliseconds. Normalize both to seconds before persisting.
+    const elapsedSeconds =
+      body.durationSeconds ??
+      Math.round(((session.endedAt ?? new Date()).getTime() - session.startedAt.getTime()) / 1000);
+    const durationSeconds = Math.max(60, elapsedSeconds);
 
     await db.workoutSession.update({
       where: { id: session.id },
       data: {
         status: "completed",
         endedAt: session.endedAt ?? new Date(),
-        durationSeconds: Math.max(60, Math.round(duration / 1000)),
+        durationSeconds,
         totalVolumeKg: volume,
         syncStatus: "synced",
         note: body.note ?? session.note,
@@ -83,7 +88,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       summary: {
         volume: Math.round(volume),
-        durationMinutes: Math.round(Math.max(60, duration / 1000) / 60),
+        durationMinutes: Math.max(1, Math.round(durationSeconds / 60)),
         setCount: allSets.length,
         prs: prResults,
         xpAwarded: xpResult.awarded ? 70 : 0,
