@@ -10,8 +10,10 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  // Only used by `prisma migrate dev` when creating migrations locally.
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 // ------------------------- Identity -------------------------
@@ -131,7 +133,7 @@ model BodyMeasurement {
   hipCm      Float?
   armCm      Float?
   thighCm    Float?
-  note       String?
+  note       String? @db.Text
   createdAt  DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -147,7 +149,7 @@ model Goal {
   startValue  Float
   targetValue Float
   unit        String
-  metaJson    String   @default("{}") // extensibility: {exerciseSlug, pattern, direction}
+  metaJson    String   @default("{}") @db.Text // extensibility: {exerciseSlug, pattern, direction}
   startDate   String // ISO date-only
   targetDate  String
   status      String   @default("active") // active | achieved | missed | archived
@@ -167,7 +169,7 @@ model ReadinessDaily {
   state              String // ready | moderate | caution | recover
   calculationVersion String  @default("v1")
   isEstimated        Boolean @default(true)
-  factorsJson        String  @default("[]") // [{type,label,normalizedScore,weight,source}]
+  factorsJson        String  @default("[]") @db.LongText // [{type,label,normalizedScore,weight,source}]
   user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, scoreDate])
@@ -193,8 +195,8 @@ model Exercise {
   movementPattern String // horizontal_push | vertical_push | horizontal_pull | vertical_pull | squat | hinge | lunge | carry | core | conditioning
   difficulty      String  @default("intermediate") // beginner | intermediate | advanced
   isUnilateral    Boolean @default(false)
-  instructionsFa  String  @default("")
-  cuesJson        String  @default("[]") // Persian cue strings
+  instructionsFa  String  @default("") @db.Text
+  cuesJson        String  @default("[]") @db.LongText // Persian cue strings
   isCompound      Boolean @default(true)
 
   muscles   ExerciseMuscle[]
@@ -225,7 +227,7 @@ model WorkoutPlan {
   weeks    Int      @default(4)
   status   String   @default("active") // draft | active | completed | archived
   startsOn String // ISO date-only
-  description String @default("")
+  description String @default("") @db.Text
   createdAt DateTime @default(now())
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -260,7 +262,7 @@ model PlannedExercise {
   targetRepsMax  Int    @default(12)
   targetRpe      Float  @default(7.5)
   restSeconds    Int    @default(90)
-  note           String @default("")
+  note           String @default("") @db.Text
   planDay        WorkoutPlanDay @relation(fields: [planDayId], references: [id], onDelete: Cascade)
   exercise       Exercise       @relation(fields: [exerciseId], references: [id])
 
@@ -279,7 +281,7 @@ model WorkoutSession {
   durationSeconds Int       @default(0)
   status          String    @default("active") // planned | active | paused | completed | abandoned
   syncStatus      String    @default("synced") // local | syncing | synced | conflict | failed
-  note            String    @default("")
+  note            String    @default("") @db.Text
   clientId        String?   @unique // offline-created stable id
   totalVolumeKg   Float     @default(0)
   createdAt       DateTime  @default(now())
@@ -296,7 +298,7 @@ model ExerciseLog {
   sessionId String
   exerciseId String
   orderIndex Int   @default(0)
-  note      String @default("")
+  note      String @default("") @db.Text
   session   WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   exercise  Exercise       @relation(fields: [exerciseId], references: [id])
 
@@ -421,8 +423,8 @@ model CalculatorResult {
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   calculatorType    String
   calculatorVersion String   @default("v1")
-  inputsJson        String
-  resultJson        String
+  inputsJson        String @db.LongText
+  resultJson        String @db.LongText
   createdAt         DateTime @default(now())
 
   @@index([userId, calculatorType, createdAt])
@@ -434,7 +436,7 @@ model Badge {
   id           String @id @default(cuid())
   slug         String @unique
   nameFa       String
-  descriptionFa String
+  descriptionFa String @db.Text
   icon         String @default("award") // lucide icon name
   criteriaType String // workout_count | streak | volume | pr_count | early | nutrition_days | water_days
   criteriaValue Int   @default(1)
@@ -458,7 +460,7 @@ model Mission {
   id           String @id @default(cuid())
   slug         String @unique
   nameFa       String
-  descriptionFa String
+  descriptionFa String @db.Text
   period       String // daily | weekly
   criteriaType String // workout | water_ml | calories_logged | sets_logged | protein_hit
   target       Int
@@ -502,7 +504,7 @@ model Challenge {
   id          String   @id @default(cuid())
   slug        String   @unique
   nameFa      String
-  description String   @default("")
+  description String   @default("") @db.Text
   metric      String // workouts | volume | water | consistency
   targetValue Float    @default(0)
   startDate   String
@@ -532,8 +534,8 @@ model ChallengeParticipant {
 model Post {
   id         String   @id @default(cuid())
   userId     String
-  content    String
-  imageUrl   String?
+  content    String @db.Text
+  imageUrl   String? @db.Text
   visibility String   @default("public") // public | followers | private
   workoutType String? // linked workout context
   createdAt  DateTime @default(now())
@@ -549,7 +551,7 @@ model Comment {
   id        String   @id @default(cuid())
   postId    String
   userId    String
-  content   String
+  content   String @db.Text
   createdAt DateTime @default(now())
   post      Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -575,8 +577,8 @@ model Notification {
   userId    String
   type      String // info | achievement | reminder | system | social
   title     String
-  body      String
-  actionUrl String?
+  body      String @db.Text
+  actionUrl String? @db.Text
   readAt    DateTime?
   createdAt DateTime  @default(now())
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -589,7 +591,7 @@ model Notification {
 model Author {
   id              String @id @default(cuid())
   name            String
-  bio             String @default("")
+  bio             String @default("") @db.Text
   avatarEmoji     String @default("🧑‍⚕️")
   credentialLabel String @default("")
 
@@ -601,7 +603,7 @@ model Category {
   id     String @id @default(cuid())
   slug   String @unique
   nameFa String
-  description String @default("")
+  description String @default("") @db.Text
   orderIndex Int @default(0)
 
   articles Article[]
@@ -617,16 +619,16 @@ model Article {
   reviewerId      String?
   categoryId      String
   metaTitle       String   @default("")
-  metaDescription String   @default("")
-  excerpt         String   @default("")
+  metaDescription String   @default("") @db.Text
+  excerpt         String   @default("") @db.Text
   coverEmoji      String   @default("💪")
   readingMinutes  Int      @default(5)
-  contentBlocks   String   @default("[]") // typed JSON blocks
+  contentBlocks   String   @default("[]") @db.LongText // typed JSON blocks
   calculatorSlug  String?  // contextual calculator CTA
   publishedAt     DateTime?
   updatedAt       DateTime @updatedAt
   revision        Int      @default(1)
-  revisionNote    String   @default("")
+  revisionNote    String   @default("") @db.Text
 
   author   Author          @relation(fields: [authorId], references: [id])
   reviewer Author?         @relation("ReviewedArticles", fields: [reviewerId], references: [id])
@@ -639,10 +641,10 @@ model Article {
 model ArticleSource {
   id         String  @id @default(cuid())
   articleId  String
-  title      String
+  title      String @db.Text
   publisher  String
   sourceType String  @default("research") // research | guideline | organization
-  url        String  @default("")
+  url        String  @default("") @db.Text
   doi        String? @default("")
   publishedOn String?
   article    Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
@@ -654,7 +656,7 @@ model Product {
   id          String  @id @default(cuid())
   slug        String  @unique
   nameFa      String
-  description String  @default("")
+  description String  @default("") @db.Text
   type        String  @default("physical") // physical | digital | program
   priceToman  Int
   compareAtToman Int?
@@ -673,7 +675,7 @@ model SubscriptionPlan {
   priceToman   Int
   currency     String  @default("IRT")
   active       Boolean @default(true)
-  featuresFa   String  @default("[]") // JSON string[]
+  featuresFa   String  @default("[]") @db.Text // JSON string[]
   highlight    Boolean @default(false)
 }
 
@@ -697,7 +699,7 @@ model Order {
   status        String   @default("paid") // pending | paid | canceled (sandbox mock payment)
   totalToman    Int
   discountToman Int      @default(0)
-  itemsJson     String // [{productId,nameFa,priceToman,qty}]
+  itemsJson     String @db.LongText // [{productId,nameFa,priceToman,qty}]
   createdAt     DateTime @default(now())
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -724,7 +726,7 @@ model AiMessage {
   id             String   @id @default(cuid())
   conversationId String
   role           String // user | assistant | system_notice
-  content        String
+  content        String @db.LongText
   status         String   @default("complete") // streaming | complete | failed | blocked
   createdAt      DateTime @default(now())
   conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
@@ -777,7 +779,7 @@ model PainReport {
   side        String  @default("unknown") // left | right | bilateral | center | unknown
   severity    Int     @default(3) // 1..10 user-reported
   status      String  @default("active") // active | improving | resolved
-  note        String  @default("")
+  note        String  @default("") @db.Text
 
   @@index([userId, status])
 }
@@ -801,7 +803,7 @@ model CoachClient {
   athleteId String
   status    String   @default("active") // active | archived
   startedAt DateTime @default(now())
-  note      String   @default("")
+  note      String   @default("") @db.Text
   coach     User     @relation("CoachRoster", fields: [coachId], references: [id], onDelete: Cascade)
   athlete   User     @relation("CoachAthletes", fields: [athleteId], references: [id], onDelete: Cascade)
 
@@ -813,8 +815,8 @@ model WeeklyRecap {
   id          String   @id @default(cuid())
   userId      String
   weekStart   String // ISO date-only (Saturday, Tehran)
-  metricsJson String   @default("{}")
-  contentFa   String
+  metricsJson String   @default("{}") @db.LongText
+  contentFa   String @db.LongText
   source      String   @default("rules") // rules | ai
   createdAt   DateTime @default(now())
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)

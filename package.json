@@ -12,7 +12,9 @@
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "bun scripts/seed.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
