@@ -34,21 +34,26 @@
 # 1) نصب وابستگی‌ها
 bun install
 
-# 2) پیکربندی محیط
-cp .env.example .env        # مقدار SESSION_SECRET را در تولید حتماً عوض کنید
+# 2) یک MySQL/MariaDB در دسترس داشته باشید (لوکال یا داکر)
+docker run --rm -d -p 3306:3306 \
+  -e MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=1 \
+  -e MARIADB_DATABASE=esifit mariadb:11
 
-# 3) ساخت پایگاه داده + داده اولیه (deterministic seed)
-bun run db:push
-bun scripts/seed.ts
+# 3) پیکربندی محیط
+cp .env.example .env        # DATABASE_URL و SESSION_SECRET را پر کنید
 
-# 4) اجرا
+# 4) ساخت جدول‌ها + داده اولیه (deterministic seed)
+bun run db:deploy           # اجرای migrationها
+bun run db:seed
+
+# 5) اجرا
 bun run dev                 # http://localhost:3000
 ```
 
 ## تست‌ها و کیفیت
 
 ```bash
-bun run test        # ۸۷ تست (واحد + یکپارچگی API روی دیتابیس تست ایزوله)
+bun run test        # ۹۰ تست (واحد + یکپارچگی API روی یک MySQL تست ایزوله)
 bun run lint        # ESLint
 bunx tsc --noEmit   # تایپ‌چک کامل (strict)
 ```
@@ -59,7 +64,8 @@ bunx tsc --noEmit   # تایپ‌چک کامل (strict)
 
 | متغیر | توضیح |
 |---|---|
-| `DATABASE_URL` | مسیر فایل SQLite (پیش‌فرض sandbox) یا رشته Postgres/Supabase در تولید |
+| `DATABASE_URL` | رشته اتصال MySQL/MariaDB — `mysql://user:pass@host:3306/db` |
+| `TEST_DATABASE_URL` | دیتابیس MySQL جداگانه برای تست‌ها (بین تست‌ها پاک می‌شود — هرگز دیتابیس واقعی نباشد) |
 | `SESSION_SECRET` | کلید امضای سشن‌ها — **در تولید الزامی**؛ بدون آن سرور از ساخت/بررسی سشن سر باز می‌زند (fail-closed) |
 | `NEXT_PUBLIC_SITE_URL` | دامنه عمومی؛ مبنای canonical، `og:url`، `robots.txt` و `sitemap.xml` |
 | `SMS_PROVIDER` | `dev` (پیش‌فرض) \| `kavenegar` \| `melipayamak` \| `smsir` |
@@ -75,7 +81,7 @@ bunx tsc --noEmit   # تایپ‌چک کامل (strict)
 - **فریم‌ورک:** Next.js 16 App Router + React 19 + TypeScript strict
 - **استایل:** Tailwind CSS 4 + توکن‌های معنایی DESIGN_BIBLE (mint/graphite) با پاریتی کامل dark/light
 - **فونت:** Vazirmatn (self-hosted woff2)
-- **داده:** Prisma + SQLite در sandbox؛ مرز ریپازیتوری به‌گونه‌ای طراحی شده که جایگزینی با Postgres/Supabase فقط تعویض آداپتور باشد
+- **داده:** Prisma + MySQL/MariaDB (همان چیزی که روی هاست موجود است)؛ مرز ریپازیتوری حفظ شده
 - **احراز هویت:** اول‌حساب موبایل+OTP؛ آداپتور پیامک ایرانی؛ سشن opaque + JWT در کوکی httpOnly؛ rate-limit و انقضای کد
 - **نقش‌ها:** `member | coach | admin` در `lib/auth/session.ts` (`requireRole`) + گارد صفحه‌ها (`requireRolePage`) + بخش‌های ناوبری نقش‌محور
 - **حقوق دسترسی:** محاسبه سرور-ساید از tier (free/vip/vip_plus/coach) — UI فقط نمایش است
@@ -93,9 +99,88 @@ bunx tsc --noEmit   # تایپ‌چک کامل (strict)
 - **امتیاز اسی:** شاخص ترکیبی توضیح‌پذیر (پیوستگی/قدرت/حجم/ریکاوری/تغذیه)
 - **آناتومی تعاملی:** انتخاب عضله با انیمیشن، فیلتر کتابخانه حرکات، نقشه حرارتی حجم ۳۰ روز
 
+## انتشار روی هاست
+
+> **مهم:** EsiFit یک اپلیکیشن Next.js با رندر سمت سرور است، نه سایت استاتیک.
+> تقریباً همه‌ی مسیرها (`ƒ` در خروجی بیلد) روی سرور رندر می‌شوند و ۴۴ روت API دارد.
+> بنابراین **به یک پروسه‌ی زنده‌ی Node.js نیاز دارد** و با آپلود FTP روی هاست
+> آپاچی/PHP اجرا نمی‌شود. خروجی استاتیک (`output: "export"`) هم ممکن نیست، چون
+> کل اپ حول دیتابیس و احراز هویت می‌چرخد.
+
+### پیش‌نیاز هاست
+
+| نیاز | توضیح |
+|---|---|
+| Node.js ≥ ۲۲ | یا هر هاستی که ایمیج Docker اجرا کند |
+| MySQL / MariaDB | همان دیتابیسی که روی هاست دارید |
+| امکان اجرای دائمی پروسه | cPanel «Setup Node.js App»، systemd، pm2 یا Docker |
+| Reverse proxy | nginx/Apache که به پورت اپ (پیش‌فرض ۳۰۰۰) پراکسی کند |
+
+اگر هاست فعلی فقط PHP و استاتیک است، سه راه دارید:
+
+1. **هاست Node ایرانی** (لیارا، آروان‌کلاد) — اپ آنجا، دامنه‌ی خودتان رویش.
+2. **VPS** با nginx + pm2 یا Docker — بیشترین کنترل.
+3. **پلن هاست را ارتقا دهید** به پلنی که Node.js دارد (اگر ارائه‌دهنده می‌دهد).
+
+دیتابیس می‌تواند همان MySQL هاست فعلی بماند، به شرطی که در پنل
+«Remote MySQL» را فعال و IP سرور اپ را whitelist کنید. اگر ممکن نبود،
+از MySQL خود همان هاست Node استفاده کنید.
+
+### اجرا با Docker (ساده‌ترین راه، روی هر هاستی)
+
+```bash
+docker build -t esifit --build-arg NEXT_PUBLIC_SITE_URL=https://your-domain.ir .
+docker run -d --restart=always -p 3000:3000 \
+  -e DATABASE_URL="mysql://user:pass@db-host:3306/esifit" \
+  -e SESSION_SECRET="$(openssl rand -hex 32)" \
+  -e NEXT_PUBLIC_SITE_URL="https://your-domain.ir" \
+  --name esifit esifit
+```
+
+### اجرا بدون Docker
+
+```bash
+bun install
+bunx prisma generate
+bun run build
+bun run db:deploy          # اجرای migrationها روی دیتابیس هاست
+bun run db:seed            # ⚠️ فقط بار اول — این اسکریپت کل دیتابیس را پاک می‌کند
+bun run start              # روی پورت ۳۰۰۰
+```
+
+`bun run start` بدون `DATABASE_URL` و `SESSION_SECRET` عمداً بالا نمی‌آید و
+پیام واضح می‌دهد؛ این متغیرها را از محیط هاست (پنل / systemd / pm2) تزریق کنید.
+بیلد فایل `.env` محلی را از خروجی حذف می‌کند تا کلیدهای توسعه به تولید نشت نکنند.
+
+### پراکسی nginx
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+`X-Forwarded-For` را حتماً بفرستید — محدودیت نرخ OTP بر اساس همین هدر IP را تشخیص می‌دهد.
+
+### دیپلوی خودکار از گیت‌هاب
+
+`.github/workflows/ci.yml` روی هر push و PR اجرا می‌شود: تایپ‌چک، lint،
+۹۰ تست روی یک MySQL واقعی، بیلد تولید، و بررسی اینکه `.env` یا فایل دیتابیس
+به artifact نشت نکرده باشد.
+
+مرحله‌ی دیپلوی به انتخاب هاست بستگی دارد و با همان الگوی `workflow_run` پروژه‌ی
+`DbsWebsite_2` بعد از سبز شدن CI اجرا می‌شود — با این تفاوت که به‌جای آپلود
+`dist/`، باید بیلد را روی سرور بفرستد و پروسه‌ی Node را ری‌استارت کند
+(SSH + pm2، یا push ایمیج Docker).
+
 ## نکات تولید
 
-- جابه‌جایی به Supabase/Postgres: فقط `DATABASE_URL` و `prisma generate` (مرز ریپازیتوری حفظ شده)
+- seed اسکریپت **کل دیتابیس را پاک می‌کند**؛ هرگز آن را در دیپلوی خودکار نگذارید — فقط یک‌بار دستی.
 - `SESSION_SECRET` تصادفی الزامی است. اگر تنظیم نشده باشد، در تولید سرور به‌جای استفاده از کلید توسعه
   **خطا برمی‌گرداند** و یک پیام `FATAL` در لاگ می‌نویسد (صفحه‌های عمومی همچنان سرو می‌شوند).
   تولید کلید: `openssl rand -hex 32`
