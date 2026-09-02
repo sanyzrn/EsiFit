@@ -12,15 +12,19 @@ import { toPersianDigits } from "@/lib/formatting/numbers";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
+// The dynamic segment is [category]; destructuring `slug` here yielded
+// undefined and made every category page throw at the Prisma call.
+type CategoryParams = { params: Promise<{ category: string }> };
+
+export async function generateMetadata({ params }: CategoryParams) {
+  const { category: slug } = await params;
   const category = await db.category.findUnique({ where: { slug } });
   if (!category) return { title: "دسته‌بندی" };
   return { title: `${category.nameFa} | مجله اسی‌فیت`, description: category.description };
 }
 
-export default async function BlogCategoryPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
+export default async function BlogCategoryPage({ params }: CategoryParams) {
+  const { category: slug } = await params;
   const category = await db.category.findUnique({ where: { slug } });
   if (!category) notFound();
 

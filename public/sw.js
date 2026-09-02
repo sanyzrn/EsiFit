@@ -7,7 +7,10 @@
    Update flow: waiting SW is activated immediately; clients reload when idle
    (never mid-workout — see client listener guard). */
 
-const VERSION = "esifit-v2";
+const VERSION = "esifit-v3";
+/* Personalized HTML lives in its own cache so signing out can drop it without
+   throwing away the static shell. */
+const PAGES_CACHE = `${VERSION}-pages`;
 const PRECACHE = [
   "/manifest.webmanifest",
   "/icons/icon-192.png",
@@ -24,10 +27,26 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
+      .then((keys) =>
+        Promise.all(keys.filter((k) => k !== VERSION && k !== PAGES_CACHE).map((k) => caches.delete(k)))
+      )
       .then(() => self.clients.claim())
   );
 });
+
+/* Sign-out purges every page rendered for the previous account: without this a
+   later visitor on the same device could read a cached dashboard offline. */
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "esifit:clear-private-cache") {
+    event.waitUntil(caches.delete(PAGES_CACHE));
+  }
+});
+
+/* Only 200 OK, non-redirected, same-origin basic responses are cacheable —
+   storing a redirect or an error page makes the offline fallback serve it back. */
+function isCacheable(res) {
+  return Boolean(res) && res.ok && res.status === 200 && res.type === "basic" && !res.redirected;
+}
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
@@ -40,12 +59,16 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(VERSION).then((c) => c.put(req, copy)).catch(() => {});
+          if (isCacheable(res)) {
+            const copy = res.clone();
+            caches.open(PAGES_CACHE).then((c) => c.put(req, copy)).catch(() => {});
+          }
           return res;
         })
         .catch(() =>
-          caches.match(req).then((cached) => cached ?? caches.match("/offline").then((off) => off ?? Response.error()))
+          caches
+            .match(req, { cacheName: PAGES_CACHE })
+            .then((cached) => cached ?? caches.match("/offline").then((off) => off ?? Response.error()))
         )
     );
     return;
@@ -57,8 +80,10 @@ self.addEventListener("fetch", (event) => {
       caches.match(req).then((cached) => {
         const network = fetch(req)
           .then((res) => {
-            const copy = res.clone();
-            caches.open(VERSION).then((c) => c.put(req, copy)).catch(() => {});
+            if (isCacheable(res)) {
+              const copy = res.clone();
+              caches.open(VERSION).then((c) => c.put(req, copy)).catch(() => {});
+            }
             return res;
           })
           .catch(() => cached);

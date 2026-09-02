@@ -40,48 +40,51 @@ export async function POST(req: NextRequest) {
     let synced = 0;
     let conflicts = 0;
     for (const op of body.sets) {
-      // Ownership check: session must belong to user
-      const session = await db.workoutSession.findUnique({
-        where: { id: op.sessionId },
-        select: { userId: true },
-      });
-      if (!session || session.userId !== user.id) {
-        conflicts++;
-        continue;
-      }
-
-      // Ensure the exercise log exists (idempotent by session+exercise+order)
-      let log = await db.exerciseLog.findFirst({
-        where: { sessionId: op.sessionId, exerciseId: op.exerciseId, orderIndex: op.orderIndex },
-      });
-      if (!log) {
-        log = await db.exerciseLog.create({
-          data: { sessionId: op.sessionId, exerciseId: op.exerciseId, orderIndex: op.orderIndex },
+      // One bad operation must never poison the rest of the batch: a queued
+      // op that can no longer be applied is reported as a conflict, not a 500.
+      try {
+        // Ownership check: session must belong to user
+        const session = await db.workoutSession.findUnique({
+          where: { id: op.sessionId },
+          select: { userId: true },
         });
-      }
+        if (!session || session.userId !== user.id) {
+          conflicts++;
+          continue;
+        }
 
-      const existing = await db.setLog.findUnique({ where: { clientId: op.clientId } }).catch(() => null);
-      if (existing) {
+        // Ensure the exercise log exists (idempotent by session+exercise+order)
+        let log = await db.exerciseLog.findFirst({
+          where: { sessionId: op.sessionId, exerciseId: op.exerciseId, orderIndex: op.orderIndex },
+        });
+        if (!log) {
+          log = await db.exerciseLog.create({
+            data: { sessionId: op.sessionId, exerciseId: op.exerciseId, orderIndex: op.orderIndex },
+          });
+        }
+
+        const existing = await db.setLog.findUnique({ where: { clientId: op.clientId } });
+        if (existing) {
+          synced++;
+          continue;
+        }
+
+        await db.setLog.create({
+          data: {
+            exerciseLogId: log.id,
+            setNumber: op.setNumber,
+            weightKg: op.weightKg ?? null,
+            reps: op.reps ?? null,
+            rpe: op.rpe ?? null,
+            durationSeconds: op.durationSeconds ?? null,
+            completedAt: op.completedAt ? new Date(op.completedAt) : new Date(),
+            clientId: op.clientId,
+          },
+        });
         synced++;
-        continue;
-      }
-
-      await db.setLog.create({
-        data: {
-          exerciseLogId: log.id,
-          setNumber: op.setNumber,
-          weightKg: op.weightKg ?? null,
-          reps: op.reps ?? null,
-          rpe: op.rpe ?? null,
-          durationSeconds: op.durationSeconds ?? null,
-          completedAt: op.completedAt ? new Date(op.completedAt) : new Date(),
-          clientId: op.clientId,
-        },
-      }).catch(() => {
+      } catch {
         conflicts++;
-        return null;
-      });
-      synced++;
+      }
     }
 
     return NextResponse.json({ ok: true, synced, conflicts });

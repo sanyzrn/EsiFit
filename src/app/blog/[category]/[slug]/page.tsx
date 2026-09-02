@@ -81,7 +81,12 @@ export default async function ArticlePage({
   return (
     <AppShell session={session} flags={resolveEnabledFlags()}>
       <PublicNavbar />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script
+        type="application/ld+json"
+        // "<" is escaped so a "</script>" sequence inside any article field
+        // cannot close the tag early and inject markup.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+      />
 
       <article className="pt-28 pb-10 max-w-3xl mx-auto w-full px-4 lg:px-8 min-h-[70vh]">
         <nav className="text-xs text-esi-text-muted" aria-label="مسیر">

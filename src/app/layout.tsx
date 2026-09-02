@@ -18,7 +18,15 @@ const vazir = localFont({
   preload: true,
 });
 
+/**
+ * Absolute base for every generated URL (canonical, og:url, og:image).
+ * Without it Next emits *relative* canonicals, which search engines ignore.
+ * Set NEXT_PUBLIC_SITE_URL per environment.
+ */
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "اسی‌فیت | مربی هوشمند تناسب اندام",
     template: "%s | اسی‌فیت",
@@ -50,6 +58,7 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
   },
+  alternates: { canonical: "/" },
   openGraph: {
     title: "اسی‌فیت | مربی هوشمند تناسب اندام",
     description:
@@ -57,6 +66,15 @@ export const metadata: Metadata = {
     siteName: "اسی‌فیت",
     type: "website",
     locale: "fa_IR",
+    url: "/",
+    images: [{ url: "/icons/icon-512.png", width: 512, height: 512, alt: "اسی‌فیت" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "اسی‌فیت | مربی هوشمند تناسب اندام",
+    description:
+      "تمرین، تغذیه، ریکاوری و تحلیل پیشرفت — اکوسیستم کامل تناسب اندام فارسی، بهینه برای موبایل.",
+    images: ["/icons/icon-512.png"],
   },
   formatDetection: { telephone: false },
 };

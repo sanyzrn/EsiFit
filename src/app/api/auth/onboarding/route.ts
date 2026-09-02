@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
-import { toAppError } from "@/lib/errors/app-error";
+import { appErrorResponse } from "@/lib/errors/respond";
 import { z } from "zod";
 import { computeMacroTargets } from "@/lib/domain/body-math";
 
@@ -71,10 +71,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, macros });
   } catch (error) {
-    const appError = toAppError(error);
-    return NextResponse.json(
-      { ok: false, ...appError.toJSON() },
-      { status: appError.code === "validation" ? 400 : 500 },
-    );
+    return appErrorResponse(error);
   }
 }

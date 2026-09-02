@@ -3,10 +3,10 @@ import { appErrorResponse } from "@/lib/errors/respond";
 import ZAI from "z-ai-web-dev-sdk";
 import { getSessionUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { toAppError, AppError } from "@/lib/errors/app-error";
+import { AppError } from "@/lib/errors/app-error";
 import { getEntitlements, type UserTier } from "@/lib/entitlements/entitlements";
 import { z } from "zod";
-import { formatJalaliNumeric, todayISO } from "@/lib/dates/jalali";
+import { formatJalaliNumeric, parseISODateOnly, todayISO } from "@/lib/dates/jalali";
 
 /**
  * AI assistant — provider-agnostic server adapter.
@@ -30,9 +30,10 @@ const SYSTEM_PROMPT = `تو «مربی اسی‌فیت» هستی — دستیا
 - برنامه تمرینی که پیشنهاد می‌دهی ساختار مشخص داشته باشد (حرکت، ست، تکرار، استراحت).
 - اعداد را با ارقام فارسی بنویس.`;
 
-async function countDailyUsage(userId: string): Promise<number> {
-  const dayStart = new Date();
-  dayStart.setHours(0, 0, 0, 0);
+async function countDailyUsage(userId: string, timezone: string): Promise<number> {
+  // The quota is a *user-facing* daily allowance: it must roll over at the
+  // user's midnight (Asia/Tehran by default), not the server's.
+  const dayStart = parseISODateOnly(todayISO(timezone));
   return db.aiUsageLog.count({
     where: { userId, createdAt: { gte: dayStart }, status: "success" },
   });
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     // ---- Quota (server-side entitlement) ----
     const ent = getEntitlements(session.tier as UserTier);
-    const used = await countDailyUsage(session.id);
+    const used = await countDailyUsage(session.id, session.timezone);
     if (used >= ent.aiMessagesPerDay) {
       throw new AppError("quota", {
         userMessage: `سهمیه روزانه (${ent.aiMessagesPerDay} پیام) تمام شده است. با ارتقای پلن سهمیه بیشتری بگیرید.`,
@@ -104,12 +105,18 @@ export async function POST(req: NextRequest) {
       select: { role: true, content: true },
     });
     const messages = [
-      { role: "assistant" as const, content: SYSTEM_PROMPT },
-      ...(deepContext ? [{ role: "assistant" as const, content: `زمینه کاربر:\n${deepContext}` }] : []),
-      ...history.reverse().map((m) => ({
-        role: m.role === "user" ? ("user" as const) : ("assistant" as const),
-        content: m.content,
-      })),
+      // The safety rules are instructions, not prior model output — sending them
+      // as an assistant turn lets the model treat them as overridable context.
+      { role: "system" as const, content: SYSTEM_PROMPT },
+      ...(deepContext ? [{ role: "system" as const, content: `زمینه کاربر:\n${deepContext}` }] : []),
+      ...history
+        .reverse()
+        // Provider-failure notices are UI breadcrumbs, not conversation turns.
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .map((m) => ({
+          role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+          content: m.content,
+        })),
     ];
 
     const zai = await ZAI.create();
@@ -156,9 +163,6 @@ export async function POST(req: NextRequest) {
       quota: { used: used + 1, limit: ent.aiMessagesPerDay },
     });
   } catch (error) {
-    if (error instanceof AppError) {
-      return NextResponse.json({ ok: false, code: error.code, message: error.userMessage }, { status: error.code === "quota" ? 429 : 502 });
-    }
     return appErrorResponse(error);
   }
 }

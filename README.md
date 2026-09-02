@@ -34,7 +34,7 @@ bun run dev                 # http://localhost:3000
 ## تست‌ها و کیفیت
 
 ```bash
-bun run test        # ۸۲ تست (واحد + یکپارچگی API روی دیتابیس تست ایزوله)
+bun run test        # ۸۷ تست (واحد + یکپارچگی API روی دیتابیس تست ایزوله)
 bun run lint        # ESLint
 bunx tsc --noEmit   # تایپ‌چک کامل (strict)
 ```
@@ -46,7 +46,8 @@ bunx tsc --noEmit   # تایپ‌چک کامل (strict)
 | متغیر | توضیح |
 |---|---|
 | `DATABASE_URL` | مسیر فایل SQLite (پیش‌فرض sandbox) یا رشته Postgres/Supabase در تولید |
-| `SESSION_SECRET` | کلید امضای JWT سشن‌ها — در تولید الزامی و تصادفی |
+| `SESSION_SECRET` | کلید امضای سشن‌ها — **در تولید الزامی**؛ بدون آن سرور از ساخت/بررسی سشن سر باز می‌زند (fail-closed) |
+| `NEXT_PUBLIC_SITE_URL` | دامنه عمومی؛ مبنای canonical، `og:url`، `robots.txt` و `sitemap.xml` |
 | `SMS_PROVIDER` | `dev` (پیش‌فرض) \| `kavenegar` \| `melipayamak` \| `smsir` |
 | `KAVENEGAR_API_KEY` / `KAVENEGAR_SENDER` | اعتبار کاوه‌نگار |
 | `MELIPAYAMAK_USERNAME` / `MELIPAYAMAK_PASSWORD` / `MELIPAYAMAK_FROM` | اعتبار ملی‌پیامک |
@@ -81,6 +82,14 @@ bunx tsc --noEmit   # تایپ‌چک کامل (strict)
 ## نکات تولید
 
 - جابه‌جایی به Supabase/Postgres: فقط `DATABASE_URL` و `prisma generate` (مرز ریپازیتوری حفظ شده)
-- `SESSION_SECRET` تصادفی الزامی است؛ در نبود آن هشدار در لاگ تولید درج می‌شود
-- پرداخت واقعی: جایگاه آداپتور در `api/plans/subscribe` آماده است
+- `SESSION_SECRET` تصادفی الزامی است. اگر تنظیم نشده باشد، در تولید سرور به‌جای استفاده از کلید توسعه
+  **خطا برمی‌گرداند** و یک پیام `FATAL` در لاگ می‌نویسد (صفحه‌های عمومی همچنان سرو می‌شوند).
+  تولید کلید: `openssl rand -hex 32`
+- `NEXT_PUBLIC_SITE_URL` را روی دامنه واقعی بگذارید؛ در نبود آن canonicalها و sitemap روی
+  `http://localhost:3000` ساخته می‌شوند.
+- خروجی `standalone` به‌صورت پیش‌فرض فایل `.env` محلی را هم کپی می‌کند و آن مقادیر بر متغیرهای
+  محیطیِ پلتفرم غالب می‌شوند؛ اسکریپت `build` این فایل‌ها را از خروجی حذف می‌کند تا کلیدهای
+  توسعه به تولید نشت نکنند. متغیرها را از خود پلتفرم تزریق کنید.
+- پرداخت واقعی: جایگاه آداپتور در `api/plans/subscribe` آماده است. **توجه:** مسیر فعلی یک پرداخت
+  آزمایشی است و tier را بدون تراکنش واقعی ارتقا می‌دهد؛ پیش از انتشار عمومی باید به دروازه واقعی وصل شود.
 - SMS واقعی: اعتبارها را در `.env` قرار دهید و `SMS_PROVIDER` را تغییر دهید
