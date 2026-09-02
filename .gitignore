@@ -40,6 +40,14 @@ yarn-error.log*
 # vercel
 .vercel
 
+# generated SQLite databases (dev seed + the isolated test DB that
+# `bun run test` pushes to via tests/setup-global.ts)
+prisma/db/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
 
 # typescript
 *.tsbuildinfo
