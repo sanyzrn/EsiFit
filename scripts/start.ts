@@ -1,12 +1,10 @@
 /**
- * Launcher for the standalone production server.
+ * Launcher for the standalone production server (`bun run start`).
  *
- * `.next/standalone/server.js` calls `process.chdir(__dirname)` on boot and does
- * not read a .env file (the build deliberately strips .env out of the artifact so
- * local secrets never ship). Configuration therefore has to arrive as real
- * environment variables from the host — panel, systemd unit, pm2 ecosystem file
- * or docker run. Failing here with a clear message beats a cryptic Prisma error
- * on the first request.
+ * `.next/standalone/server.js` calls `process.chdir(__dirname)` on boot and the
+ * build strips .env out of the artifact, so configuration has to arrive as real
+ * environment variables. Checking them here turns a cryptic Prisma failure on
+ * the first request into one clear line at startup.
  */
 import { spawn } from "node:child_process";
 import path from "node:path";
@@ -17,8 +15,8 @@ const REQUIRED = ["DATABASE_URL", "SESSION_SECRET"] as const;
 const missing = REQUIRED.filter((key) => !process.env[key]);
 if (missing.length > 0) {
   console.error(
-    `[esifit] Refusing to start — missing required environment variable(s): ${missing.join(", ")}.\n` +
-      "Set them in the host's environment (see .env.example), then start again.",
+    `[esifit] Refusing to start — missing environment variable(s): ${missing.join(", ")}.\n` +
+      "Set them in .env (local) or in the host's environment, then start again.",
   );
   process.exit(1);
 }
