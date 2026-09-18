@@ -167,22 +167,59 @@ const TEMPLATES: Record<PlanTemplateKey, { name: string; description: string; da
   },
 };
 
-export async function createDefaultPlanForUser(userId: string) {
-  return createPlanFromTemplate(userId, "ppl");
+export async function createDefaultPlanForUser(userId: string, availableEquipment?: Set<string> | null) {
+  return createPlanFromTemplate(userId, "ppl", undefined, availableEquipment);
 }
 
-/** Create a plan for a user from a named template (onboarding default or coach assignment). */
-export async function createPlanFromTemplate(userId: string, templateKey: PlanTemplateKey, startsOn?: string) {
+/** Progressive overload by week: baseline → build → peak → deload. */
+export const PLAN_WEEKS = 4;
+
+function progressiveSpec(base: PlannedSpec, weekNumber: number): PlannedSpec {
+  const w = Math.min(Math.max(weekNumber, 1), PLAN_WEEKS);
+  if (base.rest === 0 || (base.repsMin === 1 && base.repsMax === 1)) {
+    // Rest / timed cardio — no set progression.
+    return { ...base };
+  }
+  if (w === 1) return { ...base };
+  if (w === 4) {
+    // Deload: fewer sets, slightly easier RPE.
+    return {
+      ...base,
+      sets: Math.max(2, base.sets - 1),
+      rpe: Math.max(6, base.rpe - 1),
+      note: [base.note, "هفته دی‌لود — کیفیت اجرا مهم‌تر از وزنه"].filter(Boolean).join(" · "),
+    };
+  }
+  // Weeks 2–3: accumulate volume on working sets.
+  const setBump = w === 3 && base.sets >= 3 ? 1 : 0;
+  return {
+    ...base,
+    sets: base.sets + setBump,
+    rpe: Math.min(9, base.rpe + (w === 3 ? 0.5 : 0)),
+    note: [base.note, w === 2 ? "هفته ۲ — تثبیت فرم" : "هفته ۳ — اوج حجم"].filter(Boolean).join(" · "),
+  };
+}
+
+/**
+ * Create a plan for a user from a named template (onboarding default or coach assignment).
+ * Generates the full multi-week block (PLAN_WEEKS). When `availableEquipment` is set,
+ * exercises the user cannot perform are substituted by pattern/muscle affinity.
+ */
+export async function createPlanFromTemplate(
+  userId: string,
+  templateKey: PlanTemplateKey,
+  startsOn?: string,
+  availableEquipment?: Set<string> | null,
+) {
   const tpl = TEMPLATES[templateKey] ?? TEMPLATES.ppl;
-  const exercises = await db.exercise.findMany({
-    where: { slug: { in: tpl.days.flatMap((d) => d.exercises.map((x) => x.slug)) } },
-    select: { id: true, slug: true },
-  });
-  const bySlug = new Map(exercises.map((x) => [x.slug, x.id]));
-  const missing = tpl.days.flatMap((d) => d.exercises.filter((x) => !bySlug.has(x.slug)).map((x) => x.slug));
-  if (missing.length > 0) {
-    // Catalog gaps must not abort provisioning — surface them on the plan note.
-    console.warn("[plan-template] missing exercises skipped:", missing.join(", "));
+  const { loadExerciseCatalog, resolveExerciseForEquipment } = await import("@/lib/workout/catalog");
+  const catalog = await loadExerciseCatalog();
+
+  let equipment: Set<string> | null = availableEquipment ?? null;
+  if (equipment === undefined) equipment = null;
+  if (!availableEquipment) {
+    const { getUserEquipmentSet } = await import("@/lib/workout/catalog");
+    equipment = await getUserEquipmentSet(userId);
   }
 
   // Archive any previous active plan so "today" resolves to the new one.
@@ -197,53 +234,82 @@ export async function createPlanFromTemplate(userId: string, templateKey: PlanTe
         userId,
         name: tpl.name,
         goalType: "build_muscle",
-        weeks: 4,
+        weeks: PLAN_WEEKS,
         status: "active",
         startsOn: startsOn ?? new Date().toISOString().slice(0, 10),
-        description:
-          missing.length > 0
-            ? `${tpl.description}\n(برخی حرکات در کتابخانه موجود نبود و حذف شدند)`
-            : tpl.description,
+        description: `${tpl.description} — بلوک ${PLAN_WEEKS} هفته‌ای (رشد → اوج → دی‌لود).`,
       },
     });
 
-    for (let dayIdx = 0; dayIdx < tpl.days.length; dayIdx++) {
-      const spec = tpl.days[dayIdx];
-      const planDay = await tx.workoutPlanDay.create({
-        data: {
-          planId: plan.id,
-          weekNumber: 1,
-          dayNumber: dayIdx + 1,
-          name: spec.name,
-          focusRegion: spec.focusRegion,
-          isRestDay: Boolean(spec.isRest),
-        },
-      });
-      for (let exIdx = 0; exIdx < spec.exercises.length; exIdx++) {
-        const ex = spec.exercises[exIdx];
-        const exerciseId = bySlug.get(ex.slug);
-        if (!exerciseId) continue;
-        await tx.plannedExercise.create({
+    const skipped = new Set<string>();
+    const substituted = new Set<string>();
+
+    for (let weekNumber = 1; weekNumber <= PLAN_WEEKS; weekNumber++) {
+      for (let dayIdx = 0; dayIdx < tpl.days.length; dayIdx++) {
+        const spec = tpl.days[dayIdx];
+        const weekSuffix =
+          weekNumber === 1
+            ? " — هفته ۱"
+            : weekNumber === 2
+              ? " — هفته ۲"
+              : weekNumber === 3
+                ? " — هفته ۳"
+                : " — هفته ۴ (دی‌لود)";
+        const planDay = await tx.workoutPlanDay.create({
           data: {
-            planDayId: planDay.id,
-            exerciseId,
-            orderIndex: exIdx,
-            targetSets: ex.sets,
-            targetRepsMin: ex.repsMin,
-            targetRepsMax: ex.repsMax,
-            targetRpe: ex.rpe,
-            restSeconds: ex.rest,
-            note: ex.note ?? "",
+            planId: plan.id,
+            weekNumber,
+            dayNumber: dayIdx + 1,
+            name: `${spec.name}${weekSuffix}`,
+            focusRegion: spec.focusRegion,
+            isRestDay: Boolean(spec.isRest),
           },
         });
+
+        let orderIndex = 0;
+        for (const ex of spec.exercises) {
+          const resolved = resolveExerciseForEquipment(catalog, ex.slug, equipment);
+          if (!resolved) {
+            skipped.add(ex.slug);
+            continue;
+          }
+          if (resolved.slug !== ex.slug) substituted.add(`${ex.slug}→${resolved.slug}`);
+          const progressive = progressiveSpec(ex, weekNumber);
+          await tx.plannedExercise.create({
+            data: {
+              planDayId: planDay.id,
+              exerciseId: resolved.id,
+              orderIndex: orderIndex++,
+              targetSets: progressive.sets,
+              targetRepsMin: progressive.repsMin,
+              targetRepsMax: progressive.repsMax,
+              targetRpe: progressive.rpe,
+              restSeconds: progressive.rest,
+              note: resolved.slug !== ex.slug ? `${progressive.note ?? ""} · جایگزین: ${resolved.nameFa}`.trim() : (progressive.note ?? ""),
+            },
+          });
+        }
       }
+    }
+
+    if (skipped.size > 0 || substituted.size > 0) {
+      const bits: string[] = [];
+      if (substituted.size > 0) bits.push(`جایگزینی بر اساس وسایل: ${[...substituted].slice(0, 6).join("، ")}`);
+      if (skipped.size > 0) bits.push(`حذف‌شده (در دسترس نبود): ${[...skipped].join("، ")}`);
+      await tx.workoutPlan.update({
+        where: { id: plan.id },
+        data: { description: `${plan.description}\n${bits.join(" | ")}` },
+      });
     }
 
     return plan;
   });
 }
 
-/** Pick today's plan day deterministically from user's active plan. */
+/**
+ * Pick today's plan day from the active multi-week plan.
+ * Sequence: day-of-cycle from `startsOn`, week = floor(elapsed / cycleLen) + 1.
+ */
 export async function getTodayPlanDay(userId: string) {
   const plan = await db.workoutPlan.findFirst({
     where: { userId, status: "active" },
@@ -251,14 +317,22 @@ export async function getTodayPlanDay(userId: string) {
   });
   if (!plan || plan.days.length === 0) return null;
 
-  const trainingDays = plan.days.filter((d) => !d.isRestDay);
-  if (trainingDays.length === 0) return plan.days[0];
+  const weekOne = plan.days.filter((d) => d.weekNumber === 1).sort((a, b) => a.dayNumber - b.dayNumber);
+  if (weekOne.length === 0) {
+    const any = [...plan.days].sort((a, b) => a.dayNumber - b.dayNumber);
+    return any[0];
+  }
 
-  // Sequence from plan start date (not day-of-year + user hash) so a coach
-  // prescription starting tomorrow actually rotates day1 → day2 → …
-  const ordered = [...trainingDays].sort((a, b) => a.dayNumber - b.dayNumber);
+  const cycleLen = weekOne.length;
   const start = plan.startsOn;
   const today = new Date().toISOString().slice(0, 10);
   const elapsed = Math.max(0, Math.round((Date.parse(today) - Date.parse(start)) / 86_400_000));
-  return ordered[elapsed % ordered.length];
+  const weekNumber = Math.min(plan.weeks || PLAN_WEEKS, Math.floor(elapsed / cycleLen) + 1);
+  const dayNumber = (elapsed % cycleLen) + 1;
+
+  return (
+    plan.days.find((d) => d.weekNumber === weekNumber && d.dayNumber === dayNumber) ??
+    plan.days.find((d) => d.weekNumber === 1 && d.dayNumber === dayNumber) ??
+    weekOne[0]
+  );
 }

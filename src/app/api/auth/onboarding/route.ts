@@ -15,6 +15,7 @@ const schema = z.object({
   experienceLevel: z.enum(["beginner", "intermediate", "advanced"]),
   activityLevel: z.enum(["sedentary", "light", "moderate", "active", "very_active"]),
   unitSystem: z.enum(["metric", "imperial"]).default("metric"),
+  availableEquipment: z.array(z.string()).max(20).optional(),
 });
 
 export async function POST(req: NextRequest) {

@@ -78,6 +78,8 @@ model UserProfile {
   dailyFatTarget      Float?
   dailyWaterTargetMl  Int     @default(2500)
   weeklyWorkoutTarget Int     @default(4)
+  /** JSON array of equipment keys the user can use; empty = unrestricted gym. */
+  availableEquipment  String  @default("")
   onboardedAt         DateTime?
   user                User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -751,10 +753,15 @@ model AiUsageLog {
   completionTokens Int      @default(0)
   totalTokens      Int      @default(0)
   latencyMs        Int      @default(0)
-  status           String   @default("success") // success | failed | blocked
+  status           String   @default("success") // success | failed | blocked | pending
+  /** User-local calendar day (YYYY-MM-DD) for quota windows. */
+  dayKey           String   @default("")
+  /** Client/server request id — unique claim key for atomic quota reservation. */
+  requestId        String?  @unique
   createdAt        DateTime @default(now())
 
   @@index([userId, createdAt])
+  @@index([userId, dayKey, status])
 }
 
 // ------------------------- Advanced roadmap entities -------------------------

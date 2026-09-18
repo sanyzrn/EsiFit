@@ -6,13 +6,20 @@ import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors/app-error";
 import { getEntitlements, type UserTier } from "@/lib/entitlements/entitlements";
 import { z } from "zod";
-import { formatJalaliNumeric, parseISODateOnly, todayISO } from "@/lib/dates/jalali";
+import { formatJalaliNumeric, todayISO } from "@/lib/dates/jalali";
+import {
+  assertQuotaClaim,
+  claimAiQuotaSlot,
+  finalizeAiQuota,
+  newQuotaRequestId,
+  releaseAiQuotaSlot,
+} from "@/lib/ai/quota";
 
 /**
  * AI assistant — provider-agnostic server adapter.
- * Quota per tier enforced HERE (server), usage logged per DATA_MODEL §13.
- * Provider secrets never reach the client. Persian system prompt with
- * conservative health messaging per TECH_ARCHITECTURE §10.1.
+ * Quota is claimed atomically (pending reservation) before the provider call,
+ * then finalized on success or released on failure. Concurrent requests cannot
+ * exceed the tier daily limit.
  */
 
 const schema = z.object({
@@ -30,17 +37,10 @@ const SYSTEM_PROMPT = `تو «مربی اسی‌فیت» هستی — دستیا
 - برنامه تمرینی که پیشنهاد می‌دهی ساختار مشخص داشته باشد (حرکت، ست، تکرار، استراحت).
 - اعداد را با ارقام فارسی بنویس.`;
 
-async function countDailyUsage(userId: string, timezone: string): Promise<number> {
-  // The quota is a *user-facing* daily allowance: it must roll over at the
-  // user's midnight (Asia/Tehran by default), not the server's.
-  const dayStart = parseISODateOnly(todayISO(timezone));
-  return db.aiUsageLog.count({
-    where: { userId, createdAt: { gte: dayStart }, status: "success" },
-  });
-}
-
 export async function POST(req: NextRequest) {
   const startedAt = Date.now();
+  const requestId = newQuotaRequestId();
+  let reserved = false;
   try {
     const session = await getSessionUser();
     if (!session) {
@@ -49,14 +49,16 @@ export async function POST(req: NextRequest) {
 
     const body = schema.parse(await req.json());
 
-    // ---- Quota (server-side entitlement) ----
+    // ---- Atomic quota claim (server-side entitlement) ----
     const ent = getEntitlements(session.tier as UserTier);
-    const used = await countDailyUsage(session.id, session.timezone);
-    if (used >= ent.aiMessagesPerDay) {
-      throw new AppError("quota", {
-        userMessage: `سهمیه روزانه (${ent.aiMessagesPerDay} پیام) تمام شده است. با ارتقای پلن سهمیه بیشتری بگیرید.`,
-      });
-    }
+    const claim = await claimAiQuotaSlot({
+      userId: session.id,
+      timezone: session.timezone,
+      limit: ent.aiMessagesPerDay,
+      requestId,
+    });
+    assertQuotaClaim(claim);
+    reserved = true;
 
     // ---- Conversation ----
     let conversationId = body.conversationId;
@@ -70,6 +72,12 @@ export async function POST(req: NextRequest) {
       });
       conversationId = conv.id;
     }
+
+    // Bind reservation to the conversation for audit.
+    await db.aiUsageLog.updateMany({
+      where: { requestId, status: "pending" },
+      data: { conversationId },
+    });
 
     const userMessage = await db.aiMessage.create({
       data: { conversationId, role: "user", content: body.message, status: "complete" },
@@ -105,13 +113,10 @@ export async function POST(req: NextRequest) {
       select: { role: true, content: true },
     });
     const messages = [
-      // The safety rules are instructions, not prior model output — sending them
-      // as an assistant turn lets the model treat them as overridable context.
       { role: "system" as const, content: SYSTEM_PROMPT },
       ...(deepContext ? [{ role: "system" as const, content: `زمینه کاربر:\n${deepContext}` }] : []),
       ...history
         .reverse()
-        // Provider-failure notices are UI breadcrumbs, not conversation turns.
         .filter((m) => m.role === "user" || m.role === "assistant")
         .map((m) => ({
           role: m.role === "user" ? ("user" as const) : ("assistant" as const),
@@ -128,9 +133,8 @@ export async function POST(req: NextRequest) {
       });
       assistantText = completion.choices[0]?.message?.content ?? "";
     } catch (providerError) {
-      await db.aiUsageLog.create({
-        data: { userId: session.id, conversationId, status: "failed", latencyMs: Date.now() - startedAt },
-      });
+      await releaseAiQuotaSlot(requestId, "failed");
+      reserved = false;
       await db.aiMessage.create({
         data: { conversationId, role: "system_notice", content: "پاسخ هوشمند موقتاً در دسترس نیست.", status: "failed" },
       });
@@ -141,28 +145,26 @@ export async function POST(req: NextRequest) {
       data: { conversationId, role: "assistant", content: assistantText, status: "complete" },
     });
 
-    await db.aiUsageLog.create({
-      data: {
-        userId: session.id,
-        conversationId,
-        provider: "z-ai",
-        model: "glm-4-flash",
-        promptTokens: Math.round(body.message.length / 3),
-        completionTokens: Math.round(assistantText.length / 3),
-        totalTokens: Math.round((body.message.length + assistantText.length) / 3),
-        latencyMs: Date.now() - startedAt,
-        status: "success",
-      },
+    await finalizeAiQuota(requestId, {
+      conversationId,
+      promptTokens: Math.round(body.message.length / 3),
+      completionTokens: Math.round(assistantText.length / 3),
+      totalTokens: Math.round((body.message.length + assistantText.length) / 3),
+      latencyMs: Date.now() - startedAt,
     });
+    reserved = false;
 
     return NextResponse.json({
       ok: true,
       conversationId,
       userMessageId: userMessage.id,
       message: { id: assistantMessage.id, content: assistantText },
-      quota: { used: used + 1, limit: ent.aiMessagesPerDay },
+      quota: { used: claim.used, limit: ent.aiMessagesPerDay },
     });
   } catch (error) {
+    if (reserved) {
+      await releaseAiQuotaSlot(requestId, "failed").catch(() => undefined);
+    }
     return appErrorResponse(error);
   }
 }
