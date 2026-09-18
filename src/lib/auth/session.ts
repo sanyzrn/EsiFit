@@ -150,7 +150,27 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     .update({ where: { id: session.id }, data: { lastSeenAt: new Date() } })
     .catch(() => undefined);
 
-  return toSessionUser(session.user, Boolean(session.user.profile?.onboardedAt));
+  const tier = await resolveEffectiveTier(session.user.id, session.user.tier);
+  return toSessionUser({ ...session.user, tier }, Boolean(session.user.profile?.onboardedAt));
+}
+
+/**
+ * Paid tiers require a non-expired subscription. Seed/demo accounts without any
+ * subscription row keep their assigned tier. Expired paid subscriptions downgrade.
+ */
+async function resolveEffectiveTier(userId: string, storedTier: string): Promise<string> {
+  if (storedTier === "free") return storedTier;
+  const subs = await db.subscription.findMany({
+    where: { userId },
+    orderBy: { currentPeriodEndsAt: "desc" },
+    select: { tier: true, status: true, currentPeriodEndsAt: true },
+  });
+  if (subs.length === 0) return storedTier; // seeded / admin-assigned tier
+  const now = new Date();
+  const active = subs.find((s) => s.status === "active" && s.currentPeriodEndsAt >= now);
+  if (active) return active.tier;
+  await db.user.update({ where: { id: userId }, data: { tier: "free" } }).catch(() => undefined);
+  return "free";
 }
 
 /** Route-guard: throws authentication AppError when unauthenticated. */

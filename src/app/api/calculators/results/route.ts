@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { appErrorResponse } from "@/lib/errors/respond";
 
 const schema = z.object({
   calculatorType: z.string().max(40),
@@ -28,8 +29,8 @@ export async function POST(req: NextRequest) {
       },
     });
     return NextResponse.json({ ok: true, id: created.id });
-  } catch {
-    return NextResponse.json({ ok: false, code: "validation", message: "ذخیره ناموفق بود." }, { status: 400 });
+  } catch (error) {
+    return appErrorResponse(error);
   }
 }
 
@@ -53,7 +54,7 @@ export async function GET(req: NextRequest) {
         createdAt: r.createdAt,
       })),
     });
-  } catch {
-    return NextResponse.json({ ok: false, code: "unexpected" }, { status: 500 });
+  } catch (error) {
+    return appErrorResponse(error);
   }
 }

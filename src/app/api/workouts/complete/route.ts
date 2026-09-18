@@ -31,10 +31,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, alreadyCompleted: true });
     }
 
+    // Atomic completion: only one concurrent complete wins.
+    const claimed = await db.workoutSession.updateMany({
+      where: { id: session.id, status: { notIn: ["completed"] } },
+      data: { status: "completed" },
+    });
+    if (claimed.count === 0) {
+      return NextResponse.json({ ok: true, alreadyCompleted: true });
+    }
+
     const allSets = session.exerciseLogs.flatMap((l) => l.sets);
     const volume = sessionVolume(allSets);
-    // The client reports elapsed time in SECONDS; the wall-clock fallback is in
-    // milliseconds. Normalize both to seconds before persisting.
     const elapsedSeconds =
       body.durationSeconds ??
       Math.round(((session.endedAt ?? new Date()).getTime() - session.startedAt.getTime()) / 1000);
@@ -43,7 +50,6 @@ export async function POST(req: NextRequest) {
     await db.workoutSession.update({
       where: { id: session.id },
       data: {
-        status: "completed",
         endedAt: session.endedAt ?? new Date(),
         durationSeconds,
         totalVolumeKg: volume,
@@ -65,22 +71,26 @@ export async function POST(req: NextRequest) {
         where: { userId: user.id, exerciseId: log.exerciseId, recordType: "weight", isCurrent: true },
       });
       if (!prev || best.orm > prev.value + 0.01) {
-        if (prev) {
-          await db.personalRecord.update({ where: { id: prev.id }, data: { isCurrent: false } });
-        }
-        await db.personalRecord.create({
-          data: {
-            userId: user.id, exerciseId: log.exerciseId, recordType: "weight",
-            value: Math.round(best.orm * 10) / 10, unit: "kg",
-            workoutSessionId: session.id, achievedAt: new Date(), isCurrent: true,
-          },
+        const value = Math.round(best.orm * 10) / 10;
+        await db.$transaction(async (tx) => {
+          await tx.personalRecord.updateMany({
+            where: { userId: user.id, exerciseId: log.exerciseId, recordType: "weight", isCurrent: true },
+            data: { isCurrent: false },
+          });
+          await tx.personalRecord.create({
+            data: {
+              userId: user.id, exerciseId: log.exerciseId, recordType: "weight",
+              value, unit: "kg",
+              workoutSessionId: session.id, achievedAt: new Date(), isCurrent: true,
+            },
+          });
+          await tx.setLog.update({ where: { id: best.set.id }, data: { isPr: true } });
         });
-        await db.setLog.update({ where: { id: best.set.id }, data: { isPr: true } });
-        prResults.push({ exerciseName: log.exercise.nameFa, value: Math.round(best.orm * 10) / 10, unit: "kg" });
+        prResults.push({ exerciseName: log.exercise.nameFa, value, unit: "kg" });
       }
     }
 
-    // XP + badges (idempotent)
+    // XP + badges (idempotent; awardXp catches unique races)
     const xpResult = await awardXp({ userId: user.id, amount: 70, sourceType: "workout", sourceId: session.id });
     const newBadges = await evaluateAfterWorkout(user.id, session.id);
 

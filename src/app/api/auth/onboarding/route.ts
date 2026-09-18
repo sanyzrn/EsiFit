@@ -31,43 +31,42 @@ export async function POST(req: NextRequest) {
       goal: profileFields.primaryGoal,
     });
 
-    await db.user.update({
-      where: { id: session.id },
-      data: {
-        displayName,
-        unitSystem,
-      },
-    });
-
-    await db.userProfile.upsert({
-      where: { userId: session.id },
-      create: {
-        userId: session.id,
-        ...profileFields,
-        dailyCalorieTarget: macros.calories,
-        dailyProteinTarget: macros.proteinG,
-        dailyCarbTarget: macros.carbsG,
-        dailyFatTarget: macros.fatG,
-        dailyWaterTargetMl: Math.round((weightKg * 33) / 100) * 100,
-        onboardedAt: new Date(),
-      },
-      update: {
-        ...profileFields,
-        dailyCalorieTarget: macros.calories,
-        dailyProteinTarget: macros.proteinG,
-        dailyCarbTarget: macros.carbsG,
-        dailyFatTarget: macros.fatG,
-        onboardedAt: new Date(),
-      },
-    });
-
-    // Baseline body measurement (dated snapshot, not mutable).
+    // Baseline body measurement date (date-only, user tz).
     const today = new Date().toISOString().slice(0, 10);
-    await db.bodyMeasurement.upsert({
-      where: { userId_measuredOn: { userId: session.id, measuredOn: today } },
-      create: { userId: session.id, measuredOn: today, weightKg },
-      update: { weightKg },
-    });
+
+    await db.$transaction([
+      db.user.update({
+        where: { id: session.id },
+        data: { displayName, unitSystem },
+      }),
+      db.userProfile.upsert({
+        where: { userId: session.id },
+        create: {
+          userId: session.id,
+          ...profileFields,
+          dailyCalorieTarget: macros.calories,
+          dailyProteinTarget: macros.proteinG,
+          dailyCarbTarget: macros.carbsG,
+          dailyFatTarget: macros.fatG,
+          dailyWaterTargetMl: Math.round((weightKg * 33) / 100) * 100,
+          onboardedAt: new Date(),
+        },
+        update: {
+          ...profileFields,
+          dailyCalorieTarget: macros.calories,
+          dailyProteinTarget: macros.proteinG,
+          dailyCarbTarget: macros.carbsG,
+          dailyFatTarget: macros.fatG,
+          dailyWaterTargetMl: Math.round((weightKg * 33) / 100) * 100,
+          onboardedAt: new Date(),
+        },
+      }),
+      db.bodyMeasurement.upsert({
+        where: { userId_measuredOn: { userId: session.id, measuredOn: today } },
+        create: { userId: session.id, measuredOn: today, weightKg },
+        update: { weightKg },
+      }),
+    ]);
 
     return NextResponse.json({ ok: true, macros });
   } catch (error) {

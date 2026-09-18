@@ -99,6 +99,7 @@ model OtpRequestLog {
   id        String   @id @default(cuid())
   phone     String
   ip        String?
+  purpose   String   @default("request") // request | verify
   createdAt DateTime @default(now())
 
   @@index([phone, createdAt])
@@ -280,7 +281,7 @@ model WorkoutSession {
   status          String    @default("active") // planned | active | paused | completed | abandoned
   syncStatus      String    @default("synced") // local | syncing | synced | conflict | failed
   note            String    @default("")
-  clientId        String?   @unique // offline-created stable id
+  clientId        String?   // offline-created stable id (unique per user)
   totalVolumeKg   Float     @default(0)
   createdAt       DateTime  @default(now())
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -288,6 +289,7 @@ model WorkoutSession {
 
   exerciseLogs ExerciseLog[]
 
+  @@unique([userId, clientId])
   @@index([userId, startedAt])
 }
 
@@ -302,12 +304,14 @@ model ExerciseLog {
 
   sets SetLog[]
 
+  @@unique([sessionId, exerciseId, orderIndex])
   @@index([sessionId])
 }
 
 model SetLog {
   id              String   @id @default(cuid())
   exerciseLogId   String
+  userId          String?  // denormalized for scoped clientId uniqueness
   setNumber       Int
   weightKg        Float?
   reps            Int?
@@ -317,9 +321,10 @@ model SetLog {
   isWarmup        Boolean  @default(false)
   isPr            Boolean  @default(false)
   completedAt     DateTime @default(now())
-  clientId        String?  @unique
+  clientId        String?
   exerciseLog     ExerciseLog @relation(fields: [exerciseLogId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, clientId])
   @@index([exerciseLogId])
 }
 
@@ -358,14 +363,16 @@ model NutritionDay {
 model MealEntry {
   id                String  @id @default(cuid())
   nutritionDayId    String
+  userId            String?  // denormalized for scoped clientId uniqueness
   foodId            String
   mealSlot          String // breakfast | lunch | dinner | snack
   quantity          Float   @default(1) // servings count
   servingMultiplier Float   @default(1)
-  clientId          String? @unique
+  clientId          String?
   nutritionDay      NutritionDay @relation(fields: [nutritionDayId], references: [id], onDelete: Cascade)
   food              Food         @relation(fields: [foodId], references: [id])
 
+  @@unique([userId, clientId])
   @@index([nutritionDayId])
 }
 
@@ -391,9 +398,10 @@ model WaterLog {
   loggedAt   DateTime @default(now())
   logDate    String // ISO date-only in user tz
   syncStatus String   @default("synced")
-  clientId   String   @unique
+  clientId   String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, clientId])
   @@index([userId, logDate])
 }
 
@@ -764,7 +772,10 @@ model PersonalRecord {
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   exercise         Exercise @relation(fields: [exerciseId], references: [id])
 
-  @@unique([userId, exerciseId, recordType, isCurrent])
+  // Historical demoted rows are unconstrained (multiple isCurrent=false rows
+  // per exercise are valid). Application code demotes all current rows before
+  // inserting a new current one, inside a transaction.
+  @@index([userId, exerciseId, recordType, isCurrent])
   @@index([userId, isCurrent])
 }
 

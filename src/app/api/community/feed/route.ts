@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
   try {
     const cursor = schema.parse({ cursor: new URL(req.url).searchParams.get("cursor") ?? undefined }).cursor ?? 0;
     const posts = await db.post.findMany({
+      where: { visibility: "public" },
       orderBy: { createdAt: "desc" },
       skip: cursor,
       take: 12,
@@ -37,8 +38,8 @@ export async function GET(req: NextRequest) {
       })),
       nextCursor: posts.length === 12 ? cursor + 12 : null,
     });
-  } catch {
-    return NextResponse.json({ ok: false, code: "unexpected", message: "خطا در بارگذاری" }, { status: 500 });
+  } catch (error) {
+    return appErrorResponse(error);
   }
 }
 

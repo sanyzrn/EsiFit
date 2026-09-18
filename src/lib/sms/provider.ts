@@ -149,6 +149,12 @@ let cached: SmsProvider | null = null;
 export function getSmsProvider(): SmsProvider {
   if (cached) return cached;
   const name = (process.env.SMS_PROVIDER as SmsProviderName | undefined) ?? "dev";
+  // Fail closed in production: log-printed OTPs are full account takeover.
+  if (process.env.NODE_ENV === "production" && (name === "dev" || !name)) {
+    throw new Error(
+      "[esifit] FATAL: SMS_PROVIDER is 'dev' or unset in production. OTP codes would be written to logs. Set a real SMS provider.",
+    );
+  }
   switch (name) {
     case "kavenegar":
       cached = new KavenegarProvider();

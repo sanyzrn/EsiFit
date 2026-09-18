@@ -12,7 +12,7 @@ import { useSession } from "@/lib/client/use-session";
 import { TIER_LABELS, getEntitlements, type UserTier } from "@/lib/entitlements/entitlements";
 import { toPersianDigits, parseLocaleNumber } from "@/lib/formatting/numbers";
 import { formatRelative } from "@/lib/dates/jalali";
-import { clearLocalUserData } from "@/lib/offline/adapter";
+import { clearLocalUserData, syncQueue, getQueuedOperations } from "@/lib/offline/adapter";
 
 type Device = { id: string; deviceLabel: string; lastSeenAt: string };
 
@@ -41,6 +41,19 @@ export function SettingsView({
   };
 
   const logout = async () => {
+    // Best-effort flush: never destroy unsynced workout/water data silently.
+    try {
+      await syncQueue();
+      const remaining = await getQueuedOperations();
+      if (remaining.length > 0) {
+        const proceed = window.confirm(
+          "خروج داده‌های همگام‌نشده را از این دستگاه حذف می‌کند. ادامه می‌دهید؟",
+        );
+        if (!proceed) return;
+      }
+    } catch {
+      // sync unavailable — still allow logout
+    }
     await fetch("/api/auth/logout", { method: "POST" });
     // Server-side revocation is not enough: the offline queue, the read-through
     // cache and the cached pages live on this device and must go with it.

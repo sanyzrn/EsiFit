@@ -22,6 +22,7 @@ export function ensureSeed(): Promise<void> {
       db.goal, db.exerciseMuscle, db.exercise, db.muscleGroup, db.food, db.notification,
       db.postLike, db.comment, db.post, db.xpLog, db.userBadge, db.userMissionProgress,
       db.mission, db.badge, db.userProfile, db.session, db.otpCode, db.otpRequestLog,
+      db.product, db.order, db.subscription, db.subscriptionPlan,
       db.user,
     ];
     for (const t of tables as Array<{ deleteMany(): Promise<unknown> }>) {

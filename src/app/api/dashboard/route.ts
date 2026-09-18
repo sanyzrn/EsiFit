@@ -47,15 +47,23 @@ export async function GET() {
       : null;
     if (!readiness) {
       const sleep = await db.sleepLog.findUnique({ where: { userId_logDate: { userId: session.id, logDate: today } } });
+      // Load window must be calendar-day based (14 days), not "last 14 sessions".
+      const loadSince = new Date(Date.now() - 14 * 86_400_000);
       const recent = await db.workoutSession.findMany({
+        where: { userId: session.id, status: "completed", startedAt: { gte: loadSince } },
+        orderBy: { startedAt: "desc" },
+        select: { startedAt: true, totalVolumeKg: true },
+      });
+      const lastCompleted = await db.workoutSession.findFirst({
         where: { userId: session.id, status: "completed" },
         orderBy: { startedAt: "desc" },
-        take: 14,
-        select: { startedAt: true, totalVolumeKg: true },
+        select: { startedAt: true },
       });
       const load3 = recent.filter((s) => (Date.now() - s.startedAt.getTime()) < 3 * 86400000).reduce((a, s) => a + s.totalVolumeKg, 0);
       const load14 = recent.reduce((a, s) => a + s.totalVolumeKg, 0);
-      const daysSince = recent.length > 0 ? Math.floor((Date.now() - recent[0].startedAt.getTime()) / 86400000) : null;
+      const daysSince = lastCompleted
+        ? Math.floor((Date.now() - lastCompleted.startedAt.getTime()) / 86400000)
+        : null;
       const r = computeReadiness({
         sleepQualityScore: sleep?.qualityScore ?? null,
         sleepDurationMinutes: sleep?.durationMinutes ?? null,

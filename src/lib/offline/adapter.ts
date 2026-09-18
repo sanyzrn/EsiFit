@@ -134,8 +134,19 @@ export async function syncQueue(): Promise<{ synced: number; failed: number }> {
           cache: "no-store",
         });
         if (res.ok) {
-          synced++;
-          await removeOp(op.clientId);
+          const json = (await res.json().catch(() => null)) as { synced?: number; conflicts?: number; failed?: number } | null;
+          // Server reports per-op outcome in the batch response. Transient
+          // failures must stay queued; conflicts are terminal.
+          if (json && typeof json.failed === "number" && json.failed > 0) {
+            await markOpStatus(op.clientId, "failed");
+            failed++;
+          } else if (json && typeof json.conflicts === "number" && json.conflicts > 0 && (json.synced ?? 0) === 0) {
+            await markOpStatus(op.clientId, "conflict");
+            failed++;
+          } else {
+            synced++;
+            await removeOp(op.clientId);
+          }
         } else if (res.status === 401 || res.status === 404 || res.status === 410) {
           // Auth/validity errors will not fix themselves — park as conflict
           await markOpStatus(op.clientId, "conflict");

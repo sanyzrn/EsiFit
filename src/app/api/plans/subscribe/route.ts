@@ -7,14 +7,26 @@ import { appErrorResponse } from "@/lib/errors/respond";
 /**
  * Subscription change (mock payment sandbox).
  * Server-side tier assignment: this is the authoritative entitlement source.
+ * Production requires an explicit opt-in flag — otherwise unpaid tier upgrades
+ * would be a full entitlement bypass.
  */
 const schema = z.object({ planCode: z.string() });
+
+function mockPaymentAllowed(): boolean {
+  return process.env.NODE_ENV !== "production" || process.env.ALLOW_MOCK_PAYMENT === "true";
+}
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getSessionUser();
     if (!session) {
       return NextResponse.json({ ok: false, code: "authentication", message: "برای ارتقا حساب وارد شوید." }, { status: 401 });
+    }
+    if (!mockPaymentAllowed()) {
+      return NextResponse.json(
+        { ok: false, code: "provider", message: "پرداخت واقعی هنوز متصل نشده است. لطفاً بعداً تلاش کنید." },
+        { status: 502 },
+      );
     }
     const body = schema.parse(await req.json());
     const plan = await db.subscriptionPlan.findUnique({ where: { code: body.planCode } });
@@ -67,7 +79,7 @@ export async function GET() {
       plans: plans.map((p) => ({ ...p, featuresFa: JSON.parse(p.featuresFa) as string[] })),
       currentTier: session?.tier ?? null,
     });
-  } catch {
-    return NextResponse.json({ ok: false, code: "unexpected", message: "خطا" }, { status: 500 });
+  } catch (error) {
+    return appErrorResponse(error);
   }
 }

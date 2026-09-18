@@ -12,10 +12,19 @@ const bodySchema = z.object({
   deviceLabel: z.string().max(120).optional(),
 });
 
+function clientIp(req: NextRequest): string | null {
+  return (
+    req.headers.get("x-real-ip")?.trim() ||
+    req.headers.get("cf-connecting-ip")?.trim() ||
+    req.headers.get("x-forwarded-for")?.split(",").pop()?.trim() ||
+    null
+  );
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = bodySchema.parse(await req.json());
-    const result = await verifyOtp(body.phone, body.code);
+    const result = await verifyOtp(body.phone, body.code, clientIp(req));
 
     // Create account on first successful verification.
     let user = await db.user.findUnique({ where: { phone: result.phone } });

@@ -12,7 +12,7 @@ import { api, errorMessage } from "@/lib/client/api";
 import { enqueueOperation, newClientId } from "@/lib/offline/adapter";
 import { useFeatureFlag } from "@/lib/feature-flags/flag-provider";
 import { formatNumber, toPersianDigits } from "@/lib/formatting/numbers";
-import { formatJalaliLong } from "@/lib/dates/jalali";
+import { formatJalaliLong, todayISO, addDaysISO } from "@/lib/dates/jalali";
 import { cn } from "@/lib/utils";
 
 type DayData = {
@@ -57,13 +57,11 @@ const SLOTS = [
 ] as const;
 
 export function NutritionView() {
-  const [date, setDate] = React.useState(() => {
-    const d = new Date();
-    return d.toISOString().slice(0, 10);
-  });
+  const [date, setDate] = React.useState(() => todayISO());
   const [data, setData] = React.useState<DayData | null>(null);
   const [pickerOpen, setPickerOpen] = React.useState<string | null>(null);
   const offline = useFeatureFlag("OFFLINE_TRACKERS");
+  const today = todayISO();
 
   const load = React.useCallback(async (d: string) => {
     try {
@@ -119,11 +117,7 @@ export function NutritionView() {
               size="icon"
               className="h-10 w-10"
               aria-label="روز قبل"
-              onClick={() => {
-                const d = new Date(date);
-                d.setDate(d.getDate() - 1);
-                setDate(d.toISOString().slice(0, 10));
-              }}
+              onClick={() => setDate(addDaysISO(date, -1))}
             >
               <Icon name="ChevronRight" size={18} />
             </Button>
@@ -132,12 +126,8 @@ export function NutritionView() {
               size="icon"
               className="h-10 w-10"
               aria-label="روز بعد"
-              disabled={date >= new Date().toISOString().slice(0, 10)}
-              onClick={() => {
-                const d = new Date(date);
-                d.setDate(d.getDate() + 1);
-                setDate(d.toISOString().slice(0, 10));
-              }}
+              disabled={date >= today}
+              onClick={() => setDate(addDaysISO(date, 1))}
             >
               <Icon name="ChevronLeft" size={18} />
             </Button>

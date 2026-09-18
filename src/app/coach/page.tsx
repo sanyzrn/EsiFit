@@ -3,6 +3,7 @@ import { AppShell, PageHeader } from "@/components/layout/app-shell";
 import { CoachWorkspaceView } from "@/features/coach/coach-workspace-view";
 import { getCoachRoster } from "@/lib/coach/data";
 import { db } from "@/lib/db";
+import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "ورزشکاران من — مربی" };
@@ -17,7 +18,7 @@ export default async function CoachPage() {
   });
 
   return (
-    <AppShell session={session}>
+    <AppShell session={session} flags={resolveEnabledFlags()}>
       <CoachWorkspaceView
         roster={roster}
         activePlans={pendingAssignments}

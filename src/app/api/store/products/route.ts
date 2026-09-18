@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { getEntitlements, type UserTier } from "@/lib/entitlements/entitlements";
+import { appErrorResponse } from "@/lib/errors/respond";
 
 /** Store catalog — discount resolved from server-side entitlements. */
 export async function GET() {
@@ -30,7 +31,7 @@ export async function GET() {
       discountPercent: ent.storeDiscountPercent,
       memberPrice: ent.storeDiscountPercent > 0,
     });
-  } catch {
-    return NextResponse.json({ ok: false, code: "unexpected", message: "خطا در بارگذاری فروشگاه" }, { status: 500 });
+  } catch (error) {
+    return appErrorResponse(error);
   }
 }

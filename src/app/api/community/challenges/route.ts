@@ -15,6 +15,7 @@ export async function GET() {
         participants: {
           include: { user: { select: { displayName: true, tier: true } } },
           orderBy: { score: "desc" },
+          take: 10,
         },
         _count: { select: { participants: true } },
       },
@@ -22,12 +23,12 @@ export async function GET() {
     });
 
     const leaderboardFor = (ch: typeof challenges[number]) =>
-      ch.participants.slice(0, 10).map((p, i) => ({
+      ch.participants.map((p, i) => ({
         rank: i + 1,
         name: p.user.displayName,
         tier: p.user.tier,
         score: p.score,
-        isDemo: !session || p.userId !== session.id,
+        isMe: session ? p.userId === session.id : false,
       }));
 
     return NextResponse.json({

@@ -2,11 +2,13 @@
 
 import * as React from "react";
 import {
-  Activity, AlarmClock, Apple, Award, Bell, BookmarkPlus, CalendarCheck, ChartLine, Check,
-  ChevronLeft, ChevronRight, Clock, CloudOff, CloudUpload, Dumbbell, Download, Droplets,
-  Flame, Flag, Heart, Info, LayoutDashboard, LogOut, Medal, Menu, MessageCircle, Mic,
-  Moon, Mountain, Plus, Rocket, Search, SendHorizontal, Settings, ShoppingBag, ShoppingCart, Smartphone,
-  Sparkles, Sun, Sunrise, Target, Timer, Trash2, Trophy, User, Users, X, Zap,
+  Activity, AlarmClock, Apple, Award, BatteryLow, Bell, BookmarkPlus, CalendarCheck, ChartLine, Check,
+  ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Clock, CloudOff, CloudUpload, Dumbbell,
+  Download, Droplets, Flame, Flag, Heart, HeartPulse, Info, LayoutDashboard, LogOut, Medal, Menu,
+  MessageCircle, MessagesSquare, Mic, Moon, Mountain, PersonStanding, Plus, Rocket, ScrollText,
+  Search, SendHorizontal, Settings, Shield, ShoppingBag, ShoppingCart, Shuffle, Smartphone,
+  Sparkles, Sun, Sunrise, Target, Timer, Trash2, TriangleAlert, Trophy, Undo2, User, UserPlus,
+  Users, X, Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,14 +19,19 @@ import { cn } from "@/lib/utils";
  */
 
 const REGISTRY = {
-  Activity, AlarmClock, Apple, Award, Bell, BookmarkPlus, CalendarCheck, ChartLine, Check,
-  ChevronLeft, ChevronRight, Clock, CloudOff, CloudUpload, Dumbbell, Download, Droplets,
-  Flame, Flag, Heart, Info, LayoutDashboard, LogOut, Medal, Menu, MessageCircle, Mic,
-  Moon, Mountain, Plus, Rocket, Search, SendHorizontal, Settings, ShoppingBag, ShoppingCart, Smartphone,
-  Sparkles, Sun, Sunrise, Target, Timer, Trash2, Trophy, User, Users, X, Zap,
+  Activity, AlarmClock, Apple, Award, BatteryLow, Bell, BookmarkPlus, CalendarCheck, ChartLine, Check,
+  ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Clock, CloudOff, CloudUpload, Dumbbell,
+  Download, Droplets, Flame, Flag, Heart, HeartPulse, Info, LayoutDashboard, LogOut, Medal, Menu,
+  MessageCircle, MessagesSquare, Mic, Moon, Mountain, PersonStanding, Plus, Rocket, ScrollText,
+  Search, SendHorizontal, Settings, Shield, ShoppingBag, ShoppingCart, Shuffle, Smartphone,
+  Sparkles, Sun, Sunrise, Target, Timer, Trash2, TriangleAlert, Trophy, Undo2, User, UserPlus,
+  Users, X, Zap,
 } as const;
 
 export type IconName = keyof typeof REGISTRY;
+
+/** Exposed for registry-completeness tests (not part of the public UI API). */
+export const ICON_REGISTRY_KEYS = Object.keys(REGISTRY) as IconName[];
 
 const SIZES = { 16: 16, 20: 20, 24: 24, 32: 32 } as const;
 
@@ -50,6 +57,13 @@ const ALIASES: Record<string, IconName> = {
   "send": "SendHorizontal",
   "cart": "ShoppingCart",
   "trash": "Trash2",
+  "heart-pulse": "HeartPulse",
+  "clipboard-list": "ClipboardList",
+  "triangle-alert": "TriangleAlert",
+  "person-standing": "PersonStanding",
+  "shield": "Shield",
+  "shuffle": "Shuffle",
+  "scroll-text": "ScrollText",
 };
 
 export interface IconProps extends React.SVGProps<SVGSVGElement> {

@@ -36,7 +36,8 @@ type AnalyticsData = {
   prs: Array<{ id: string; exerciseName: string; value: number; unit: string; achievedAt: string }>;
   totals: { sessions: number; volumeKg: number };
   insights: Insight[];
-  esiScore: EsiScoreResult;
+  esiScore: EsiScoreResult | null;
+  entitlements?: { advancedAnalytics: boolean; historyMonths: number };
   goals: GoalCard[];
   strengthTrend: Array<{ exerciseSlug: string; exerciseName: string; points: Array<{ date: string; best: number }> }>;
 };
@@ -136,8 +137,8 @@ export function AnalyticsView() {
             ))}
           </section>
 
-          {/* EsiScore — composite, explainable */}
-          {esiFlag && (
+          {/* EsiScore — composite, explainable (VIP server-enforced) */}
+          {esiFlag && data.esiScore && (
             <motion.section
               aria-label="امتیاز اسی"
               initial={{ opacity: 0, y: 16 }}
@@ -157,6 +158,15 @@ export function AnalyticsView() {
                 <EsiScoreDial score={data.esiScore} />
               </div>
             </motion.section>
+          )}
+          {esiFlag && !data.esiScore && !ent.advancedAnalytics && (
+            <section aria-label="امتیاز اسی" className="rounded-3xl border border-border bg-surface-1 p-6">
+              <h2 className="font-bold mb-2">امتیاز اسی</h2>
+              <p className="text-sm leading-6 text-esi-text-secondary">
+                امتیاز اسی و تحلیل‌های پیشرفته از پلن وی‌آی‌پی فعال می‌شوند.{" "}
+                <a href="/plans" className="text-primary font-medium">ارتقای پلن</a>
+              </p>
+            </section>
           )}
 
           {/* Muscle heat map — anatomy on real geometry */}

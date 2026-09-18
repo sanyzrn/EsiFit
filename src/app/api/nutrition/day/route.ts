@@ -105,15 +105,18 @@ export async function POST(req: NextRequest) {
       update: {},
     });
 
-    const dupe = await db.mealEntry.findUnique({ where: { clientId: body.clientId } }).catch(() => null);
+    const dupe = await db.mealEntry.findUnique({
+      where: { userId_clientId: { userId: session.id, clientId: body.clientId } },
+    }).catch(() => null);
     if (!dupe) {
       await db.mealEntry.create({
         data: {
           nutritionDayId: day.id,
+          userId: session.id,
           foodId: food.id,
           mealSlot: body.mealSlot,
           quantity: body.quantity,
-          servingMultiplier: body.quantity,
+          servingMultiplier: 1,
           clientId: body.clientId,
         },
       });

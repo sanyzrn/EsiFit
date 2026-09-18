@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash, randomInt } from "crypto";
+import { createHmac, randomInt, timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors/app-error";
 import { getSmsProvider } from "@/lib/sms/provider";
@@ -11,6 +11,7 @@ import { serverSecret } from "@/lib/auth/session";
  * - Per-phone cooldown (60s), per-phone hourly cap (5), per-IP hourly cap (20).
  * - 6-digit code, HMAC-hashed at rest (never stored raw), 2-minute expiry,
  *   max 5 verification attempts, single-use consumption.
+ * - Verify attempts against missing/expired codes are still rate-limited.
  */
 
 const OTP_TTL_MS = 2 * 60 * 1000;
@@ -18,6 +19,7 @@ const OTP_MAX_ATTEMPTS = 5;
 const RESEND_COOLDOWN_MS = 60 * 1000;
 const PHONE_HOURLY_LIMIT = 5;
 const IP_HOURLY_LIMIT = 20;
+const VERIFY_HOURLY_LIMIT = 20;
 
 export function normalizeIranMobile(input: string): string | null {
   const digits = input
@@ -35,7 +37,14 @@ export function normalizeIranMobile(input: string): string | null {
 }
 
 function hashCode(phone: string, code: string): string {
-  return createHash("sha256").update(`${phone}:${code}:${serverSecret()}`).digest("hex");
+  return createHmac("sha256", serverSecret()).update(`${phone}:${code}`).digest("hex");
+}
+
+function safeEqualHex(a: string, b: string): boolean {
+  const ba = Buffer.from(a, "hex");
+  const bb = Buffer.from(b, "hex");
+  if (ba.length !== bb.length || ba.length === 0) return false;
+  return timingSafeEqual(ba, bb);
 }
 
 export type RequestOtpResult = {
@@ -65,11 +74,12 @@ export async function requestOtp(rawPhone: string, ip: string | null): Promise<R
     });
   }
 
-  // Hourly caps.
+  // Hourly caps. Missing IP is a shared "unknown" bucket — never unlimited.
+  const ipKey = ip && ip.length > 0 ? ip : "unknown";
   const hourAgo = new Date(now - 3_600_000);
   const [phoneCount, ipCount] = await Promise.all([
     db.otpRequestLog.count({ where: { phone, createdAt: { gt: hourAgo } } }),
-    ip ? db.otpRequestLog.count({ where: { ip, createdAt: { gt: hourAgo } } }) : Promise.resolve(0),
+    db.otpRequestLog.count({ where: { ip: ipKey, createdAt: { gt: hourAgo } } }),
   ]);
   if (phoneCount >= PHONE_HOURLY_LIMIT) {
     throw new AppError("rate_limit", { userMessage: "تعداد درخواست کد برای این شماره زیاد بوده است. یک ساعت دیگر تلاش کنید." });
@@ -86,7 +96,7 @@ export async function requestOtp(rawPhone: string, ip: string | null): Promise<R
       expiresAt: new Date(now + OTP_TTL_MS),
     },
   });
-  await db.otpRequestLog.create({ data: { phone, ip } });
+  await db.otpRequestLog.create({ data: { phone, ip: ipKey } });
 
   const provider = getSmsProvider();
   try {
@@ -107,7 +117,7 @@ export async function requestOtp(rawPhone: string, ip: string | null): Promise<R
 
 export type VerifyOtpResult = { phone: string; isNewUser: boolean };
 
-export async function verifyOtp(rawPhone: string, rawCode: string): Promise<VerifyOtpResult> {
+export async function verifyOtp(rawPhone: string, rawCode: string, ip: string | null = null): Promise<VerifyOtpResult> {
   const phone = normalizeIranMobile(rawPhone);
   if (!phone) throw new AppError("validation", { userMessage: "شماره موبایل معتبر نیست." });
 
@@ -118,12 +128,24 @@ export async function verifyOtp(rawPhone: string, rawCode: string): Promise<Veri
     throw new AppError("validation", { userMessage: "کد ۶ رقمی را کامل وارد کنید." });
   }
 
+  // Rate-limit verify attempts even when no live OTP row exists.
+  const hourAgo = new Date(Date.now() - 3_600_000);
+  const ipKey = ip && ip.length > 0 ? ip : "unknown";
+  const [recentPhone, recentIp] = await Promise.all([
+    db.otpRequestLog.count({ where: { phone, purpose: "verify", createdAt: { gt: hourAgo } } }),
+    db.otpRequestLog.count({ where: { ip: ipKey, purpose: "verify", createdAt: { gt: hourAgo } } }),
+  ]);
+  if (recentPhone >= VERIFY_HOURLY_LIMIT || recentIp >= VERIFY_HOURLY_LIMIT) {
+    throw new AppError("rate_limit", { userMessage: "تلاش‌های زیادی برای ورود ثبت شده است. بعداً تلاش کنید." });
+  }
+
   const record = await db.otpCode.findFirst({
     where: { phone, consumedAt: null, expiresAt: { gt: new Date() } },
     orderBy: { createdAt: "desc" },
   });
 
   if (!record) {
+    await db.otpRequestLog.create({ data: { phone, ip: ipKey, purpose: "verify" } }).catch(() => undefined);
     throw new AppError("validation", { userMessage: "کد منقضی شده است. کد جدید بگیرید." });
   }
 
@@ -131,12 +153,21 @@ export async function verifyOtp(rawPhone: string, rawCode: string): Promise<Veri
     throw new AppError("rate_limit", { userMessage: "تلاش‌های بیش از حد. کد جدید درخواست کنید." });
   }
 
-  if (hashCode(phone, code) !== record.codeHash) {
+  if (!safeEqualHex(hashCode(phone, code), record.codeHash)) {
     await db.otpCode.update({ where: { id: record.id }, data: { attempts: { increment: 1 } } });
+    await db.otpRequestLog.create({ data: { phone, ip: ipKey, purpose: "verify" } }).catch(() => undefined);
     throw new AppError("validation", { userMessage: "کد واردشده درست نیست." });
   }
 
-  await db.otpCode.update({ where: { id: record.id }, data: { consumedAt: new Date() } });
+  // Atomic single-use consume: concurrent verifies cannot both succeed.
+  const claimed = await db.otpCode.updateMany({
+    where: { id: record.id, consumedAt: null, attempts: { lt: OTP_MAX_ATTEMPTS } },
+    data: { consumedAt: new Date() },
+  });
+  if (claimed.count === 0) {
+    throw new AppError("validation", { userMessage: "کد قبلاً استفاده شده است. کد جدید بگیرید." });
+  }
+
   const isNewUser = !(await db.user.findUnique({ where: { phone } }));
   return { phone, isNewUser };
 }

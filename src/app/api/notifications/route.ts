@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { appErrorResponse } from "@/lib/errors/respond";
 
 const readSchema = z.object({ id: z.string().optional(), all: z.boolean().optional() });
 
@@ -19,8 +20,8 @@ export async function GET() {
       notifications,
       unread: notifications.filter((n) => !n.readAt).length,
     });
-  } catch {
-    return NextResponse.json({ ok: false, code: "unexpected", message: "خطا" }, { status: 500 });
+  } catch (error) {
+    return appErrorResponse(error);
   }
 }
 
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
       await db.notification.updateMany({ where: { id: body.id, userId: session.id }, data: { readAt: new Date() } });
     }
     return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ ok: false, code: "unexpected" }, { status: 400 });
+  } catch (error) {
+    return appErrorResponse(error);
   }
 }

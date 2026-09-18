@@ -17,7 +17,9 @@ export async function POST(req: NextRequest) {
     const session = await requireUser();
     const body = postSchema.parse(await req.json());
 
-    const existing = await db.waterLog.findUnique({ where: { clientId: body.clientId } });
+    const existing = await db.waterLog.findUnique({
+      where: { userId_clientId: { userId: session.id, clientId: body.clientId } },
+    });
     if (existing) {
       // Idempotent replay from offline queue
       return NextResponse.json({ ok: true, duplicate: true });
@@ -43,13 +45,18 @@ export async function POST(req: NextRequest) {
     });
     const profile = await db.userProfile.findUnique({ where: { userId: session.id } });
 
-    // Daily water mission progress
+    // Daily water mission progress — compare against the mission target,
+    // store progress against that same target (never profile ≠ mission mix).
     const mission = await db.mission.findUnique({ where: { slug: "daily-water" } });
-    if (mission && (dayTotal._sum.ml ?? 0) >= (profile?.dailyWaterTargetMl ?? 2500)) {
+    const dayMl = dayTotal._sum.ml ?? 0;
+    if (mission && dayMl >= mission.target) {
       await db.userMissionProgress.upsert({
         where: { userId_missionId_periodKey: { userId: session.id, missionId: mission.id, periodKey: logDate } },
-        create: { userId: session.id, missionId: mission.id, periodKey: logDate, progress: (profile?.dailyWaterTargetMl ?? 2500), target: mission.target, completedAt: new Date() },
-        update: { progress: (profile?.dailyWaterTargetMl ?? 2500) },
+        create: {
+          userId: session.id, missionId: mission.id, periodKey: logDate,
+          progress: dayMl, target: mission.target, completedAt: new Date(),
+        },
+        update: { progress: dayMl },
       }).catch(() => undefined);
     }
 

@@ -39,9 +39,11 @@ export async function POST(req: NextRequest) {
 
     let synced = 0;
     let conflicts = 0;
+    let failed = 0;
     for (const op of body.sets) {
-      // One bad operation must never poison the rest of the batch: a queued
-      // op that can no longer be applied is reported as a conflict, not a 500.
+      // Ownership/validation failures are conflicts (terminal). Unexpected
+      // errors are failed (retryable) so the offline queue never parks data
+      // permanently on a transient DB blip.
       try {
         // Ownership check: session must belong to user
         const session = await db.workoutSession.findUnique({
@@ -58,12 +60,31 @@ export async function POST(req: NextRequest) {
           where: { sessionId: op.sessionId, exerciseId: op.exerciseId, orderIndex: op.orderIndex },
         });
         if (!log) {
-          log = await db.exerciseLog.create({
-            data: { sessionId: op.sessionId, exerciseId: op.exerciseId, orderIndex: op.orderIndex },
-          });
+          const exercise = await db.exercise.findUnique({ where: { id: op.exerciseId }, select: { id: true } });
+          if (!exercise) {
+            // Unknown exercise can never apply — terminal conflict.
+            conflicts++;
+            continue;
+          }
+          try {
+            log = await db.exerciseLog.create({
+              data: { sessionId: op.sessionId, exerciseId: op.exerciseId, orderIndex: op.orderIndex },
+            });
+          } catch {
+            // Concurrent create race — re-fetch the winner.
+            log = await db.exerciseLog.findUnique({
+              where: { sessionId_exerciseId_orderIndex: { sessionId: op.sessionId, exerciseId: op.exerciseId, orderIndex: op.orderIndex } },
+            });
+            if (!log) {
+              conflicts++;
+              continue;
+            }
+          }
         }
 
-        const existing = await db.setLog.findUnique({ where: { clientId: op.clientId } });
+        const existing = await db.setLog.findUnique({
+          where: { userId_clientId: { userId: user.id, clientId: op.clientId } },
+        });
         if (existing) {
           synced++;
           continue;
@@ -72,6 +93,7 @@ export async function POST(req: NextRequest) {
         await db.setLog.create({
           data: {
             exerciseLogId: log.id,
+            userId: user.id,
             setNumber: op.setNumber,
             weightKg: op.weightKg ?? null,
             reps: op.reps ?? null,
@@ -82,12 +104,20 @@ export async function POST(req: NextRequest) {
           },
         });
         synced++;
-      } catch {
-        conflicts++;
+      } catch (error) {
+        // Prisma validation / FK issues on a single op → conflict (terminal).
+        // Connection or unexpected failures → failed (client should retry).
+        const code = (error as { code?: string })?.code;
+        if (code && ["P2002", "P2003", "P2025"].includes(code)) {
+          conflicts++;
+        } else {
+          failed++;
+          console.error("[sync] unexpected op failure", error);
+        }
       }
     }
 
-    return NextResponse.json({ ok: true, synced, conflicts });
+    return NextResponse.json({ ok: true, synced, conflicts, failed });
   } catch (error) {
     return appErrorResponse(error);
   }

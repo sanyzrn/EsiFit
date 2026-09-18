@@ -8,6 +8,7 @@ import { getTodayPlanDay } from "@/features/workouts/data/plan-templates";
 const startSchema = z.object({
   planDayId: z.string().optional(),
   name: z.string().max(80).optional(),
+  clientId: z.string().min(6).max(64).optional(),
 });
 
 export type LiveSessionExercise = {
@@ -139,6 +140,7 @@ export async function POST(req: NextRequest) {
         startedAt: new Date(),
         status: "active",
         syncStatus: "synced",
+        clientId: body.clientId ?? null,
       },
       include: { exerciseLogs: { include: { exercise: true, sets: true } } },
     });

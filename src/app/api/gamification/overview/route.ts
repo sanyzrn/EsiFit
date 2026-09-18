@@ -18,11 +18,23 @@ export async function GET() {
     ]);
 
     const today = todayISO(session.timezone);
+    // Current ISO week start (Saturday, Tehran) for weekly mission matching.
+    const weekStart = (() => {
+      const d = new Date();
+      // persianWeekdayIndex: 0=شنبه … 6=Friday; go back that many days.
+      const wd = new Intl.DateTimeFormat("en-CA", { timeZone: session.timezone, year: "numeric", month: "2-digit", day: "2-digit" })
+        .format(d);
+      const dayOnly = new Date(`${wd}T12:00:00Z`);
+      const idx = (dayOnly.getUTCDay() + 1) % 7; // 0=Saturday
+      dayOnly.setUTCDate(dayOnly.getUTCDate() - idx);
+      return dayOnly.toISOString().slice(0, 10);
+    })();
+
     const earnedByBadgeId = new Map(earned.map((e) => [e.badgeId, e]));
 
     const missionState = missions.map((m) => {
       const p = progress.find(
-        (x) => x.missionId === m.id && (m.period === "daily" ? x.periodKey === today : true),
+        (x) => x.missionId === m.id && (m.period === "daily" ? x.periodKey === today : x.periodKey === weekStart),
       );
       return {
         id: m.id,
