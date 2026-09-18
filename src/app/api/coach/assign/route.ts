@@ -37,11 +37,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, code: "not_found" }, { status: 404 });
     }
 
-    const plan = await createPlanFromTemplate(athleteId, template);
+    // Coach-prescribed programs start tomorrow (matches UI copy).
+    const startsOn = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    const plan = await createPlanFromTemplate(athleteId, template, startsOn);
 
-    // Persist/refresh the coaching note on the link.
-    if (link && note != null && note !== link.note) {
-      await db.coachClient.update({ where: { id: link.id }, data: { note } });
+    // Persist/refresh the coaching note — create the roster link when admin assigns.
+    if (note != null && note !== "") {
+      if (link) {
+        if (note !== link.note) {
+          await db.coachClient.update({ where: { id: link.id }, data: { note } });
+        }
+      } else {
+        await db.coachClient.upsert({
+          where: { coachId_athleteId: { coachId: session.id, athleteId } },
+          create: { coachId: session.id, athleteId, note, status: "active" },
+          update: { note },
+        });
+      }
     }
 
     // Notify the athlete in-app.
@@ -50,7 +62,7 @@ export async function POST(req: Request) {
         userId: athleteId,
         type: "system",
         title: "برنامه جدید از مربی",
-        body: `مربی شما برنامه «${PLAN_TEMPLATE_FA[template]}» را برایتان فعال کرد. از امروز اجرا می‌شود.`,
+        body: `مربی شما برنامه «${PLAN_TEMPLATE_FA[template]}» را برایتان فعال کرد. اجرا از فردا آغاز می‌شود.`,
       },
     });
 

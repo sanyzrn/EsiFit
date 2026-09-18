@@ -59,16 +59,20 @@ const SLOTS = [
 export function NutritionView() {
   const [date, setDate] = React.useState(() => todayISO());
   const [data, setData] = React.useState<DayData | null>(null);
+  const [loadState, setLoadState] = React.useState<"loading" | "ready" | "error">("loading");
   const [pickerOpen, setPickerOpen] = React.useState<string | null>(null);
   const offline = useFeatureFlag("OFFLINE_TRACKERS");
   const today = todayISO();
 
   const load = React.useCallback(async (d: string) => {
+    setLoadState("loading");
     try {
       const res = await api<DayData>(`/api/nutrition/day?date=${d}`);
       setData(res);
+      setLoadState("ready");
     } catch {
       setData(null);
+      setLoadState("error");
     }
   }, []);
 
@@ -137,15 +141,26 @@ export function NutritionView() {
 
       <div className="px-4 lg:px-8 space-y-5">
         {/* rings */}
-        {data ? (
+        {loadState === "loading" && <Skeleton className="h-44 rounded-3xl" />}
+        {loadState === "error" && (
+          <section aria-label="خطا در بارگذاری تغذیه" className="rounded-3xl border border-border bg-surface-1 p-8 text-center space-y-3">
+            <p className="font-bold">بارگذاری تغذیه ناموفق بود</p>
+            <p className="text-sm text-esi-text-secondary">اتصال را بررسی کنید و دوباره تلاش کنید.</p>
+            <Button variant="secondary" onClick={() => void load(date)}>تلاش دوباره</Button>
+          </section>
+        )}
+        {loadState === "ready" && data && (
           <section aria-label="خلاصه روز" className="rounded-3xl border border-border bg-surface-1 p-6">
             <MacroRingGroup totals={data.totals} targets={data.targets} size={96} />
             <p className="mt-5 text-center text-xs text-esi-text-muted">
               دیروز {formatNumber(data.yesterdayCalories)} کیلوکالری ثبت کرده بودید
             </p>
           </section>
-        ) : (
-          <Skeleton className="h-44 rounded-3xl" />
+        )}
+        {loadState === "ready" && !data && (
+          <section aria-label="روز خالی" className="rounded-3xl border border-border bg-surface-1 p-8 text-center">
+            <p className="text-sm text-esi-text-secondary">هنوز چیزی برای این روز ثبت نشده است.</p>
+          </section>
         )}
 
         {/* water */}
@@ -196,7 +211,7 @@ export function NutritionView() {
                     {slot.label}
                     {items.length > 0 && (
                       <span className="text-xs font-normal text-esi-text-muted tabular-nums">
-                        {formatNumber(slotCalories)} kcal
+                        {formatNumber(slotCalories)} کیلوکالری
                       </span>
                     )}
                   </h2>

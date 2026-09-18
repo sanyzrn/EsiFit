@@ -167,7 +167,7 @@ export function CoachWorkspaceView({
                     {toPersianDigits(athlete.prs30d)}
                   </span>
                   <span title="حجم ۷ روز اخیر (کیلوگرم)">
-                    {formatNumber(Math.round(athlete.volume7dKg), { notation: "compact" })} kg
+                    {formatNumber(Math.round(athlete.volume7dKg), { notation: "compact" })} کیلوگرم
                   </span>
                 </span>
               </div>

@@ -25,6 +25,11 @@ function currentWeekStart(today: string): string {
   return addDaysISO(today, -back);
 }
 
+/** Recap always covers the last *completed* week (Saturday→Friday), never the in-progress one. */
+function lastCompletedWeekStart(today: string): string {
+  return addDaysISO(currentWeekStart(today), -7);
+}
+
 async function buildMetrics(userId: string, today: string, weekStart: string): Promise<RecapMetrics> {
   const profile = await db.userProfile.findUnique({ where: { userId }, select: { weeklyWorkoutTarget: true } });
   const weekStartTime = parseISODateOnly(weekStart);
@@ -94,7 +99,7 @@ async function buildMetrics(userId: string, today: string, weekStart: string): P
   };
 }
 
-/** GET — latest recap for the current week (builds + persists on first call). */
+/** GET — recap for the last completed week (builds + persists on first call). */
 export async function GET() {
   try {
     const session = await getSessionUser();
@@ -110,7 +115,8 @@ export async function GET() {
     }
 
     const today = todayISO(session.timezone);
-    const weekStart = currentWeekStart(today);
+    // Never freeze a partial in-progress week — recap is always last completed week.
+    const weekStart = lastCompletedWeekStart(today);
 
     const stored = await db.weeklyRecap.findUnique({
       where: { userId_weekStart: { userId: session.id, weekStart } },
@@ -166,7 +172,7 @@ export async function POST() {
     }
 
     const today = todayISO(session.timezone);
-    const weekStart = currentWeekStart(today);
+    const weekStart = lastCompletedWeekStart(today);
 
     const stored = await db.weeklyRecap.findUnique({
       where: { userId_weekStart: { userId: session.id, weekStart } },

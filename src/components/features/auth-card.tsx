@@ -84,9 +84,9 @@ export function AuthCard() {
           {step === "phone" ? (
             <motion.div
               key="phone"
-              initial={{ opacity: 0, x: 24 }}
+              initial={{ opacity: 0, x: -24 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -24 }}
+              exit={{ opacity: 0, x: 24 }}
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
               <h1 className="text-2xl font-bold">ورود یا ثبت‌نام</h1>
@@ -131,9 +131,9 @@ export function AuthCard() {
           ) : (
             <motion.div
               key="code"
-              initial={{ opacity: 0, x: 24 }}
+              initial={{ opacity: 0, x: -24 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -24 }}
+              exit={{ opacity: 0, x: 24 }}
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
               <h1 className="text-2xl font-bold">کد را وارد کنید</h1>

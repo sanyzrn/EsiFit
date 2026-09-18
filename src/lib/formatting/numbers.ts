@@ -83,7 +83,12 @@ export function toLatinDigits(input: string): string {
 /** Parse a locale-friendly numeric string into a canonical number. */
 export function parseLocaleNumber(input: string): number | null {
   const normalized = toLatinDigits(input)
-    .replace(/[٫,]/g, ".")
+    // Unicode minus → ASCII minus
+    .replace(/[−–—]/g, "-")
+    // Strip thousands separators (Latin comma, Arabic thousands U+066C)
+    .replace(/[٬,]/g, "")
+    // Persian decimal separator → ASCII decimal
+    .replace(/[٫]/g, ".")
     .replace(/[^\d.-]/g, "");
   if (!normalized || normalized === "-" || normalized === ".") return null;
   const value = Number(normalized);

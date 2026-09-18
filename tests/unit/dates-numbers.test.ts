@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseISODateOnly, addDaysISO, daysBetweenISO, isoDateOnly, todayISO, toJalali } from "@/lib/dates/jalali";
+import { parseISODateOnly, addDaysISO, daysBetweenISO, isoDateOnly, todayISO, toJalali, localDayStartUTC } from "@/lib/dates/jalali";
 import { toPersianDigits, toLatinDigits, parseLocaleNumber, formatClock, formatToman } from "@/lib/formatting/numbers";
 import { normalizeIranMobile } from "@/lib/auth/otp";
 
@@ -25,6 +25,10 @@ describe("jalali dates", () => {
     const j = toJalali(new Date("2026-03-21T00:00:00Z"));
     expect(j.jy).toBeGreaterThan(1400);
   });
+  it("localDayStartUTC for Tehran is UTC+3:30 midnight", () => {
+    const d = localDayStartUTC("2026-08-26", "Asia/Tehran");
+    expect(d.toISOString()).toBe("2026-08-25T20:30:00.000Z");
+  });
 });
 
 describe("persian numbers", () => {
@@ -36,6 +40,12 @@ describe("persian numbers", () => {
     expect(parseLocaleNumber("۴۰٫۵")).toBeCloseTo(40.5, 5);
     expect(parseLocaleNumber("80")).toBe(80);
     expect(parseLocaleNumber("")).toBeNull();
+  });
+  it("handles Latin thousands separators and Unicode minus", () => {
+    expect(parseLocaleNumber("1,234.5")).toBeCloseTo(1234.5, 5);
+    expect(parseLocaleNumber("۱٬۲۳۴")).toBe(1234);
+    expect(parseLocaleNumber("−۵")).toBe(-5);
+    expect(parseLocaleNumber("١٢٣")).toBe(123);
   });
   it("formats clock m:ss", () => {
     expect(formatClock(65)).toBe("۱:۰۵");

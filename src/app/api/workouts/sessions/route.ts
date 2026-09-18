@@ -9,6 +9,8 @@ const startSchema = z.object({
   planDayId: z.string().optional(),
   name: z.string().max(80).optional(),
   clientId: z.string().min(6).max(64).optional(),
+  /** Resume a specific owned session when the client navigates with ?session=. */
+  sessionId: z.string().optional(),
 });
 
 export type LiveSessionExercise = {
@@ -71,6 +73,27 @@ export async function POST(req: NextRequest) {
   try {
     const session = await requireUser();
     const body = startSchema.parse(await req.json().catch(() => ({})));
+
+    // Explicit resume: honor ?session= navigation from dashboard/workouts.
+    if (body.sessionId) {
+      const requested = await db.workoutSession.findFirst({
+        where: {
+          id: body.sessionId,
+          userId: session.id,
+          status: { in: ["active", "paused"] },
+        },
+        include: {
+          exerciseLogs: { include: { exercise: true, sets: true }, orderBy: { orderIndex: "asc" } },
+        },
+      });
+      if (requested) {
+        return NextResponse.json({
+          ok: true,
+          session: { ...requested, exercises: await shapeExercisesFor(requested) },
+          resumed: true,
+        });
+      }
+    }
 
     const existing = await db.workoutSession.findFirst({
       where: { userId: session.id, status: { in: ["active", "paused"] } },

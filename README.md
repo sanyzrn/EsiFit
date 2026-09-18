@@ -115,4 +115,18 @@ bunx tsc --noEmit   # تایپ‌چک کامل (strict)
   توسعه به تولید نشت نکنند. متغیرها را از خود پلتفرم تزریق کنید.
 - پرداخت واقعی: جایگاه آداپتور در `api/plans/subscribe` آماده است. **توجه:** مسیر فعلی یک پرداخت
   آزمایشی است و tier را بدون تراکنش واقعی ارتقا می‌دهد؛ پیش از انتشار عمومی باید به دروازه واقعی وصل شود.
-- SMS واقعی: اعتبارها را در `.env` قرار دهید و `SMS_PROVIDER` را تغییر دهید
+  در production این مسیر **قفل** است مگر `ALLOW_MOCK_PAYMENT=true` (پیش‌فرض: غیرفعال).
+- SMS واقعی: اعتبارها را در `.env` قرار دهید و `SMS_PROVIDER` را تغییر دهید.
+  در production اگر `SMS_PROVIDER=dev` یا خالی باشد، سرور **fail-closed** خطا می‌دهد (کد OTP هرگز به لاگ نمی‌رود).
+
+## یادداشت‌های آمادگی تولید (نیازمند تصمیم/اعتبار واقعی)
+
+| یکپارچگی | وضعیت فعلی | برای انتشار چه لازم است |
+|---|---|---|
+| **دروازه پرداخت** | sandbox — upgrade بدون تراکنش؛ production غیرفعال مگر فلگ | اتصال به زرین‌پال/آیدی‌پی/سداد + callback verification + ایجاد `Subscription` فقط پس از تأیید مبلغ |
+| **SMS** | `dev` چاپ در لاگ؛ آداپتورهای kavenegar/melipayamak/smsir آماده | تنظیم `SMS_PROVIDER` + کلیدها؛ تست deliverability و قالب پیامک فارسی |
+| **آمار/سایت‌مپ** | از `NEXT_PUBLIC_SITE_URL` ساخته می‌شود | ست کردن دامنه واقعی قبل از crawl |
+| **SESSION_SECRET** | fail-closed در production | `openssl rand -hex 32` در متغیرهای پلتفرم |
+| **Rate-limit چندنمونه‌ای** | in-process (تک‌نمونه) | Redis/Upstash برای scale-out |
+| **امنیت هدرها** | X-Content-Type-Options / X-Frame-Options / Referrer-Policy / Permissions-Policy | افزودن HSTS + CSP سخت‌گیرانه در reverse proxy یا next.config پس از پایداری assetها |
+| **حذف حساب / پرداخت واقعی فروشگاه** | پیام دمو | API حذف/آرشیو حساب + درگاه فروشگاه جدا از اشتراک |

@@ -56,21 +56,34 @@ export async function GET(req: Request) {
         secondaryMuscles: source.muscles.filter((m) => m.role === "secondary").map((m) => m.muscleGroup.slug),
       },
       candidates.map(toCandidate),
-      { availableEquipment: null, painRegions: painReports.map((p) => p.bodyRegion), excludeSlugs: [source.slug] },
+      {
+        // Equipment preference is not yet a profile field — leave unrestricted.
+        availableEquipment: null,
+        painRegions: painReports.map((p) => p.bodyRegion),
+        excludeSlugs: [source.slug],
+      },
     );
 
+    const bySlug = new Map(candidates.map((c) => [c.slug, c]));
     return NextResponse.json({
       ok: true,
       source: { id: source.id, nameFa: source.nameFa },
       painRegions: painReports.map((p) => p.bodyRegion),
-      alternatives: ranked.map((r) => ({
-        exerciseId: candidates.find((c) => c.slug === r.candidate.slug)!.id,
-        nameFa: r.candidate.nameFa,
-        equipment: r.candidate.equipment,
-        difficulty: r.candidate.difficulty,
-        score: Math.round(r.score * 100) / 100,
-        reasonsFa: r.reasonsFa,
-      })),
+      alternatives: ranked
+        .map((r) => {
+          const row = bySlug.get(r.candidate.slug);
+          if (!row) return null;
+          return {
+            exerciseId: row.id,
+            nameFa: r.candidate.nameFa,
+            equipment: r.candidate.equipment,
+            difficulty: r.candidate.difficulty,
+            score: Math.round(r.score * 100) / 100,
+            reasonsFa: r.reasonsFa,
+            painSafe: r.painSafe,
+          };
+        })
+        .filter((x): x is NonNullable<typeof x> => x != null),
     });
   } catch (error) {
     return appErrorResponse(error);

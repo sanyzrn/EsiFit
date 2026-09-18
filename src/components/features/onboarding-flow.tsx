@@ -52,9 +52,19 @@ export function OnboardingFlow({ displayName }: { displayName: string }) {
   const [activity, setActivity] = React.useState("moderate");
 
   const canNext =
-    step === 0 ? name.trim().length >= 2 && parseLocaleNumber(birthYear) && parseLocaleNumber(birthYear)! >= 1320
-    : step === 1 ? parseLocaleNumber(height)! >= 100 && parseLocaleNumber(weight)! >= 30
-    : true;
+    step === 0
+      ? name.trim().length >= 2 &&
+        (() => {
+          const y = parseLocaleNumber(birthYear);
+          return y != null && y >= 1300 && y <= 1420;
+        })()
+      : step === 1
+        ? (() => {
+            const h = parseLocaleNumber(height);
+            const w = parseLocaleNumber(weight);
+            return h != null && h >= 100 && h <= 230 && w != null && w >= 30 && w <= 300;
+          })()
+        : true;
 
   const submit = async () => {
     setLoading(true);
@@ -96,9 +106,9 @@ export function OnboardingFlow({ displayName }: { displayName: string }) {
       <AnimatePresence mode="wait">
         <motion.div
           key={step}
-          initial={{ opacity: 0, x: 24 }}
+          initial={{ opacity: 0, x: -24 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -24 }}
+          exit={{ opacity: 0, x: 24 }}
           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           className="rounded-3xl border border-border bg-surface-1 p-8 shadow-[var(--shadow-float)]"
         >
@@ -107,8 +117,9 @@ export function OnboardingFlow({ displayName }: { displayName: string }) {
               <h1 className="text-2xl font-bold">خوش آمدید 👋</h1>
               <p className="mt-2 text-sm text-esi-text-secondary">برای شخصی‌سازی برنامه، چند اطلاعات کوتاه لازم داریم.</p>
               <div className="mt-6 space-y-5">
-                <Field label="نام شما">
+                <Field label="نام شما" htmlFor="ob-name">
                   <input
+                    id="ob-name"
                     className="input-esi"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -116,8 +127,9 @@ export function OnboardingFlow({ displayName }: { displayName: string }) {
                     autoFocus
                   />
                 </Field>
-                <Field label="سال تولد (شمسی)" hint="برای محاسبه دقیق متابولیسم پایه">
+                <Field label="سال تولد (شمسی)" hint="برای محاسبه دقیق متابولیسم پایه — بین ۱۳۰۰ تا ۱۴۲۰" htmlFor="ob-birth">
                   <input
+                    id="ob-birth"
                     className="input-esi"
                     inputMode="numeric"
                     value={birthYear}
@@ -147,11 +159,11 @@ export function OnboardingFlow({ displayName }: { displayName: string }) {
               <h1 className="text-2xl font-bold">اندازه‌های بدن</h1>
               <p className="mt-2 text-sm text-esi-text-secondary">دقیق وارد کنید؛ بعداً هم قابل ویرایش است.</p>
               <div className="mt-6 space-y-5">
-                <Field label="قد (سانتی‌متر)">
-                  <input className="input-esi" inputMode="decimal" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="۱۷۸" />
+                <Field label="قد (سانتی‌متر)" htmlFor="ob-height">
+                  <input id="ob-height" className="input-esi" inputMode="decimal" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="۱۷۸" />
                 </Field>
-                <Field label="وزن فعلی (کیلوگرم)">
-                  <input className="input-esi" inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="۸۲" />
+                <Field label="وزن فعلی (کیلوگرم)" htmlFor="ob-weight">
+                  <input id="ob-weight" className="input-esi" inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="۸۲" />
                 </Field>
                 <Field label="سطح تمرینی">
                   <div className="space-y-2">
@@ -242,10 +254,10 @@ export function OnboardingFlow({ displayName }: { displayName: string }) {
   );
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({ label, hint, htmlFor, children }: { label: string; hint?: string; htmlFor?: string; children: React.ReactNode }) {
   return (
     <div>
-      <span className="block text-sm font-medium mb-2">{label}</span>
+      <label className="block text-sm font-medium mb-2" htmlFor={htmlFor}>{label}</label>
       {hint && <span className="mb-2 block text-[11px] text-esi-text-muted">{hint}</span>}
       {children}
     </div>

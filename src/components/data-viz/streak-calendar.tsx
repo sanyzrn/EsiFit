@@ -7,7 +7,8 @@ import { toPersianDigits } from "@/lib/formatting/numbers";
 
 /**
  * StreakCalendar — activity consistency heatmap on the Jalali calendar.
- * 13 weeks × 7 days grid, weeks in columns (RTL: oldest on the right).
+ * 13 weeks × 7 days grid, weeks in columns, left→right = oldest→newest
+ * (LTR instrument layout; Persian weekday labels on the vertical axis).
  * Levels 0–4 by intensity. Never color-only: cells have title + legend labels.
  */
 

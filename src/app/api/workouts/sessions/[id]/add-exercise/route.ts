@@ -3,13 +3,13 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { db } from "@/lib/db";
+import { defaultPrescription } from "@/lib/workout/prescription";
 
 const bodySchema = z.object({ exerciseId: z.string().min(1) });
 
 /**
  * POST /api/workouts/sessions/[id]/add-exercise — append an exercise to an
- * ACTIVE (free) session. This is what makes a free session usable: users add
- * movements from the library mid-workout.
+ * ACTIVE (free) session. Prescription is plan-aware when possible.
  */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -36,7 +36,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ ok: false, code: "not_found" }, { status: 404 });
     }
 
-    // Duplicate guard — same exercise twice in one session is almost always a mistake.
     const dup = await db.exerciseLog.findFirst({
       where: { sessionId: id, exerciseId: exercise.id },
       select: { id: true },
@@ -46,6 +45,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         { ok: false, code: "conflict", message: "این حرکت قبلاً به جلسه اضافه شده است." },
         { status: 409 },
       );
+    }
+
+    let prescription = defaultPrescription(exercise);
+    if (session.planDayId) {
+      const planned = await db.plannedExercise.findFirst({
+        where: { planDayId: session.planDayId, exerciseId: exercise.id },
+      });
+      if (planned) {
+        prescription = {
+          targetSets: planned.targetSets,
+          targetRepsMin: planned.targetRepsMin,
+          targetRepsMax: planned.targetRepsMax,
+          targetRpe: planned.targetRpe,
+          restSeconds: planned.restSeconds,
+          note: planned.note,
+        };
+      }
     }
 
     await db.exerciseLog.create({
@@ -58,12 +74,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         exerciseId: exercise.id,
         name: exercise.nameFa,
         slug: exercise.slug,
-        targetSets: 3,
-        targetRepsMin: 8,
-        targetRepsMax: 12,
-        targetRpe: 7.5,
-        restSeconds: 90,
-        note: "",
+        ...prescription,
         sets: [],
       },
     });

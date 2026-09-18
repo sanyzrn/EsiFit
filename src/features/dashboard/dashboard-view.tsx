@@ -87,12 +87,12 @@ export function DashboardView() {
       setData((d) =>
         d ? { ...d, water: { ...d.water, ml: d.water.ml + ml } } : d,
       );
-    } catch {
+    } catch (e) {
       if (offlineFlag) {
         await enqueueOperation(op);
         setData((d) => (d ? { ...d, water: { ...d.water, ml: d.water.ml + ml } } : d));
       } else {
-        setError(errorMessage(undefined));
+        setError(errorMessage(e));
       }
     } finally {
       setWaterBusy(false);
@@ -101,7 +101,10 @@ export function DashboardView() {
 
   const startWorkout = async () => {
     try {
-      const res = await api<{ session: { id: string } }>("/api/workouts/sessions", { method: "POST", json: {} });
+      const payload = data?.todayWorkout?.planDayId
+        ? { planDayId: data.todayWorkout.planDayId }
+        : {};
+      const res = await api<{ session: { id: string } }>("/api/workouts/sessions", { method: "POST", json: payload });
       router.push(`/workout/live?session=${res.session.id}`);
     } catch (e) {
       setError(errorMessage(e));

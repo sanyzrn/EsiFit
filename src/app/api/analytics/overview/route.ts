@@ -266,6 +266,7 @@ export async function GET(_req: NextRequest) {
       prs: prs.map((p) => ({
         id: p.id,
         exerciseName: p.exercise.nameFa,
+        exerciseSlug: p.exercise.slug,
         value: p.value,
         unit: p.unit,
         achievedAt: p.achievedAt,

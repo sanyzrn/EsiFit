@@ -37,6 +37,9 @@ export async function getCoachRoster(coachId: string): Promise<RosterEntry[]> {
   const links = await db.coachClient.findMany({
     where: { coachId, status: "active" },
     orderBy: { startedAt: "asc" },
+    // Cap roster batch size — large coaches get the first page of athletes
+    // with the same aggregation shape (pagination UI can slice further).
+    take: 200,
   });
   if (links.length === 0) return [];
   const ids = links.map((l) => l.athleteId);

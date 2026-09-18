@@ -263,7 +263,7 @@ export function AthleteDetailView({ detail, backHref }: { detail: AthleteDetail;
                   </p>
                 </div>
                 <span className="text-xs font-bold tabular-nums text-esi-text-secondary">
-                  {formatNumber(Math.round(s.volumeKg), { notation: "compact" })} kg
+                  {formatNumber(Math.round(s.volumeKg), { notation: "compact" })} کیلوگرم
                 </span>
               </li>
             ))}

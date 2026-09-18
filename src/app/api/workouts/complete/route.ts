@@ -27,8 +27,25 @@ export async function POST(req: NextRequest) {
     if (!session || session.userId !== user.id) {
       return NextResponse.json({ ok: false, code: "not_found", message: "جلسه تمرین یافت نشد." }, { status: 404 });
     }
+
+    const allSets = session.exerciseLogs.flatMap((l) => l.sets);
+    const volume = sessionVolume(allSets);
+    const elapsedSeconds =
+      body.durationSeconds ??
+      Math.round(((session.endedAt ?? new Date()).getTime() - session.startedAt.getTime()) / 1000);
+    const durationSeconds = Math.max(60, session.durationSeconds || elapsedSeconds);
+
+    const existingSummary = {
+      volume: Math.round(session.totalVolumeKg || volume),
+      durationMinutes: Math.max(1, Math.round(durationSeconds / 60)),
+      setCount: allSets.length,
+      prs: [] as Array<{ exerciseName: string; value: number; unit: string }>,
+      xpAwarded: 0,
+      newBadges: [] as string[],
+    };
+
     if (session.status === "completed") {
-      return NextResponse.json({ ok: true, alreadyCompleted: true });
+      return NextResponse.json({ ok: true, alreadyCompleted: true, summary: existingSummary });
     }
 
     // Atomic completion: only one concurrent complete wins.
@@ -37,15 +54,8 @@ export async function POST(req: NextRequest) {
       data: { status: "completed" },
     });
     if (claimed.count === 0) {
-      return NextResponse.json({ ok: true, alreadyCompleted: true });
+      return NextResponse.json({ ok: true, alreadyCompleted: true, summary: existingSummary });
     }
-
-    const allSets = session.exerciseLogs.flatMap((l) => l.sets);
-    const volume = sessionVolume(allSets);
-    const elapsedSeconds =
-      body.durationSeconds ??
-      Math.round(((session.endedAt ?? new Date()).getTime() - session.startedAt.getTime()) / 1000);
-    const durationSeconds = Math.max(60, elapsedSeconds);
 
     await db.workoutSession.update({
       where: { id: session.id },

@@ -162,10 +162,10 @@ export function AchievementsView() {
                         disabled={claiming === m.id}
                         onClick={() => void claim(m.id)}
                       >
-                        +{toPersianDigits(m.xpReward)} XP
+                        +{toPersianDigits(m.xpReward)} امتیاز
                       </Button>
                     ) : (
-                      <span className="text-xs text-esi-text-muted shrink-0 tabular-nums">+{toPersianDigits(m.xpReward)} XP</span>
+                      <span className="text-xs text-esi-text-muted shrink-0 tabular-nums">+{toPersianDigits(m.xpReward)} امتیاز</span>
                     )}
                   </div>
                 );

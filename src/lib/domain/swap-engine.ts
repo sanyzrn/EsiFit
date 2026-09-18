@@ -111,12 +111,18 @@ export function rankSwaps(
     const reasonsFa: string[] = [];
     if (overlap > 0) reasonsFa.push("همان عضلات اصلی");
     if (patternScore === 1) reasonsFa.push("الگوی حرکتی مشابه");
-    if (secondaryHitsPain) reasonsFa.push("کمترین فشار به ناحیه حساس");
+    if (secondaryHitsPain) reasonsFa.push("فشار کمتر — عضلات ثانویه حساس");
     else if (context.painRegions.length > 0) reasonsFa.push("بدون فشار به ناحیه دردناک");
     if (cDiffIdx <= srcDiffIdx) reasonsFa.push("هم‌سطح یا ساده‌تر");
     if (context.availableEquipment) reasonsFa.push("با وسایل موجود شما");
 
-    ranked.push({ candidate: c, score: Math.min(1, score), reasonsFa: reasonsFa.slice(0, 3), painSafe: true });
+    ranked.push({
+      candidate: c,
+      score: Math.min(1, score),
+      reasonsFa: reasonsFa.slice(0, 3),
+      // Primary muscles already avoid pain-mapped set; secondary hits are not fully pain-safe.
+      painSafe: !primaryHitsPain && !secondaryHitsPain,
+    });
   }
 
   return ranked.sort((a, b) => b.score - a.score).slice(0, 5);

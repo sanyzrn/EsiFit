@@ -11,7 +11,7 @@ const CALCULATORS = [
   { slug: "ideal-weight", emoji: "🎯", name: "وزن ایده‌آل", desc: "بازه پیشنهادی با فرمول‌های دیواین و رابینسون" },
   { slug: "whtr", emoji: "📏", name: "نسبت دور کمر به قد", desc: "شاخص توزیع چربی شکمی — قوی‌تر از BMI برای ریسک" },
   { slug: "water", emoji: "💧", name: "آب روزانه", desc: "نیاز آبرسانی بر اساس وزن و حجم تمرین" },
-  { slug: "body-fat-navy", emoji: "📊", name: "درصد چربی بدن", desc: "روش اندازه‌گیری دورهای بدن (ازままند ارتش آمریکا)" },
+  { slug: "body-fat-navy", emoji: "📊", name: "درصد چربی بدن", desc: "روش اندازه‌گیری دورهای بدن (فرمول نیروی دریایی ایالات متحده)" },
 ];
 
 export function CalculatorsHub() {

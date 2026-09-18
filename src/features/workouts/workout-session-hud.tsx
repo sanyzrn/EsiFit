@@ -140,8 +140,9 @@ export function WorkoutSessionHUD({
         method: "POST",
         json: { exerciseId },
       });
+      const nextLen = session.exercises.length + 1;
       setSession((prev) => ({ ...prev, exercises: [...prev.exercises, d.exercise] }));
-      setCurrentIdx(session.exercises.length); // jump to the newly added
+      setCurrentIdx(nextLen - 1); // jump to the newly added exercise
       setPickerOpen(false);
       setPickerQuery("");
     } catch (e) {
@@ -198,14 +199,14 @@ export function WorkoutSessionHUD({
     }
   };
 
-  // Prefill from last set (frictionless capture) — after each logged set, next
-  // entry starts from the same weight/reps.
+  // Prefill from last set (frictionless capture) — includes optimistic local
+  // sets so the next entry keeps weight/reps after an offline log.
   React.useEffect(() => {
-    const last = session.exerciseLogs?.find((l) => l.exerciseId === session.exercises[currentIdx]?.exerciseId)?.sets.slice(-1)[0];
+    const last = loggedSets[loggedSets.length - 1];
     setWeight(last?.weightKg != null ? String(last.weightKg) : "");
     setReps(last?.reps != null ? String(last.reps) : "");
     setRpe(null);
-  }, [currentIdx, session]);
+  }, [currentIdx, loggedSets]);
 
   const logSet = async () => {
     if (!exercise) return;

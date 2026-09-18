@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { api, errorMessage } from "@/lib/client/api";
-import { toPersianDigits, formatNumber } from "@/lib/formatting/numbers";
+import { toPersianDigits, formatNumber, parseLocaleNumber } from "@/lib/formatting/numbers";
 import { formatJalaliLong, addDaysISO, todayISO } from "@/lib/dates/jalali";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +40,15 @@ const TYPE_FA: Record<string, string> = {
 };
 
 function unitFa(unit: string): string {
-  return unit === "kg" ? "کیلوگرم" : unit === "session" ? "جلسه/هفته" : unit === "day" ? "روز" : unit;
+  const map: Record<string, string> = {
+    kg: "کیلوگرم",
+    session: "جلسه/هفته",
+    sessions_per_week: "جلسه/هفته",
+    kg_per_week: "کیلوگرم/هفته",
+    days_4w: "روز در ۴ هفته",
+    day: "روز",
+  };
+  return map[unit] ?? unit;
 }
 
 export function GoalsSection({ goals, onChanged }: { goals: GoalCard[]; onChanged: () => void }) {
@@ -57,9 +65,13 @@ export function GoalsSection({ goals, onChanged }: { goals: GoalCard[]; onChange
   const done = goals.filter((g) => g.status === "achieved");
 
   const create = async () => {
-    const value = Number(target.replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace("٫", "."));
-    if (!Number.isFinite(value) || value <= 0) {
+    const value = parseLocaleNumber(target);
+    if (value == null || value <= 0) {
       toast({ title: "مقدار نامعتبر", description: "مقدار هدف را با عدد وارد کنید.", variant: "destructive" });
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate) || targetDate <= todayISO()) {
+      toast({ title: "تاریخ نامعتبر", description: "تاریخ هدف باید در آینده باشد.", variant: "destructive" });
       return;
     }
     setSaving(true);

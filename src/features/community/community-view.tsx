@@ -94,11 +94,23 @@ export function CommunityView({ signedIn }: { signedIn: boolean }) {
     try {
       await api("/api/community/like", { method: "POST", json: { postId, liked: !wasLiked } });
     } catch {
-      // revert handled by reload on next visit — optimistic update stays calm
+      // Revert optimistic update on failure.
+      setLiked((s) => {
+        const next = new Set(s);
+        if (wasLiked) next.add(postId);
+        else next.delete(postId);
+        return next;
+      });
+      setPosts((p) => (p ?? []).map((x) => (x.id === postId ? { ...x, likeCount: x.likeCount + (wasLiked ? 1 : -1) } : x)));
+      toast({ title: "ثبت پسند ناموفق بود", variant: "destructive" });
     }
   };
 
   const join = async (challengeId: string) => {
+    if (!signedIn) {
+      toast({ title: "برای عضویت در چالش وارد شوید", description: "ابتدا وارد حساب خود شوید." });
+      return;
+    }
     try {
       await api("/api/community/challenges", { method: "POST", json: { challengeId } });
       toast({ title: "به چالش اضافه شدید 🎯" });

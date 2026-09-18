@@ -6,7 +6,7 @@ import { computeReadiness } from "@/lib/domain/body-math";
 import { activityStreak, getXpTotal } from "@/lib/domain/gamification-engine";
 import { levelFromXp } from "@/lib/domain/body-math";
 import { getTodayPlanDay } from "@/features/workouts/data/plan-templates";
-import { todayISO } from "@/lib/dates/jalali";
+import { todayISO, localDayStartUTC } from "@/lib/dates/jalali";
 import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 import { adaptiveCoach, type ReadinessState } from "@/lib/domain/adaptive-coach";
 import { computeGoalProgress } from "@/lib/domain/goals";
@@ -22,7 +22,7 @@ export async function GET() {
       db.userProfile.findUnique({ where: { userId: session.id } }),
       db.readinessDaily.findUnique({ where: { userId_scoreDate: { userId: session.id, scoreDate: today } } }),
       db.workoutSession.findFirst({
-        where: { userId: session.id, startedAt: { gte: new Date(`${today}T00:00:00.000Z`) }, status: { in: ["active", "paused"] } },
+        where: { userId: session.id, startedAt: { gte: localDayStartUTC(today, session.timezone as string) }, status: { in: ["active", "paused"] } },
         orderBy: { startedAt: "desc" },
       }),
       getTodayPlanDay(session.id),

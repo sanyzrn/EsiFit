@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { lastNDaysISO } from "@/lib/dates/jalali";
+import { lastNDaysISO, localDayStartUTC } from "@/lib/dates/jalali";
 
 /**
  * Resolves the *current live value* of a goal from the user's data.
@@ -29,14 +29,13 @@ export async function currentValueForGoal(
     }
 
     case "workout_frequency": {
-      // Target is sessions per week — current = trailing 7-day average of
-      // completed sessions (×7).
+      // Current = weekly average of completed sessions over the trailing 28 days.
       const since = lastNDaysISO(28)[0];
       const count = await db.workoutSession.count({
         where: {
           userId,
           status: "completed",
-          startedAt: { gte: new Date(`${since}T00:00:00Z`) },
+          startedAt: { gte: localDayStartUTC(since) },
         },
       });
       return Math.round((count / 4) * 10) / 10;
@@ -70,7 +69,7 @@ export async function currentValueForGoal(
         where: {
           userId,
           status: "completed",
-          startedAt: { gte: new Date(`${since}T00:00:00Z`) },
+          startedAt: { gte: localDayStartUTC(since) },
         },
         select: { totalVolumeKg: true },
       });

@@ -128,8 +128,8 @@ export function AIAssistantView({ tier }: { tier: string }) {
               className={cn(
                 "max-w-[85%] rounded-3xl px-5 py-3.5 text-sm leading-7",
                 m.role === "user"
-                  ? "bg-surface-2 rounded-bl-md"
-                  : "bg-primary/10 border border-primary/20 rounded-br-md",
+                  ? "bg-surface-2 rounded-ss-md"
+                  : "bg-primary/10 border border-primary/20 rounded-se-md",
               )}
             >
               {m.content.split("\n").map((line, i) => (
@@ -141,7 +141,7 @@ export function AIAssistantView({ tier }: { tier: string }) {
 
         {sending && (
           <div className="flex justify-end">
-            <div className="rounded-3xl rounded-br-md bg-primary/10 border border-primary/20 px-5 py-4 flex gap-1.5">
+            <div className="rounded-3xl rounded-se-md bg-primary/10 border border-primary/20 px-5 py-4 flex gap-1.5">
               {[0, 1, 2].map((i) => (
                 <span
                   key={i}

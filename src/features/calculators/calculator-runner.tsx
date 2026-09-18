@@ -65,7 +65,7 @@ function compute(slug: string, v: Record<string, string>): CalcResult | null {
       const total = tdee({ sex, age, heightCm: h, weightKg: w, activityLevel: (v.activityLevel ?? "moderate") as ActivityLevel });
       return {
         headline: "انرژی روزانه شما",
-        headlineValue: `${formatNumber(total)} kcal`,
+        headlineValue: `${formatNumber(total)} کیلوکالری`,
         gauge: { value: total, min: 0, max: 4000, tone: "primary", label: "TDEE" },
         rows: [
           { label: "متابولیسم پایه (BMR)", value: `${formatNumber(bmr)} کیلوکالری`, tone: "blue" },
@@ -87,7 +87,7 @@ function compute(slug: string, v: Record<string, string>): CalcResult | null {
       });
       return {
         headline: "هدف روزانه شما",
-        headlineValue: `${formatNumber(m.calories)} kcal`,
+        headlineValue: `${formatNumber(m.calories)} کیلوکالری`,
         rows: [
           { label: "پروتئین", value: `${formatNumber(m.proteinG)} گرم`, tone: "blue" },
           { label: "کربوهیدرات", value: `${formatNumber(m.carbsG)} گرم`, tone: "amber" },

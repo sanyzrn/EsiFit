@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { rateLimit } from "@/lib/http/rate-limit";
 
 const schema = z.object({ cursor: z.number().int().min(0).optional() });
 
@@ -52,9 +53,17 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ ok: false, code: "authentication", message: "برای انتشار پست وارد شوید." }, { status: 401 });
     }
+    const rl = rateLimit(`community:post:${session.id}`, 10, 60 * 60 * 1000);
+    if (!rl.ok) {
+      return NextResponse.json(
+        { ok: false, code: "rate_limit", message: "تعداد پست‌ها زیاد بوده است. کمی بعد تلاش کنید." },
+        { status: 429 },
+      );
+    }
     const body = postSchema.parse(await req.json());
+    const content = body.content.trim();
     const post = await db.post.create({
-      data: { userId: session.id, content: body.content, visibility: "public" },
+      data: { userId: session.id, content, visibility: "public" },
       include: { user: { select: { id: true, displayName: true, tier: true } }, _count: { select: { likes: true, comments: true } } },
     });
     return NextResponse.json({

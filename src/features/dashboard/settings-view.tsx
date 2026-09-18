@@ -30,13 +30,17 @@ export function SettingsView({
   const ent = getEntitlements(session.tier as UserTier);
 
   React.useEffect(() => {
-    setReducedMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    const stored = localStorage.getItem("esifit-reduced-motion");
+    const prefersOs = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const on = stored != null ? stored === "1" : prefersOs;
+    setReducedMotion(on);
+    document.documentElement.dataset.reducedMotion = on ? "1" : "0";
   }, []);
 
   const toggleReducedMotion = (on: boolean) => {
     setReducedMotion(on);
-    // Persist hint for motion-heavy components (respected next load).
     localStorage.setItem("esifit-reduced-motion", on ? "1" : "0");
+    document.documentElement.dataset.reducedMotion = on ? "1" : "0";
     toast({ title: on ? "حالت کاهش حرکت فعال شد" : "حالت کاهش حرکت خاموش شد" });
   };
 
@@ -62,7 +66,7 @@ export function SettingsView({
     router.refresh();
   };
 
-  const exportData = () => {
+  const exportData = async () => {
     if (!ent.dataExport) {
       toast({
         title: "خروجی داده در پلن وی‌آی‌پی",
@@ -70,14 +74,26 @@ export function SettingsView({
       });
       return;
     }
-    // Real JSON download — server enforces the entitlement again.
-    const a = document.createElement("a");
-    a.href = "/api/settings/export";
-    a.download = "esifit-export.json";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    toast({ title: "خروجی داده آماده شد", description: "فایل JSON کامل داده‌های شما دانلود شد." });
+    try {
+      const res = await fetch("/api/settings/export", { credentials: "same-origin" });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { message?: string } | null;
+        toast({ title: "خروجی ناموفق بود", description: body?.message ?? "دوباره تلاش کنید.", variant: "destructive" });
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `esifit-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast({ title: "خروجی داده آماده شد", description: "فایل JSON کامل داده‌های شما دانلود شد." });
+    } catch (e) {
+      toast({ title: "خروجی ناموفق بود", description: errorMessage(e), variant: "destructive" });
+    }
   };
 
   return (

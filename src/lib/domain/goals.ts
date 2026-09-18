@@ -18,11 +18,30 @@ export const GOAL_TYPE_FA: Record<GoalType, string> = {
 
 export const GOAL_UNIT_FA: Record<string, string> = {
   kg: "کیلوگرم",
+  session: "جلسه",
   sessions_per_week: "جلسه در هفته",
   sessions_4w: "جلسه در ۴ هفته",
   kg_per_week: "کیلوگرم در هفته",
   days_4w: "روز ثبت‌شده در ۴ هفته",
+  day: "روز",
 };
+
+/** Canonical unit key for a goal type — single source for create + display. */
+export function unitForGoalType(type: string): string {
+  switch (type) {
+    case "weight":
+    case "strength":
+      return "kg";
+    case "workout_frequency":
+      return "sessions_per_week";
+    case "volume":
+      return "kg_per_week";
+    case "nutrition_log":
+      return "days_4w";
+    default:
+      return "day";
+  }
+}
 
 export type GoalProgress = {
   percent: number; // 0..100 clamped
@@ -107,7 +126,7 @@ function describeProgressFa(
   if (achieved) return "هدف محقق شده — آفرین!";
   const remaining = Math.abs(goal.targetValue - current);
   const value = formatFa(remaining);
-  const unit = goal.unit === "kg" ? "کیلوگرم" : goal.unit === "session" ? "جلسه" : goal.unit;
+  const unit = GOAL_UNIT_FA[goal.unit] ?? goal.unit;
   if (etaDays != null && etaDays > 0) {
     return `${value} ${unit} مانده — با این سرعت حدود ${formatFa(etaDays)} روز دیگر`;
   }

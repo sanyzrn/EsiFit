@@ -30,6 +30,12 @@ describe("body-math: 1RM (Epley + Brzycki average)", () => {
   it("monotonically increases with weight", () => {
     expect(oneRepMax(80, 5).recommended).toBeLessThan(oneRepMax(100, 5).recommended);
   });
+  it("does not explode Brzycki at high rep ranges", () => {
+    const r = oneRepMax(100, 36);
+    // Brzycki is clamped to 12 reps — never 36× weight.
+    expect(r.brzycki).toBeLessThan(200);
+    expect(r.recommended).toBeCloseTo(r.epley, 1);
+  });
   it("programming table spans 95%..65% with rounded weights", () => {
     const table = oneRepMaxTable(100);
     expect(table[0].pct).toBe(95);
@@ -53,6 +59,13 @@ describe("body-math: ideal weight (Devine/Robinson)", () => {
     const female = idealWeightRange(165, "female");
     expect(male.min).toBeGreaterThan(50);
     expect(female.max).toBeLessThan(male.min);
+  });
+  it("female Devine is height-dependent, not a flat 50kg", () => {
+    const short = idealWeightRange(150, "female");
+    const tall = idealWeightRange(180, "female");
+    // Devine female: 45.5 + 2.3×in over 5ft — taller women must have a higher band.
+    expect(tall.min).toBeGreaterThan(short.min);
+    expect(short.min).toBeLessThan(50);
   });
 });
 

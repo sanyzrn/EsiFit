@@ -12,7 +12,7 @@ import { formatNumber } from "@/lib/formatting/numbers";
  */
 
 const RINGS = [
-  { key: "calories", label: "کالری", color: "var(--primary)", unit: "kcal" },
+  { key: "calories", label: "کالری", color: "var(--primary)", unit: "کالری" },
   { key: "proteinG", label: "پروتئین", color: "#4F8CFF", unit: "گرم" },
   { key: "carbsG", label: "کربوهیدرات", color: "#F5C66A", unit: "گرم" },
   { key: "fatG", label: "چربی", color: "#A99BFF", unit: "گرم" },

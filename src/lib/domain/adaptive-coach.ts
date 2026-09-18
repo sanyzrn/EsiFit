@@ -44,18 +44,7 @@ export function adaptiveCoach(input: AdaptiveCoachInput): CoachGuidance {
   const lowReadiness =
     input.readiness?.state === "caution" || input.readiness?.state === "recover";
 
-  // 1) Comeback after a break — safety before ambition.
-  if (input.daysSinceLastSession != null && input.daysSinceLastSession >= 6) {
-    return {
-      tone: "return",
-      volumeModifierPercent: -20,
-      messageFa: "بعد از وقفه، اولویت با بازگشت اصولی است نه جبرانِ عقب‌افتادگی.",
-      cueFa: "امروز ۸۰٪ حجم همیشگی: ست آخر هر حرکت را حذف کن و RPE را زیر ۸ نگه دار.",
-      avoidMaxAttempts: true,
-    };
-  }
-
-  // 2) Low readiness — protect recovery.
+  // 1) Low readiness — protect recovery (wins over comeback after illness).
   if (lowReadiness) {
     const state = input.readiness?.state ?? "caution";
     return {
@@ -67,7 +56,18 @@ export function adaptiveCoach(input: AdaptiveCoachInput): CoachGuidance {
     };
   }
 
-  // 3) High accumulated fatigue (RPE ≥ 9 last session) without low readiness.
+  // 2) Comeback after a break — safety before ambition.
+  if (input.daysSinceLastSession != null && input.daysSinceLastSession >= 6) {
+    return {
+      tone: "return",
+      volumeModifierPercent: -20,
+      messageFa: "بعد از وقفه، اولویت با بازگشت اصولی است نه جبرانِ عقب‌افتادگی.",
+      cueFa: "امروز ۸۰٪ حجم همیشگی: ست آخر هر حرکت را حذف کن و RPE را زیر ۸ نگه دار.",
+      avoidMaxAttempts: true,
+    };
+  }
+
+  // 3) High accumulated fatigue (RPE ≥ 8.8 last session) without low readiness.
   if (input.lastSessionRpe != null && input.lastSessionRpe >= 8.8) {
     return {
       tone: "maintain",
@@ -78,8 +78,8 @@ export function adaptiveCoach(input: AdaptiveCoachInput): CoachGuidance {
     };
   }
 
-  // 4) Plateau with good readiness — change the stimulus.
-  if (input.plateauDetected && input.readiness?.state === "ready") {
+  // 4) Plateau with acceptable readiness — change the stimulus.
+  if (input.plateauDetected && (input.readiness?.state === "ready" || input.readiness?.state === "moderate")) {
     return {
       tone: "adjust",
       volumeModifierPercent: 0,

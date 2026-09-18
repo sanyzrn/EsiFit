@@ -12,6 +12,7 @@ import { AnatomyExplorer } from "@/components/data-viz/anatomy/anatomy-explorer"
 import type { BodySlug } from "@/components/data-viz/anatomy/muscle-body";
 import { MUSCLE_GROUP_TO_BODY, BODY_SLUG_FA } from "@/components/data-viz/anatomy/muscle-mapping";
 import { api, errorMessage } from "@/lib/client/api";
+import { useToast } from "@/hooks/use-toast";
 import { toPersianDigits } from "@/lib/formatting/numbers";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -73,15 +74,22 @@ export function WorkoutsView({
   const [alternatives, setAlternatives] = React.useState<Alternative[] | null>(null);
   const [altsLoading, setAltsLoading] = React.useState(false);
   const reduce = useReducedMotion();
+  const { toast } = useToast();
 
   const loadAlternatives = async (exerciseId: string) => {
+    // Toggle closed when already showing this exercise's alternatives.
+    if (alternatives) {
+      setAlternatives(null);
+      return;
+    }
     setAltsLoading(true);
     setAlternatives(null);
     try {
       const d = await api<{ alternatives: Alternative[] }>(`/api/workouts/alternatives?exerciseId=${encodeURIComponent(exerciseId)}`);
       setAlternatives(d.alternatives);
-    } catch {
-      setAlternatives(null);
+    } catch (e) {
+      setAlternatives([]);
+      toast({ title: "جایگزین‌ها بارگذاری نشد", description: errorMessage(e) });
     } finally {
       setAltsLoading(false);
     }
@@ -106,13 +114,20 @@ export function WorkoutsView({
   const startToday = async () => {
     setStarting(true);
     try {
-      const res = await fetch("/api/workouts/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(planDay ? { planDayId: planDay.id } : {}),
+      const data = await api<{ ok: boolean; session: { id: string } }>(
+        "/api/workouts/sessions",
+        {
+          method: "POST",
+          json: planDay ? { planDayId: planDay.id } : {},
+        },
+      );
+      if (data.session?.id) router.push(`/workout/live?session=${data.session.id}`);
+      else toast({ title: "جلسه ساخته نشد", description: "دوباره تلاش کنید." });
+    } catch (e) {
+      toast({
+        title: "شروع تمرین ناموفق بود",
+        description: errorMessage(e),
       });
-      const data = await res.json();
-      if (data.ok) router.push(`/workout/live?session=${data.session.id}`);
     } finally {
       setStarting(false);
     }

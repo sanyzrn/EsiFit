@@ -119,6 +119,39 @@ export function formatJalaliNumeric(
   return faDigits(`${jy}/${mm}/${dd}`);
 }
 
+/**
+ * UTC instant for 00:00 of an ISO calendar day in the given timezone.
+ * Asia/Tehran is UTC+3:30 year-round (no DST since 2022).
+ */
+export function localDayStartUTC(iso: string, timezone = DEFAULT_TIMEZONE): Date {
+  const probe = parseISODateOnly(iso);
+  if (timezone === "Asia/Tehran") {
+    return new Date(`${iso}T00:00:00+03:30`);
+  }
+  // Generic: format the UTC midnight probe in the target zone and shift back.
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(probe);
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
+  const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour") % 24, get("minute"), get("second"));
+  // probe is UTC midnight of iso; wall-clock in zone shows how far the zone is ahead.
+  const offsetMs = asUtc - probe.getTime();
+  return new Date(probe.getTime() - offsetMs);
+}
+
+/** Exclusive end instant of an ISO calendar day in the given timezone. */
+export function localDayEndUTC(iso: string, timezone = DEFAULT_TIMEZONE): Date {
+  return localDayStartUTC(addDaysISO(iso, 1), timezone);
+}
+
 /** «۱۲ مرداد ۱۴۰۳» */
 export function formatJalaliLong(
   date: Date | string,

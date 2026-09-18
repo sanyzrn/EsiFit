@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function WorkoutLiveGate() {
   const params = useSearchParams();
   const planDayId = params.get("planDay") ?? undefined;
+  const sessionId = params.get("session") ?? undefined;
   const [session, setSession] = React.useState<LiveSession | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -26,7 +27,10 @@ export function WorkoutLiveGate() {
         await syncQueue(); // replay offline sets first
         const res = await api<{ session: LiveSession }>("/api/workouts/sessions", {
           method: "POST",
-          json: planDayId ? { planDayId } : {},
+          json: {
+            ...(planDayId ? { planDayId } : {}),
+            ...(sessionId ? { sessionId } : {}),
+          },
         });
         if (!cancelled) setSession(res.session);
       } catch (e) {
@@ -38,7 +42,7 @@ export function WorkoutLiveGate() {
     return () => {
       cancelled = true;
     };
-  }, [planDayId]);
+  }, [planDayId, sessionId]);
 
   if (loading) {
     return (

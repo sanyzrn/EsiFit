@@ -278,7 +278,7 @@ function UsersTab() {
                   {Object.entries(STATUS_FA).filter(([k]) => k !== "deleted").map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <span className="text-[11px] text-esi-text-muted tabular-nums text-left">
+              <span className="text-[11px] text-esi-text-muted tabular-nums text-start">
                 {toPersianDigits(u.sessions)} تمرین
               </span>
             </motion.div>

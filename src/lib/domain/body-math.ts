@@ -93,11 +93,13 @@ export function healthyWeightRange(heightCm: number): { min: number; max: number
   return { min: Math.round(18.5 * h * h), max: Math.round(24.9 * h * h) };
 }
 
-/** One-rep max: Epley primary, Brzycki cross-check. */
+/** One-rep max: Epley primary, Brzycki cross-check (valid ≲12 reps). */
 export function oneRepMax(weightKg: number, reps: number): { epley: number; brzycki: number; recommended: number } {
   if (reps <= 0 || weightKg <= 0) return { epley: 0, brzycki: 0, recommended: 0 };
   const epley = weightKg * (1 + reps / 30);
-  const brzycki = weightKg * (36 / (37 - Math.min(reps, 36)));
+  // Brzycki is undefined/unstable above ~12 reps — do not surface a garbage value.
+  const brzyckiReps = Math.min(reps, 12);
+  const brzycki = weightKg * (36 / (37 - brzyckiReps));
   const recommended = reps <= 10 ? (epley + brzycki) / 2 : epley;
   return {
     epley: Math.round(epley * 10) / 10,
@@ -139,13 +141,14 @@ export const WHTR_FA: Record<WhtRCategory, string> = {
   high: "بالا",
 };
 
-/** Ideal weight formulas (Devine 1974 baseline; Robinson variant). */
+/** Ideal weight formulas (Devine 1974; Robinson 1983). */
 export function idealWeightRange(heightCm: number, sex: SexAtBirth): { min: number; max: number; formulaLabel: string } {
   const inchesOver5ft = Math.max(0, (heightCm - 152.4) / 2.54);
-  const maleFactor = sex === "male" ? 1 : sex === "female" ? 0 : 0.5;
-  const devine = 50 + maleFactor * 2.3 * inchesOver5ft;
-  const robinsonBase = maleFactor === 1 ? 52 : maleFactor === 0 ? 49 : 50.5;
-  const robinsonSlope = maleFactor === 1 ? 1.9 : maleFactor === 0 ? 1.7 : 1.8;
+  // Devine: male 50 + 2.3×in, female 45.5 + 2.3×in (not a flat 50 kg).
+  const devineBase = sex === "male" ? 50 : sex === "female" ? 45.5 : 47.75;
+  const devine = devineBase + 2.3 * inchesOver5ft;
+  const robinsonBase = sex === "male" ? 52 : sex === "female" ? 49 : 50.5;
+  const robinsonSlope = sex === "male" ? 1.9 : sex === "female" ? 1.7 : 1.8;
   const robinson = robinsonBase + robinsonSlope * inchesOver5ft;
   const low = Math.round(Math.min(devine, robinson));
   const high = Math.round(Math.max(devine, robinson) * 1.08);

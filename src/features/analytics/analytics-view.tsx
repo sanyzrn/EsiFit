@@ -33,7 +33,7 @@ type AnalyticsData = {
   activity: Record<string, number>;
   weightTrend: Array<{ date: string; weight: number | null; bodyFat: number | null }>;
   weeklyVolume: Array<{ weekStart: string; volume: number }>;
-  prs: Array<{ id: string; exerciseName: string; value: number; unit: string; achievedAt: string }>;
+  prs: Array<{ id: string; exerciseName: string; exerciseSlug?: string; value: number; unit: string; achievedAt: string }>;
   totals: { sessions: number; volumeKg: number };
   insights: Insight[];
   esiScore: EsiScoreResult | null;
@@ -255,7 +255,7 @@ export function AnalyticsView() {
                       <Tooltip
                         contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 12, fontFamily: "inherit", direction: "rtl" }}
                         labelFormatter={(d: string) => formatJalaliLong(d)}
-                        formatter={(v: number) => [`${v} کیلوگرم`, "وزن"]}
+                        formatter={(v: number) => [`${toPersianDigits(v)} کیلوگرم`, "وزن"]}
                       />
                       <Area
                         type="monotone"
@@ -364,7 +364,7 @@ export function AnalyticsView() {
                         <p className="text-xs font-bold truncate">{t.exerciseName}</p>
                         <span className={cn("text-[11px] font-bold tabular-nums shrink-0", gain > 0 ? "text-primary" : "text-esi-text-muted")}>
                           {gain > 0 ? "+" : ""}
-                          {formatNumber(gain, { maximumFractionDigits: 1 })} kg
+                          {formatNumber(gain, { maximumFractionDigits: 1 })} کیلوگرم
                         </span>
                       </div>
                       <MiniSpark points={t.points.map((p) => p.best)} />

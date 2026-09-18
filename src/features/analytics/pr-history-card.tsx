@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 export type PrRow = {
   id: string;
   exerciseName: string;
+  exerciseSlug?: string;
   value: number;
   unit: string;
   achievedAt: string;
@@ -71,12 +72,19 @@ export function PRHistoryCard({ prs }: { prs: PrRow[] }) {
                 {formatNumber(pr.value, { maximumFractionDigits: 1 })}
                 <span className="text-[11px] font-normal text-esi-text-muted ms-1">کیلوگرم</span>
               </span>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => void open(pr.id)} aria-expanded={openSlug === pr.id} aria-label={`تاریخچه رکورد ${pr.exerciseName}`}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => void open(pr.exerciseSlug ?? pr.id)}
+                aria-expanded={openSlug === (pr.exerciseSlug ?? pr.id)}
+                aria-label={`تاریخچه رکورد ${pr.exerciseName}`}
+              >
                 <Icon name="ChartLine" size={15} />
               </Button>
             </div>
             <AnimatePresence initial={false}>
-              {openSlug === pr.id && (
+              {openSlug === (pr.exerciseSlug ?? pr.id) && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}

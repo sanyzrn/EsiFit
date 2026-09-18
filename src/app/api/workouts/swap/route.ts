@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { db } from "@/lib/db";
+import { defaultPrescription } from "@/lib/workout/prescription";
 
 const bodySchema = z.object({
   sessionId: z.string().min(1),
@@ -14,9 +15,8 @@ const bodySchema = z.object({
 /**
  * POST /api/workouts/swap — replace an exercise inside an ACTIVE session.
  * - Blocked once any set is logged for the source exercise (no silent data loss).
- * - Creates the replacement ExerciseLog on demand (plan sessions may not have
- *   a log row before the first set).
- * - Persists an ExerciseSwap row for the coaching feedback loop.
+ * - Blocked when the target exercise is already in the session (no duplicates).
+ * - Prescription comes from the plan day when present; otherwise a typed default.
  */
 export async function POST(req: Request) {
   try {
@@ -54,7 +54,35 @@ export async function POST(req: Request) {
       );
     }
 
-    // Swap (or create) the log row.
+    // Do not create a second log for an exercise already in this session.
+    if (target.id !== exerciseId) {
+      const targetAlready = session.exerciseLogs.find((l) => l.exerciseId === target.id);
+      if (targetAlready) {
+        return NextResponse.json(
+          { ok: false, code: "conflict", message: "این حرکت قبلاً در جلسه هست." },
+          { status: 409 },
+        );
+      }
+    }
+
+    // Prefer the plan-day prescription for the replacement when it exists.
+    let prescription = defaultPrescription(target);
+    if (session.planDayId) {
+      const planned = await db.plannedExercise.findFirst({
+        where: { planDayId: session.planDayId, exerciseId: target.id },
+      });
+      if (planned) {
+        prescription = {
+          targetSets: planned.targetSets,
+          targetRepsMin: planned.targetRepsMin,
+          targetRepsMax: planned.targetRepsMax,
+          targetRpe: planned.targetRpe,
+          restSeconds: planned.restSeconds,
+          note: planned.note,
+        };
+      }
+    }
+
     const log = existingLog
       ? await db.exerciseLog.update({ where: { id: existingLog.id }, data: { exerciseId: target.id } })
       : await db.exerciseLog.create({
@@ -75,7 +103,6 @@ export async function POST(req: Request) {
       },
     });
 
-    // Update a paused/active local name only if it referenced the old exercise.
     return NextResponse.json({
       ok: true,
       log: {
@@ -83,12 +110,7 @@ export async function POST(req: Request) {
         exerciseId: log.exerciseId,
         name: target.nameFa,
         slug: target.slug,
-        targetSets: 3,
-        targetRepsMin: 8,
-        targetRepsMax: 12,
-        targetRpe: 7.5,
-        restSeconds: 90,
-        note: "",
+        ...prescription,
       },
     });
   } catch (error) {
