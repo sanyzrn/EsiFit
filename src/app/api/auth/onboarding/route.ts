@@ -4,6 +4,9 @@ import { requireUser } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { z } from "zod";
 import { computeMacroTargets } from "@/lib/domain/body-math";
+import { serializeAvailableEquipment } from "@/lib/workout/equipment";
+import { equipmentSetFromList } from "@/lib/workout/equipment";
+import { createDefaultPlanForUser } from "@/features/workouts/data/plan-templates";
 
 const schema = z.object({
   displayName: z.string().min(2).max(40),
@@ -21,7 +24,8 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const session = await requireUser();
-    const { displayName, unitSystem, weightKg, ...profileFields } = schema.parse(await req.json());
+    const parsed = schema.parse(await req.json());
+    const { displayName, unitSystem, weightKg, availableEquipment, ...profileFields } = parsed;
 
     const macros = computeMacroTargets({
       sex: profileFields.sexAtBirth,
@@ -32,8 +36,8 @@ export async function POST(req: NextRequest) {
       goal: profileFields.primaryGoal,
     });
 
-    // Baseline body measurement date (date-only, user tz).
     const today = new Date().toISOString().slice(0, 10);
+    const equipmentJson = serializeAvailableEquipment(availableEquipment ?? []);
 
     await db.$transaction([
       db.user.update({
@@ -45,6 +49,7 @@ export async function POST(req: NextRequest) {
         create: {
           userId: session.id,
           ...profileFields,
+          availableEquipment: equipmentJson,
           dailyCalorieTarget: macros.calories,
           dailyProteinTarget: macros.proteinG,
           dailyCarbTarget: macros.carbsG,
@@ -54,6 +59,7 @@ export async function POST(req: NextRequest) {
         },
         update: {
           ...profileFields,
+          availableEquipment: equipmentJson,
           dailyCalorieTarget: macros.calories,
           dailyProteinTarget: macros.proteinG,
           dailyCarbTarget: macros.carbsG,
@@ -68,6 +74,9 @@ export async function POST(req: NextRequest) {
         update: { weightKg },
       }),
     ]);
+
+    // Rebuild the starter plan so equipment substitutions apply immediately.
+    await createDefaultPlanForUser(session.id, equipmentSetFromList(availableEquipment ?? []));
 
     return NextResponse.json({ ok: true, macros });
   } catch (error) {

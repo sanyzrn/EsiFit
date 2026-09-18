@@ -3,11 +3,12 @@ import { requireUser } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { db } from "@/lib/db";
 import { rankSwaps, type SwapCandidate } from "@/lib/domain/swap-engine";
+import { getUserEquipmentSet } from "@/lib/workout/catalog";
 
 /**
  * GET /api/workouts/alternatives?exerciseId=…
- * Ranked smart-swap candidates for one exercise, respecting active pain reports.
- * Equipment availability: null (no profile restriction) — kept as an extension point.
+ * Ranked smart-swap candidates for one exercise, respecting active pain reports
+ * and the user's profile equipment availability.
  */
 export async function GET(req: Request) {
   try {
@@ -26,12 +27,13 @@ export async function GET(req: Request) {
       return NextResponse.json({ ok: false, code: "not_found" }, { status: 404 });
     }
 
-    const [candidates, painReports] = await Promise.all([
+    const [candidates, painReports, availableEquipment] = await Promise.all([
       db.exercise.findMany({
         where: { id: { not: source.id } },
         include: { muscles: { include: { muscleGroup: true } } },
       }),
       db.painReport.findMany({ where: { userId: user.id, status: "active" }, select: { bodyRegion: true } }),
+      getUserEquipmentSet(user.id),
     ]);
 
     const toCandidate = (e: (typeof candidates)[number]): SwapCandidate => ({
@@ -57,8 +59,7 @@ export async function GET(req: Request) {
       },
       candidates.map(toCandidate),
       {
-        // Equipment preference is not yet a profile field — leave unrestricted.
-        availableEquipment: null,
+        availableEquipment,
         painRegions: painReports.map((p) => p.bodyRegion),
         excludeSlugs: [source.slug],
       },
@@ -69,6 +70,7 @@ export async function GET(req: Request) {
       ok: true,
       source: { id: source.id, nameFa: source.nameFa },
       painRegions: painReports.map((p) => p.bodyRegion),
+      equipmentRestricted: availableEquipment != null,
       alternatives: ranked
         .map((r) => {
           const row = bySlug.get(r.candidate.slug);

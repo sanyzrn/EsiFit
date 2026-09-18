@@ -73,8 +73,25 @@ export function WorkoutsView({
   const [selectedMuscles, setSelectedMuscles] = React.useState<Set<BodySlug>>(new Set());
   const [alternatives, setAlternatives] = React.useState<Alternative[] | null>(null);
   const [altsLoading, setAltsLoading] = React.useState(false);
+  const [regenerating, setRegenerating] = React.useState(false);
   const reduce = useReducedMotion();
   const { toast } = useToast();
+
+  const regeneratePlan = async () => {
+    setRegenerating(true);
+    try {
+      const res = await api<{ message?: string }>("/api/workouts/plan/regenerate", {
+        method: "POST",
+        json: { template: "ppl" },
+      });
+      toast({ title: "برنامه بازسازی شد", description: res.message ?? "برنامه ۴ هفته‌ای جدید فعال شد." });
+      router.refresh();
+    } catch (e) {
+      toast({ title: "بازسازی ناموفق", description: errorMessage(e), variant: "destructive" });
+    } finally {
+      setRegenerating(false);
+    }
+  };
 
   const loadAlternatives = async (exerciseId: string) => {
     // Toggle closed when already showing this exercise's alternatives.
@@ -139,9 +156,14 @@ export function WorkoutsView({
         title="تمرین"
         description={activePlanName ?? "برنامه فعال ندارید — از حرکات پایین جلسه دلخواه بسازید"}
         action={
-          <Button className="h-11 esi-glow" onClick={() => void startToday()} disabled={starting}>
-            {starting ? "…" : "شروع سریع تمرین"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" className="h-11" onClick={() => void regeneratePlan()} disabled={regenerating}>
+              {regenerating ? "…" : "بازسازی برنامه"}
+            </Button>
+            <Button className="h-11 esi-glow" onClick={() => void startToday()} disabled={starting}>
+              {starting ? "…" : "شروع سریع تمرین"}
+            </Button>
+          </div>
         }
       />
 

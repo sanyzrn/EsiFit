@@ -13,6 +13,8 @@ import { TIER_LABELS, getEntitlements, type UserTier } from "@/lib/entitlements/
 import { toPersianDigits, parseLocaleNumber } from "@/lib/formatting/numbers";
 import { formatRelative } from "@/lib/dates/jalali";
 import { clearLocalUserData, syncQueue, getQueuedOperations } from "@/lib/offline/adapter";
+import { EQUIPMENT_KEYS, EQUIPMENT_LABEL_FA } from "@/lib/workout/equipment";
+import { cn } from "@/lib/utils";
 
 type Device = { id: string; deviceLabel: string; lastSeenAt: string };
 
@@ -135,6 +137,8 @@ export function SettingsView({
             <span className="text-xs font-bold text-esi-text-secondary">متریک</span>
           </div>
         </section>
+
+        <EquipmentSection />
 
         {/* devices */}
         <section aria-label="دستگاه‌ها" className="rounded-3xl border border-border bg-surface-1 p-6">
@@ -301,6 +305,109 @@ function PainSection() {
           ثبت
         </Button>
       </div>
+    </section>
+  );
+}
+
+function EquipmentSection() {
+  const { toast } = useToast();
+  const router = useRouter();
+  const [fullGym, setFullGym] = React.useState(true);
+  const [selected, setSelected] = React.useState<string[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const res = await api<{ availableEquipment: string[]; unrestricted: boolean }>("/api/settings/profile");
+        setFullGym(res.unrestricted);
+        setSelected(res.unrestricted ? [] : res.availableEquipment);
+      } catch {
+        setFullGym(true);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const payload = fullGym ? [] : selected;
+      await api("/api/settings/profile", { method: "PATCH", json: { availableEquipment: payload } });
+      toast({
+        title: "وسایل ذخیره شد",
+        description: "برنامه ۴ هفته‌ای را از صفحه تمرین بازسازی کنید تا جایگزین‌ها اعمال شوند.",
+      });
+      router.refresh();
+    } catch (e) {
+      toast({ title: "ذخیره ناموفق", description: errorMessage(e), variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return <section className="rounded-3xl border border-border bg-surface-1 p-6 h-32 animate-pulse" aria-label="وسایل" />;
+  }
+
+  return (
+    <section aria-label="وسایل ورزشی" className="rounded-3xl border border-border bg-surface-1 p-6 space-y-4">
+      <div>
+        <h2 className="font-bold">وسایل ورزشی</h2>
+        <p className="text-xs text-esi-text-secondary mt-1 leading-5">
+          برنامه تمرین و جایگزین‌های هوشمند فقط حرکاتی را پیشنهاد می‌دهند که با وسایل شما قابل اجرا هستند.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setFullGym(true)}
+          aria-pressed={fullGym}
+          className={cn(
+            "min-h-10 rounded-xl border px-3 py-2 text-sm transition-colors",
+            fullGym ? "border-primary bg-primary/10 font-semibold text-primary" : "border-border text-esi-text-secondary",
+          )}
+        >
+          باشگاه کامل
+        </button>
+        {!fullGym &&
+          EQUIPMENT_KEYS.map((k) => {
+            const on = selected.includes(k);
+            return (
+              <button
+                key={k}
+                type="button"
+                aria-pressed={on}
+                onClick={() =>
+                  setSelected((prev) => (on ? prev.filter((x) => x !== k) : [...prev, k]))
+                }
+                className={cn(
+                  "min-h-10 rounded-xl border px-3 py-2 text-sm transition-colors",
+                  on ? "border-primary bg-primary/10 font-semibold text-primary" : "border-border text-esi-text-secondary",
+                )}
+              >
+                {EQUIPMENT_LABEL_FA[k]}
+              </button>
+            );
+          })}
+        {fullGym && (
+          <button
+            type="button"
+            className="text-xs text-primary underline-offset-2 hover:underline min-h-10"
+            onClick={() => {
+              setFullGym(false);
+              setSelected(["bodyweight", "dumbbell"]);
+            }}
+          >
+            وسایل محدود دارم
+          </button>
+        )}
+      </div>
+      <Button size="sm" className="h-10" onClick={() => void save()} disabled={saving || (!fullGym && selected.length === 0)}>
+        {saving ? "…" : "ذخیره وسایل"}
+      </Button>
     </section>
   );
 }

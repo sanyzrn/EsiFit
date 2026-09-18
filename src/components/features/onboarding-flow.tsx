@@ -36,6 +36,17 @@ const ACTIVITY = [
   { value: "active", label: "زیاد", desc: "۶–۷ روز فعالیت" },
 ];
 
+const EQUIPMENT_OPTIONS = [
+  { value: "barbell", label: "هالتر" },
+  { value: "dumbbell", label: "دمبل" },
+  { value: "machine", label: "دستگاه" },
+  { value: "cable", label: "سیم‌کش" },
+  { value: "bodyweight", label: "وزن بدن" },
+  { value: "kettlebell", label: "کتل‌بل" },
+  { value: "band", label: "کش" },
+  { value: "cardio", label: "کاردیو" },
+];
+
 export function OnboardingFlow({ displayName }: { displayName: string }) {
   const router = useRouter();
   const [step, setStep] = React.useState(0);
@@ -50,6 +61,14 @@ export function OnboardingFlow({ displayName }: { displayName: string }) {
   const [goal, setGoal] = React.useState("build_muscle");
   const [level, setLevel] = React.useState("beginner");
   const [activity, setActivity] = React.useState("moderate");
+  /** Empty set = full gym (unrestricted). */
+  const [equipment, setEquipment] = React.useState<string[]>([]);
+  const [fullGym, setFullGym] = React.useState(true);
+
+  const toggleEquipment = (key: string) => {
+    setFullGym(false);
+    setEquipment((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  };
 
   const canNext =
     step === 0
@@ -82,6 +101,7 @@ export function OnboardingFlow({ displayName }: { displayName: string }) {
           experienceLevel: level,
           activityLevel: activity,
           unitSystem: "metric",
+          availableEquipment: fullGym ? [] : equipment,
         },
       });
       router.push("/dashboard");
@@ -179,6 +199,41 @@ export function OnboardingFlow({ displayName }: { displayName: string }) {
                         {a.label}
                       </Chip>
                     ))}
+                  </div>
+                </Field>
+                <Field
+                  label="وسایل در دسترس"
+                  hint="برنامه تمرینی بر همین اساس شخصی‌سازی می‌شود"
+                >
+                  <div className="space-y-2">
+                    <Chip
+                      active={fullGym}
+                      onClick={() => {
+                        setFullGym(true);
+                        setEquipment([]);
+                      }}
+                      className="w-full"
+                    >
+                      باشگاه کامل (بدون محدودیت)
+                    </Chip>
+                    {!fullGym && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {EQUIPMENT_OPTIONS.map((eq) => (
+                          <Chip key={eq.value} active={equipment.includes(eq.value)} onClick={() => toggleEquipment(eq.value)}>
+                            {eq.label}
+                          </Chip>
+                        ))}
+                      </div>
+                    )}
+                    {fullGym && (
+                      <button
+                        type="button"
+                        className="text-xs text-primary underline-offset-2 hover:underline"
+                        onClick={() => setFullGym(false)}
+                      >
+                        فقط وسایل خانه/باشگاه محدود دارم
+                      </button>
+                    )}
                   </div>
                 </Field>
               </div>
