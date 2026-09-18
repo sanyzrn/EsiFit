@@ -41,6 +41,7 @@ export function CoachWorkspaceView({
       <PageHeader
         title="ورزشکاران من"
         description={`سلام ${coachName} — تصویر امروز از فهرست ورزشکارانت`}
+        backHref="/dashboard"
       />
 
       {/* Aggregate strip */}

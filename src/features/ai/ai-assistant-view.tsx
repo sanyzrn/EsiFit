@@ -75,6 +75,7 @@ export function AIAssistantView({ tier }: { tier: string }) {
       <PageHeader
         title="دستیار هوشمند"
         description="مربی فارسی‌زبان مبتنی بر هوش مصنوعی — با خط قرمزهای ایمنی سلامت."
+        backHref="/dashboard"
         action={
           <div className="text-end">
             <p className="text-xs text-esi-text-muted tabular-nums">

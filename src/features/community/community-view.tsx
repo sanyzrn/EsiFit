@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { PageHeader } from "@/components/layout/app-shell";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatRelative } from "@/lib/dates/jalali";
 import { toPersianDigits } from "@/lib/formatting/numbers";
 import { cn } from "@/lib/utils";
+import { MOTION } from "@/lib/motion/motion";
 
 type Post = {
   id: string;
@@ -106,6 +107,15 @@ export function CommunityView({ signedIn }: { signedIn: boolean }) {
     }
   };
 
+  const reduce = useReducedMotion();
+  const enter = (i = 0) => ({
+    initial: reduce ? { opacity: 0 } : { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    transition: reduce
+      ? { duration: 0.01 }
+      : { duration: MOTION.duration.enter, ease: MOTION.ease, delay: Math.min(i * 0.04, 0.28) },
+  });
+
   const join = async (challengeId: string) => {
     if (!signedIn) {
       toast({ title: "برای عضویت در چالش وارد شوید", description: "ابتدا وارد حساب خود شوید." });
@@ -123,7 +133,7 @@ export function CommunityView({ signedIn }: { signedIn: boolean }) {
 
   return (
     <div className="max-w-4xl mx-auto w-full pb-6">
-      <PageHeader title="انجمن" description="پیشرفت واقعی مردم واقعی — بدون فیلتر و ادعای غیرواقعی." />
+      <PageHeader title="انجمن" description="پیشرفت واقعی مردم واقعی — بدون فیلتر و ادعای غیرواقعی." backHref="/dashboard" />
 
       <div className="px-4 lg:px-8">
         <Tabs defaultValue="feed">

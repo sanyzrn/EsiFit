@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { PageHeader } from "@/components/layout/app-shell";
 import { MacroRingGroup } from "@/components/data-viz/macro-rings";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { useFeatureFlag } from "@/lib/feature-flags/flag-provider";
 import { formatNumber, toPersianDigits } from "@/lib/formatting/numbers";
 import { formatJalaliLong, todayISO, addDaysISO } from "@/lib/dates/jalali";
 import { cn } from "@/lib/utils";
+import { MOTION } from "@/lib/motion/motion";
 
 type DayData = {
   date: string;
@@ -63,6 +64,7 @@ export function NutritionView() {
   const [pickerOpen, setPickerOpen] = React.useState<string | null>(null);
   const offline = useFeatureFlag("OFFLINE_TRACKERS");
   const today = todayISO();
+  const reduce = useReducedMotion();
 
   const load = React.useCallback(async (d: string) => {
     setLoadState("loading");
@@ -114,6 +116,7 @@ export function NutritionView() {
       <PageHeader
         title="تغذیه"
         description={formatJalaliLong(new Date())}
+        backHref="/dashboard"
         action={
           <div className="flex gap-1.5">
             <Button

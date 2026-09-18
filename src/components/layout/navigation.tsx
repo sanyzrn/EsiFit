@@ -183,12 +183,20 @@ export function MobileBottomNav() {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 text-[10px] min-h-[44px] transition-colors",
+                "relative flex flex-col items-center justify-center gap-1 text-[10px] min-h-[44px] transition-colors",
                 active ? "text-primary font-semibold" : "text-esi-text-muted",
               )}
             >
-              <Icon name={item.icon} size={22} strokeWidth={active ? 2 : 1.75} />
-              {item.label}
+              {active && (
+                <motion.span
+                  layoutId="esifit-bottom-nav-pill"
+                  className="absolute inset-x-2 top-1 h-8 rounded-2xl bg-primary/12"
+                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                  aria-hidden
+                />
+              )}
+              <Icon name={item.icon} size={22} strokeWidth={active ? 2 : 1.75} className="relative" />
+              <span className="relative">{item.label}</span>
             </Link>
           );
         })}

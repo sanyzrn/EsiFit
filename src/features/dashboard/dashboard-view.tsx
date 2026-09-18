@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { RecoveryOrb, type ReadinessFactor } from "@/components/data-viz/recovery-orb";
 import { MacroRingGroup } from "@/components/data-viz/macro-rings";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
@@ -18,6 +18,7 @@ import { formatJalaliWeekdayDay, todayISO } from "@/lib/dates/jalali";
 import { formatNumber, formatDelta, toPersianDigits } from "@/lib/formatting/numbers";
 import { TIER_LABELS, type UserTier } from "@/lib/entitlements/entitlements";
 import { cn } from "@/lib/utils";
+import { MOTION } from "@/lib/motion/motion";
 
 type DashboardData = {
   greetingName: string;
@@ -58,6 +59,14 @@ export function DashboardView() {
   const offlineFlag = useFeatureFlag("OFFLINE_TRACKERS");
   const coachFlag = useFeatureFlag("ADAPTIVE_COACH");
   const goalFlag = useFeatureFlag("GOAL_ENGINE");
+  const reduce = useReducedMotion();
+  const enter = (i = 0) => ({
+    initial: reduce ? { opacity: 0 } : { opacity: 0, y: 12 },
+    animate: { opacity: 1, y: 0 },
+    transition: reduce
+      ? { duration: 0.01 }
+      : { duration: MOTION.duration.enter, ease: MOTION.ease, delay: Math.min(i * 0.05, 0.3) },
+  });
 
   const load = React.useCallback(async () => {
     try {

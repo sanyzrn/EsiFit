@@ -2,9 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/session";
-import { AppShell } from "@/components/layout/app-shell";
-import { PublicNavbar } from "@/components/layout/public-navbar";
-import { Footer } from "@/components/layout/footer";
+import { PublicPageShell } from "@/components/layout/public-page-shell";
 import { ArticleCard } from "@/components/features/article-card";
 import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 import { formatJalaliLong } from "@/lib/dates/jalali";
@@ -79,8 +77,12 @@ export default async function ArticlePage({
   };
 
   return (
-    <AppShell session={session} flags={resolveEnabledFlags()}>
-      <PublicNavbar />
+    <PublicPageShell
+      session={session}
+      flags={resolveEnabledFlags()}
+      showFooter
+      backHref={`/blog/${category}`}
+    >
       <script
         type="application/ld+json"
         // "<" is escaped so a "</script>" sequence inside any article field
@@ -88,7 +90,7 @@ export default async function ArticlePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
 
-      <article className="pt-28 pb-10 max-w-3xl mx-auto w-full px-4 lg:px-8 min-h-[70vh]">
+      <article className="pb-10 max-w-3xl mx-auto w-full px-4 lg:px-8 min-h-[70vh]">
         <nav className="text-xs text-esi-text-muted" aria-label="مسیر">
           <Link href="/blog" className="hover:text-esi-text-primary">مجله</Link>
           <span className="mx-1">/</span>
@@ -205,7 +207,6 @@ export default async function ArticlePage({
           </section>
         )}
       </article>
-      <Footer />
-    </AppShell>
+    </PublicPageShell>
   );
 }

@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/session";
-import { AppShell } from "@/components/layout/app-shell";
-import { PublicNavbar } from "@/components/layout/public-navbar";
-import { Footer } from "@/components/layout/footer";
+import { AppShell, PageHeader } from "@/components/layout/app-shell";
+import { PublicPageShell } from "@/components/layout/public-page-shell";
 import { RevealOnScroll } from "@/components/ui/reveal-on-scroll";
 import { SectionHeader } from "@/components/ui/section-header";
 import { InstallPrompt } from "@/components/features/offline-sync-indicator";
@@ -36,11 +35,16 @@ export default async function LandingPage() {
   ]);
 
   return (
-    <AppShell session={session} flags={flags}>
-      <PublicNavbar />
-
+    <PublicPageShell
+      session={session}
+      flags={flags}
+      showFooter
+      className="landing-shell"
+      backHref={undefined}
+    >
       {/* ============ HERO ============ */}
-      <section className="relative overflow-hidden esi-hero-graphite pt-32 pb-20 lg:pt-40 lg:pb-28">
+      {/* PublicPageShell already reserves navbar height; keep hero padding modest. */}
+      <section className="relative overflow-hidden esi-hero-graphite pt-8 pb-20 lg:pt-12 lg:pb-28">
         {/* barely-perceptible ambient orbs */}
         <div aria-hidden className="pointer-events-none absolute inset-0">
           <div className="esi-ambient absolute -top-24 -start-24 h-96 w-96 rounded-full bg-mint-400/8 blur-3xl" />
@@ -254,8 +258,7 @@ export default async function LandingPage() {
         </RevealOnScroll>
       </section>
 
-      <Footer />
       <InstallPrompt />
-    </AppShell>
+    </PublicPageShell>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { PageHeader } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,6 +35,7 @@ export function StoreView({ signedIn }: { signedIn: boolean }) {
   const [checkout, setCheckout] = React.useState(false);
   const [order, setOrder] = React.useState<{ totalToman: number; discountToman: number } | null>(null);
   const { toast } = useToast();
+  const reduce = useReducedMotion();
 
   React.useEffect(() => {
     void (async () => {
@@ -82,15 +83,28 @@ export function StoreView({ signedIn }: { signedIn: boolean }) {
     <div className="max-w-5xl mx-auto w-full pb-6">
       <PageHeader
         title="فروشگاه اسی‌فیت"
-        description={discount > 0 ? `به عنوان عضو ویژه، ${toPersianDigits(discount)}٪ تخفیف روی همه اقلام دارید.` : "تجهیزات منتخب برای تمرین بهتر."}
+        description={
+          !signedIn
+            ? "کاتالوگ عمومی — برای خرید وارد حساب شوید."
+            : discount > 0
+              ? `به عنوان عضو ویژه، ${toPersianDigits(discount)}٪ تخفیف روی همه اقلام دارید.`
+              : "تجهیزات منتخب برای تمرین بهتر."
+        }
+        backHref={signedIn ? "/dashboard" : "/"}
         action={
-          <Button variant="secondary" className="h-11 relative" onClick={() => setCartOpen(true)}>
+          <Button variant="secondary" className="h-11 relative active:scale-[0.98] transition-transform" onClick={() => setCartOpen(true)}>
             <Icon name="ShoppingCart" size={18} />
             سبد خرید
             {count > 0 && (
-              <span className="absolute -top-1.5 -end-1.5 h-5 min-w-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1 tabular-nums">
+              <motion.span
+                key={count}
+                initial={{ scale: 0.6 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                className="absolute -top-1.5 -end-1.5 h-5 min-w-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1 tabular-nums"
+              >
                 {toPersianDigits(count)}
-              </span>
+              </motion.span>
             )}
           </Button>
         }
@@ -103,8 +117,14 @@ export function StoreView({ signedIn }: { signedIn: boolean }) {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {products.map((p) => (
-              <article key={p.id} className="group flex flex-col rounded-3xl border border-border bg-surface-1 p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-raised)]">
+            {products.map((p, i) => (
+              <motion.article
+                key={p.id}
+                initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: reduce ? 0.01 : 0.32, delay: reduce ? 0 : Math.min(i * 0.04, 0.28) }}
+                className="group flex flex-col rounded-3xl border border-border bg-surface-1 p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-raised)]"
+              >
                 <div className="flex items-start justify-between">
                   <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-2 text-3xl" aria-hidden>{p.emoji}</span>
                   {p.badge && (
@@ -120,9 +140,9 @@ export function StoreView({ signedIn }: { signedIn: boolean }) {
                       <p className="text-[11px] text-esi-text-muted line-through tabular-nums">{formatToman(p.compareAtToman)}</p>
                     )}
                   </div>
-                  <Button size="sm" className="h-9" onClick={() => addToCart(p)}>افزودن</Button>
+                  <Button size="sm" className="h-9 active:scale-[0.97] transition-transform" onClick={() => addToCart(p)}>افزودن</Button>
                 </div>
-              </article>
+              </motion.article>
             ))}
           </div>
         )}

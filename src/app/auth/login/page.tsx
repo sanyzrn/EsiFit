@@ -10,9 +10,12 @@ export default async function LoginPage() {
   const session = await getSessionUser();
   if (session) redirect("/dashboard");
   return (
-    <AppShell session={null}>
-      <div className="min-h-dvh flex items-center justify-center px-4 py-10">
+    <AppShell session={null} variant="auth">
+      <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-10 gap-6">
         <AuthCard />
+        <a href="/" className="text-sm text-esi-text-muted hover:text-esi-text-primary transition-colors min-h-11 inline-flex items-center">
+          بازگشت به صفحه اصلی
+        </a>
       </div>
     </AppShell>
   );

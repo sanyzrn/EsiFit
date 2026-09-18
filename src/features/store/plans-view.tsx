@@ -79,6 +79,13 @@ export function PlansView({ currentTier }: { currentTier: string | null }) {
         </span>
       </div>
 
+      {plans.length === 0 && (
+        <div className="rounded-3xl border border-destructive/30 bg-destructive/8 p-8 text-center space-y-3">
+          <p className="text-sm text-destructive">بارگذاری پلن‌ها ناموفق بود.</p>
+          <Button variant="secondary" onClick={() => window.location.reload()}>تلاش دوباره</Button>
+        </div>
+      )}
+
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {plans.map((p, i) => {
           const isCurrent = currentTier === p.tier;

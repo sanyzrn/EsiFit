@@ -1,12 +1,9 @@
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/session";
-import { AppShell } from "@/components/layout/app-shell";
-import { PublicNavbar } from "@/components/layout/public-navbar";
-import { Footer } from "@/components/layout/footer";
-import { PageHeader } from "@/components/layout/app-shell";
+import { PublicPageShell } from "@/components/layout/public-page-shell";
 import { ArticleCard } from "@/components/features/article-card";
 import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
-import { formatRelative, formatJalaliLong } from "@/lib/dates/jalali";
+import { formatJalaliLong } from "@/lib/dates/jalali";
 import { toPersianDigits } from "@/lib/formatting/numbers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -32,16 +29,21 @@ export default async function BlogIndexPage() {
   ]);
 
   return (
-    <AppShell session={session} flags={flags}>
-      <PublicNavbar />
-      <div className="pt-28 max-w-6xl mx-auto w-full">
-        <PageHeader title="مجله اسی‌فیت" description="هر ادعا به منبع گره خورده است؛ محتوای سلامت با مرور تخصصی منتشر می‌شود." />
+    <PublicPageShell
+      session={session}
+      flags={flags}
+      title="مجله اسی‌فیت"
+      description="هر ادعا به منبع گره خورده است؛ محتوای سلامت با مرور تخصصی منتشر می‌شود."
+      backHref={session ? "/dashboard" : undefined}
+      showFooter
+    >
+      <div className="max-w-6xl mx-auto w-full">
         <nav className="px-4 lg:px-8 mt-2 flex flex-wrap gap-2" aria-label="دسته‌بندی‌ها">
           {categories.map((c) => (
             <Link
               key={c.slug}
               href={`/blog/${c.slug}`}
-              className="rounded-full border border-border bg-surface-1 px-4 py-2 text-xs text-esi-text-secondary hover:border-primary/50 hover:text-esi-text-primary transition-colors"
+              className="rounded-full border border-border bg-surface-1 px-4 py-2 text-xs text-esi-text-secondary hover:border-primary/50 hover:text-esi-text-primary transition-colors min-h-11 inline-flex items-center"
             >
               {c.nameFa}
             </Link>
@@ -62,7 +64,6 @@ export default async function BlogIndexPage() {
           ))}
         </div>
       </div>
-      <Footer />
-    </AppShell>
+    </PublicPageShell>
   );
 }

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
-import { AppShell, PageHeader } from "@/components/layout/app-shell";
+import { PublicPageShell } from "@/components/layout/public-page-shell";
 import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 import { CALCULATOR_CONFIGS } from "@/features/calculators/registry";
 import { CalculatorRunner } from "@/features/calculators/calculator-runner";
@@ -23,18 +23,22 @@ export default async function CalculatorPage({ params }: { params: Promise<{ slu
   const session = await getSessionUser();
 
   return (
-    <AppShell session={session} flags={resolveEnabledFlags()}>
-      <PageHeader
-        title={calc.title}
-        description={calc.tagline}
-        backHref="/calculators"
-      />
-      <CalculatorRunner
-        slug={calc.slug}
-        inputs={calc.inputs}
-        disclaimer={calc.disclaimer}
-        methodNote={calc.methodNote}
-      />
-    </AppShell>
+    <PublicPageShell
+      session={session}
+      flags={resolveEnabledFlags()}
+      title={calc.title}
+      description={calc.tagline}
+      backHref="/calculators"
+      showFooter={!session}
+    >
+      <div className="px-4 lg:px-8">
+        <CalculatorRunner
+          slug={calc.slug}
+          inputs={calc.inputs}
+          disclaimer={calc.disclaimer}
+          methodNote={calc.methodNote}
+        />
+      </div>
+    </PublicPageShell>
   );
 }

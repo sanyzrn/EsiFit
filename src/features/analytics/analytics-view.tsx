@@ -9,6 +9,7 @@ import { StreakCalendar } from "@/components/data-viz/streak-calendar";
 import { BodyRadar } from "@/components/data-viz/body-radar";
 import { EsiScoreDial } from "@/components/data-viz/esi-score-dial";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/ui/icon";
 import { api, errorMessage } from "@/lib/client/api";
@@ -98,11 +99,14 @@ export function AnalyticsView() {
 
   return (
     <div className="max-w-6xl mx-auto w-full pb-6">
-      <PageHeader title="تحلیل پیشرفت" description="تصویر واقعی از ۹۰ روز تمرین شما — بدون عدد تزئینی." />
+      <PageHeader title="تحلیل پیشرفت" description="تصویر واقعی از ۹۰ روز تمرین شما — بدون عدد تزئینی." backHref="/dashboard" />
 
       {error && (
-        <div role="alert" className="mx-4 lg:mx-8 rounded-2xl border border-destructive/30 bg-destructive/8 px-4 py-3 text-sm text-destructive">
-          {error}
+        <div role="alert" className="mx-4 lg:mx-8 rounded-2xl border border-destructive/30 bg-destructive/8 px-4 py-3 text-sm text-destructive flex flex-wrap items-center justify-between gap-3">
+          <span>{error}</span>
+          <Button variant="secondary" size="sm" className="h-9" onClick={() => load()}>
+            تلاش دوباره
+          </Button>
         </div>
       )}
 

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { PageHeader } from "@/components/layout/app-shell";
 import { RadialGauge } from "@/components/data-viz/radial-gauge";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
@@ -13,6 +13,7 @@ import { toPersianDigits, formatNumber } from "@/lib/formatting/numbers";
 import { formatRelative } from "@/lib/dates/jalali";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { MOTION } from "@/lib/motion/motion";
 
 type Overview = {
   xp: number;
@@ -34,6 +35,14 @@ const TIER_STYLE = {
 };
 
 export function AchievementsView() {
+  const reduce = useReducedMotion();
+  const enter = (i = 0) => ({
+    initial: reduce ? { opacity: 0 } : { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    transition: reduce
+      ? { duration: 0.01 }
+      : { duration: MOTION.duration.enter, ease: MOTION.ease, delay: Math.min(i * 0.04, 0.24) },
+  });
   const [data, setData] = React.useState<Overview | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [claiming, setClaiming] = React.useState<string | null>(null);
@@ -70,7 +79,7 @@ export function AchievementsView() {
 
   return (
     <div className="max-w-4xl mx-auto w-full pb-6">
-      <PageHeader title="دستاوردها" description="امتیاز، نشان‌ها و ماموریت‌ها — همه به عملکرد واقعی گره خورده‌اند." />
+      <PageHeader title="دستاوردها" description="امتیاز، نشان‌ها و ماموریت‌ها — همه به عملکرد واقعی گره خورده‌اند." backHref="/dashboard" />
 
       {error && (
         <div role="alert" className="mx-4 lg:mx-8 rounded-2xl border border-destructive/30 bg-destructive/8 px-4 py-3 text-sm text-destructive">

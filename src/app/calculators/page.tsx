@@ -1,7 +1,5 @@
 import { getSessionUser } from "@/lib/auth/session";
-import { AppShell, PageHeader } from "@/components/layout/app-shell";
-import { PublicNavbar } from "@/components/layout/public-navbar";
-import { Footer } from "@/components/layout/footer";
+import { PublicPageShell } from "@/components/layout/public-page-shell";
 import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 import { CalculatorsHub } from "@/features/calculators/calculators-hub";
 
@@ -12,32 +10,25 @@ export const metadata = {
 };
 
 /**
- * Public calculators — the useful core result is anonymous (00_README rule).
- * Members additionally get the app shell + result saving.
+ * Public calculators — core result is anonymous. Shared PublicPageShell
+ * reserves top padding under the fixed navbar for anonymous visitors.
  */
 export default async function CalculatorsPage() {
   const session = await getSessionUser();
-
-  if (session) {
-    return (
-      <AppShell session={session} flags={resolveEnabledFlags()}>
-        <PageHeader title="ماشین‌حساب‌ها" description="نتیجه فوری با فرمول‌های استاندارد علمی — بدون نیاز به ثبت‌نام." />
-        <CalculatorsHub />
-      </AppShell>
-    );
-  }
-
   return (
-    <div className="min-h-dvh flex flex-col">
-      <PublicNavbar />
-      <main className="flex-1">
-        <PageHeader
-          title="ماشین‌حساب‌ها"
-          description="نتیجه فوری با فرمول‌های استاندارد علمی — بدون نیاز به ثبت‌نام. برای ذخیره تاریخچه وارد شوید."
-        />
-        <CalculatorsHub />
-      </main>
-      <Footer />
-    </div>
+    <PublicPageShell
+      session={session}
+      flags={resolveEnabledFlags()}
+      title="ماشین‌حساب‌ها"
+      description={
+        session
+          ? "نتیجه فوری با فرمول‌های استاندارد علمی — بدون نیاز به ثبت‌نام."
+          : "نتیجه فوری با فرمول‌های استاندارد علمی. برای ذخیره تاریخچه وارد شوید."
+      }
+      backHref={session ? "/dashboard" : undefined}
+      showFooter
+    >
+      <CalculatorsHub />
+    </PublicPageShell>
   );
 }

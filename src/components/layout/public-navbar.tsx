@@ -2,12 +2,14 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { BrandMark } from "@/components/layout/navigation";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/client/use-session";
 import { cn } from "@/lib/utils";
+import { MOTION } from "@/lib/motion/motion";
 
 const LINKS = [
   { href: "/calculators", label: "ماشین‌حساب‌ها" },
@@ -20,6 +22,7 @@ export function PublicNavbar() {
   const [scrolled, setScrolled] = React.useState(false);
   const [open, setOpen] = React.useState(false);
   const session = useSession();
+  const reduce = useReducedMotion();
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -43,7 +46,7 @@ export function PublicNavbar() {
               <Link
                 key={l.href}
                 href={l.href}
-                className="rounded-lg px-3 py-2 text-sm text-esi-text-secondary hover:text-esi-text-primary hover:bg-surface-2/60 transition-colors"
+                className="rounded-lg px-3 py-2 text-sm text-esi-text-secondary hover:text-esi-text-primary hover:bg-surface-2/60 transition-colors min-h-11 inline-flex items-center"
               >
                 {l.label}
               </Link>
@@ -62,39 +65,56 @@ export function PublicNavbar() {
             )}
             <button
               type="button"
-              className="md:hidden inline-flex h-11 w-11 items-center justify-center rounded-full text-esi-text-secondary"
+              className="md:hidden inline-flex h-11 w-11 items-center justify-center rounded-full text-esi-text-secondary transition-transform active:scale-95"
               aria-label={open ? "بستن منو" : "باز کردن منو"}
               aria-expanded={open}
               onClick={() => setOpen((v) => !v)}
             >
-              <Icon name={open ? "X" : "Menu"} size={22} />
+              <motion.span
+                animate={{ rotate: open ? 90 : 0 }}
+                transition={{ duration: reduce ? 0.01 : MOTION.duration.snappy, ease: MOTION.ease }}
+              >
+                <Icon name={open ? "X" : "Menu"} size={22} />
+              </motion.span>
             </button>
           </div>
         </div>
       </div>
-      {open && (
-        <nav className="md:hidden border-t border-border esi-glass px-4 py-3 space-y-1" aria-label="ناوبری موبایل">
-          {LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              onClick={() => setOpen(false)}
-              className="block rounded-lg px-3 py-3 text-sm text-esi-text-secondary hover:bg-surface-2"
-            >
-              {l.label}
-            </Link>
-          ))}
-          {!session && (
-            <Link
-              href="/auth/login"
-              onClick={() => setOpen(false)}
-              className="block rounded-lg bg-primary px-3 py-3 text-center text-sm font-semibold text-primary-foreground"
-            >
-              ورود / ثبت‌نام
-            </Link>
-          )}
-        </nav>
-      )}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.nav
+            key="public-mobile-menu"
+            initial={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            animate={reduce ? { opacity: 1 } : { opacity: 1, height: "auto" }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            transition={{ duration: reduce ? 0.01 : MOTION.duration.smooth, ease: MOTION.ease }}
+            className="md:hidden border-t border-border esi-glass overflow-hidden"
+            aria-label="ناوبری موبایل"
+          >
+            <div className="px-4 py-3 space-y-1">
+              {LINKS.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  onClick={() => setOpen(false)}
+                  className="block rounded-lg px-3 py-3 text-sm text-esi-text-secondary hover:bg-surface-2 transition-colors"
+                >
+                  {l.label}
+                </Link>
+              ))}
+              {!session && (
+                <Link
+                  href="/auth/login"
+                  onClick={() => setOpen(false)}
+                  className="block rounded-lg bg-primary px-3 py-3 text-center text-sm font-semibold text-primary-foreground"
+                >
+                  ورود / ثبت‌نام
+                </Link>
+              )}
+            </div>
+          </motion.nav>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

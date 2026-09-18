@@ -251,6 +251,16 @@ body {
   padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
 }
 
+/* Layout shell reserves — keep in sync with AppShell / PublicPageShell */
+.app-main-content {
+  /* sticky mobile header is in-flow; no extra top pad required */
+  min-width: 0;
+}
+.public-shell-main {
+  /* fixed PublicNavbar is h-16 + safe-area */
+  scroll-margin-top: 5.5rem;
+}
+
 /* ---------------- Utilities ---------------- */
 .esi-glass {
   background: var(--glass-bg);

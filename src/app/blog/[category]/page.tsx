@@ -2,18 +2,15 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/session";
-import { AppShell } from "@/components/layout/app-shell";
-import { PublicNavbar } from "@/components/layout/public-navbar";
-import { Footer } from "@/components/layout/footer";
+import { PublicPageShell } from "@/components/layout/public-page-shell";
 import { ArticleCard } from "@/components/features/article-card";
 import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 import { formatJalaliLong } from "@/lib/dates/jalali";
 import { toPersianDigits } from "@/lib/formatting/numbers";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
-// The dynamic segment is [category]; destructuring `slug` here yielded
-// undefined and made every category page throw at the Prisma call.
 type CategoryParams = { params: Promise<{ category: string }> };
 
 export async function generateMetadata({ params }: CategoryParams) {
@@ -38,9 +35,13 @@ export default async function BlogCategoryPage({ params }: CategoryParams) {
   ]);
 
   return (
-    <AppShell session={session} flags={resolveEnabledFlags()}>
-      <PublicNavbar />
-      <div className="pt-28 max-w-6xl mx-auto w-full min-h-[60vh]">
+    <PublicPageShell
+      session={session}
+      flags={resolveEnabledFlags()}
+      showFooter
+      backHref="/blog"
+    >
+      <div className="max-w-6xl mx-auto w-full min-h-[50vh] pb-6">
         <nav className="px-4 lg:px-8 text-xs text-esi-text-muted" aria-label="مسیر">
           <Link href="/blog" className="hover:text-esi-text-primary">مجله</Link>
           <span className="mx-1">/</span>
@@ -64,11 +65,15 @@ export default async function BlogCategoryPage({ params }: CategoryParams) {
             />
           ))}
           {articles.length === 0 && (
-            <p className="text-sm text-esi-text-muted col-span-full py-12 text-center">هنوز مقاله‌ای در این دسته منتشر نشده است.</p>
+            <div className="col-span-full py-12 text-center space-y-4">
+              <p className="text-sm text-esi-text-muted">هنوز مقاله‌ای در این دسته منتشر نشده است.</p>
+              <Button asChild variant="secondary">
+                <Link href="/blog">بازگشت به مجله</Link>
+              </Button>
+            </div>
           )}
         </div>
       </div>
-      <Footer />
-    </AppShell>
+    </PublicPageShell>
   );
 }

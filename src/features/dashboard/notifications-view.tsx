@@ -57,6 +57,7 @@ export function NotificationsView() {
       <PageHeader
         title="اعلان‌ها"
         description={unread > 0 ? `${unread} اعلان خوانده‌نشده` : "همه اعلان‌ها خوانده شده‌اند"}
+        backHref="/dashboard"
         action={
           unread > 0 ? (
             <Button variant="secondary" size="sm" className="h-9" onClick={() => void markAll()}>
@@ -69,9 +70,12 @@ export function NotificationsView() {
         {!items ? (
           [1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-2xl" />)
         ) : items.length === 0 ? (
-          <div className="rounded-3xl border border-border bg-surface-1 p-10 text-center">
+          <div className="rounded-3xl border border-border bg-surface-1 p-10 text-center space-y-4">
             <span className="text-3xl" aria-hidden>🔔</span>
-            <p className="mt-3 text-sm text-esi-text-secondary">هنوز اعلانی ندارید — اولین تمرین را ثبت کنید!</p>
+            <p className="text-sm text-esi-text-secondary">هنوز اعلانی ندارید — اولین تمرین را ثبت کنید!</p>
+            <Button asChild className="h-11">
+              <Link href="/workouts">شروع تمرین</Link>
+            </Button>
           </div>
         ) : (
           items.map((n, i) => {

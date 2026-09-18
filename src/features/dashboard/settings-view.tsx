@@ -100,7 +100,7 @@ export function SettingsView({
 
   return (
     <div className="max-w-2xl mx-auto w-full pb-6 space-y-5">
-      <PageHeader title="تنظیمات" description="حساب، ترجیحات و حریم خصوصی" />
+      <PageHeader title="تنظیمات" description="حساب، ترجیحات و حریم خصوصی" backHref="/dashboard" />
 
       <div className="px-4 lg:px-8 space-y-4">
         {/* profile */}

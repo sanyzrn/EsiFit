@@ -10,7 +10,7 @@ export default async function OnboardingPage() {
   const session = await getSessionUser();
   if (!session) redirect("/auth/login");
   return (
-    <AppShell session={session}>
+    <AppShell session={session} variant="auth">
       <div className="min-h-dvh flex items-center justify-center px-4 py-10">
         <OnboardingFlow displayName={session.displayName} />
       </div>

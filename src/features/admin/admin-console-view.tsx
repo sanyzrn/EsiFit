@@ -65,7 +65,7 @@ export function AdminConsoleView({ adminName }: { adminName: string }) {
 
   return (
     <div className="max-w-6xl mx-auto w-full pb-6">
-      <PageHeader title="کنسول مدیریت" description={`پنل سرپرستی ${adminName} — داده‌های واقعی سیستم`} />
+      <PageHeader title="کنسول مدیریت" description={`پنل سرپرستی ${adminName} — داده‌های واقعی سیستم`} backHref="/dashboard" />
 
       {error && (
         <div role="alert" className="mx-4 lg:mx-8 rounded-2xl border border-destructive/30 bg-destructive/8 px-4 py-3 text-sm text-destructive">

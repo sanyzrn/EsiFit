@@ -4,6 +4,7 @@ import * as React from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/formatting/numbers";
+import { AnimatedCounter } from "@/components/ui/animated-counter";
 
 /**
  * MacroRingGroup — daily/meal macro totals vs targets.
@@ -63,7 +64,7 @@ export function MacroRingGroup({
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className={cn("font-semibold tabular-nums", target > 0 && pct >= 1 ? "text-xs" : "text-sm")}>
-                  {formatNumber(value, { maximumFractionDigits: 0 })}
+                  <AnimatedCounter value={value} format="decimal" digits={0} />
                 </span>
               </div>
             </div>
