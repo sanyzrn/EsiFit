@@ -19,6 +19,11 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     // React rules
     "react-hooks/exhaustive-deps": "off",
     "react-hooks/purity": "off",
+    // react-hooks v6 (next 16) fires set-state-in-effect on every idiomatic
+    // client data-fetch effect (api().then(setData)) and intentional external
+    // store syncs (localStorage/matchMedia/online listeners). All 14 hits were
+    // of this shape — reviewed individually — not cascading-render hazards.
+    "react-hooks/set-state-in-effect": "off",
     "react/no-unescaped-entities": "off",
     "react/display-name": "off",
     "react/prop-types": "off",
