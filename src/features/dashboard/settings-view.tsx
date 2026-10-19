@@ -104,7 +104,7 @@ export function SettingsView({
 
       <div className="px-4 lg:px-8 space-y-4">
         {/* profile */}
-        <section aria-label="پروفایل" className="rounded-3xl border border-border bg-surface-1 p-6">
+        <section aria-label="پروفایل" className="esi-card rounded-3xl p-6">
           <div className="flex items-center gap-4">
             <div className="h-14 w-14 rounded-2xl esi-gradient-brand flex items-center justify-center text-primary-foreground text-xl font-bold">
               {session.displayName.trim()[0]}
@@ -120,7 +120,7 @@ export function SettingsView({
         </section>
 
         {/* preferences */}
-        <section aria-label="ترجیحات" className="rounded-3xl border border-border bg-surface-1 p-6 space-y-5">
+        <section aria-label="ترجیحات" className="esi-card rounded-3xl p-6 space-y-5">
           <h2 className="font-bold">ترجیحات</h2>
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -141,7 +141,7 @@ export function SettingsView({
         <EquipmentSection />
 
         {/* devices */}
-        <section aria-label="دستگاه‌ها" className="rounded-3xl border border-border bg-surface-1 p-6">
+        <section aria-label="دستگاه‌ها" className="esi-card rounded-3xl p-6">
           <h2 className="font-bold mb-4">دستگاه‌های فعال</h2>
           <ul className="space-y-2.5">
             {devices.map((d) => (
@@ -158,7 +158,7 @@ export function SettingsView({
         <PainSection />
 
         {/* privacy */}
-        <section aria-label="حریم خصوصی" className="rounded-3xl border border-border bg-surface-1 p-6 space-y-4">
+        <section aria-label="حریم خصوصی" className="esi-card rounded-3xl p-6 space-y-4">
           <h2 className="font-bold">حریم خصوصی و داده</h2>
           <p className="text-xs leading-6 text-esi-text-secondary">
             داده‌های سلامت شما (وزن، اندازه‌ها، عکس‌ها) خصوصی هستند و فقط با اجازه شما پردازش می‌شوند.
@@ -250,7 +250,7 @@ function PainSection() {
   };
 
   return (
-    <section aria-label="درد و محدودیت‌ها" className="rounded-3xl border border-border bg-surface-1 p-6 space-y-4">
+    <section aria-label="درد و محدودیت‌ها" className="esi-card rounded-3xl p-6 space-y-4">
       <div>
         <h2 className="font-bold flex items-center gap-2">
           <Icon name="HeartPulse" size={17} className="text-primary" />
@@ -349,11 +349,11 @@ function EquipmentSection() {
   };
 
   if (loading) {
-    return <section className="rounded-3xl border border-border bg-surface-1 p-6 h-32 animate-pulse" aria-label="وسایل" />;
+    return <section className="esi-card rounded-3xl p-6 h-32 animate-pulse" aria-label="وسایل" />;
   }
 
   return (
-    <section aria-label="وسایل ورزشی" className="rounded-3xl border border-border bg-surface-1 p-6 space-y-4">
+    <section aria-label="وسایل ورزشی" className="esi-card rounded-3xl p-6 space-y-4">
       <div>
         <h2 className="font-bold">وسایل ورزشی</h2>
         <p className="text-xs text-esi-text-secondary mt-1 leading-5">

@@ -55,7 +55,7 @@ bun run dev                 # http://localhost:3000
 ## تست‌ها و کیفیت
 
 ```bash
-bun run test        # ۸۷ تست (واحد + یکپارچگی API روی دیتابیس تست ایزوله)
+bun run test        # ۱۲۸ تست (واحد + یکپارچگی API روی دیتابیس تست ایزوله)
 bun run lint        # ESLint
 bunx tsc --noEmit   # تایپ‌چک کامل (strict)
 ```
@@ -81,13 +81,15 @@ bunx tsc --noEmit   # تایپ‌چک کامل (strict)
 ## معماری (خلاصه)
 
 - **فریم‌ورک:** Next.js 16 App Router + React 19 + TypeScript strict
-- **استایل:** Tailwind CSS 4 + توکن‌های معنایی DESIGN_BIBLE (mint/graphite) با پاریتی کامل dark/light
-- **فونت:** Vazirmatn (self-hosted woff2)
+- **استایل:** Tailwind CSS 4 + سیستم طراحی «لاجورد و زعفران» (lapis/saffron/firouzeh) با پاریتی کامل dark/light؛ نقش‌مایه تکرارشونده «ختم» (ستاره هشت‌پر) در دایل‌ها، پس‌زمینه و لوگو
+- **فونت:** Vazirmatn (متن رابط) + Lalezar (تیترها و اعداد درشت)، هر دو self-hosted
 - **داده:** Prisma + PostgreSQL؛ مرز ریپازیتوری حفظ شده
 - **احراز هویت:** اول‌حساب موبایل+OTP؛ آداپتور پیامک ایرانی؛ سشن opaque + JWT در کوکی httpOnly؛ rate-limit و انقضای کد
 - **نقش‌ها:** `member | coach | admin` در `lib/auth/session.ts` (`requireRole`) + گارد صفحه‌ها (`requireRolePage`) + بخش‌های ناوبری نقش‌محور
 - **حقوق دسترسی:** محاسبه سرور-ساید از tier (free/vip/vip_plus/coach) — UI فقط نمایش است
 - **آفلاین:** صف IndexedDB با clientId پایدار، sync idempotent، هرگز تمرین فعال از دست نمی‌رود
+- **حرکت و جلوه:** `components/motion/` — دایل ختم، کانفتی کانواسی، مگنتیک، مارکی، اسپات‌لایت کارت‌ها؛ همه با احترام به `prefers-reduced-motion`
+- **آیکن‌ها:** `node scripts/generate-icons.mjs` از روی یک طرح برداری همه آیکن‌های PWA را بازمی‌سازد
 - **آناتومی:** هندسه MIT از `react-muscle-highlighter` (vendored با ذکر منبع) + رندر اختصاصی انیمیشنی (`components/data-viz/anatomy/`)
 
 ## قابلیت‌های کلیدی

@@ -95,7 +95,7 @@ export function AchievementsView() {
       ) : (
         <div className="px-4 lg:px-8 space-y-5">
           {/* Level gauge */}
-          <section aria-label="سطح و امتیاز" className="rounded-3xl border border-border bg-surface-1 p-6 flex flex-col sm:flex-row items-center gap-8">
+          <section aria-label="سطح و امتیاز" className="esi-card rounded-3xl p-6 flex flex-col sm:flex-row items-center gap-8">
             <RadialGauge
               value={data.level.progress * 100}
               size={150}
@@ -129,7 +129,7 @@ export function AchievementsView() {
           </section>
 
           {/* Missions */}
-          <section aria-label="ماموریت‌ها" className="rounded-3xl border border-border bg-surface-1 p-6">
+          <section aria-label="ماموریت‌ها" className="esi-card rounded-3xl p-6">
             <h2 className="font-bold mb-4">ماموریت‌های امروز و این هفته</h2>
             <div className="space-y-3">
               {data.missions.map((m) => {
@@ -183,7 +183,7 @@ export function AchievementsView() {
           </section>
 
           {/* Badges */}
-          <section aria-label="نشان‌ها" className="rounded-3xl border border-border bg-surface-1 p-6">
+          <section aria-label="نشان‌ها" className="esi-card rounded-3xl p-6">
             <h2 className="font-bold mb-4">مجموعه نشان‌ها</h2>
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
               {[...earned, ...locked].map((b, i) => (

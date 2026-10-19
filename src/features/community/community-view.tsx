@@ -145,7 +145,7 @@ export function CommunityView({ signedIn }: { signedIn: boolean }) {
           {/* ---------- Feed ---------- */}
           <TabsContent value="feed" className="space-y-4">
             {signedIn && (
-              <div className="rounded-3xl border border-border bg-surface-1 p-4">
+              <div className="esi-card rounded-3xl p-4">
                 <textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
@@ -167,7 +167,7 @@ export function CommunityView({ signedIn }: { signedIn: boolean }) {
             {!posts ? (
               <div className="space-y-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-32 rounded-3xl" />)}</div>
             ) : posts.length === 0 ? (
-              <div className="rounded-3xl border border-border bg-surface-1 p-10 text-center">
+              <div className="esi-card rounded-3xl p-10 text-center">
                 <p className="text-sm text-esi-text-secondary">اولین پست را شما بنویسید!</p>
               </div>
             ) : (
@@ -183,7 +183,7 @@ export function CommunityView({ signedIn }: { signedIn: boolean }) {
               <div className="space-y-4">{[1, 2].map((i) => <Skeleton key={i} className="h-44 rounded-3xl" />)}</div>
             ) : (
               challenges.map((ch) => (
-                <section key={ch.id} className="rounded-3xl border border-border bg-surface-1 p-6">
+                <section key={ch.id} className="esi-card rounded-3xl p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3">
                       <span className="text-3xl" aria-hidden>{ch.emoji}</span>
@@ -236,7 +236,7 @@ function PostCard({ post, liked, onLike }: { post: Post; liked: boolean; onLike:
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-3xl border border-border bg-surface-1 p-5"
+      className="esi-card rounded-3xl p-5"
     >
       <header className="flex items-center gap-3 mb-3">
         <Avatar className="h-10 w-10">

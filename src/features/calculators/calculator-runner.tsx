@@ -245,7 +245,7 @@ export function CalculatorRunner({
     <div className="px-4 lg:px-8 pb-10 max-w-4xl mx-auto w-full">
       <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
         {/* inputs */}
-        <section aria-label="ورودی‌ها" className="rounded-3xl border border-border bg-surface-1 p-6 space-y-4 h-fit">
+        <section aria-label="ورودی‌ها" className="esi-card rounded-3xl p-6 space-y-4 h-fit">
           {inputs.map((f) => (
             <div key={f.key}>
               <label htmlFor={`calc-${f.key}`} className="block text-sm font-medium mb-1.5">
@@ -367,7 +367,7 @@ export function CalculatorRunner({
 
       {/* method + disclaimer + save */}
       <div className="mt-5 space-y-3">
-        <div className="rounded-2xl border border-border bg-surface-1 p-4">
+        <div className="esi-card rounded-2xl p-4">
           <p className="text-xs font-semibold text-esi-text-secondary mb-1">روش محاسبه</p>
           <p className="text-xs leading-6 text-esi-text-muted">{methodNote}</p>
         </div>

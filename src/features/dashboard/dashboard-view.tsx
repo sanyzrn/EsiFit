@@ -19,6 +19,7 @@ import { formatNumber, formatDelta, toPersianDigits } from "@/lib/formatting/num
 import { TIER_LABELS, type UserTier } from "@/lib/entitlements/entitlements";
 import { cn } from "@/lib/utils";
 import { MOTION } from "@/lib/motion/motion";
+import { KhatamStar } from "@/components/motion/khatam";
 
 type DashboardData = {
   greetingName: string;
@@ -131,13 +132,13 @@ export function DashboardView() {
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm text-esi-text-muted">{formatJalaliWeekdayDay(new Date())}</p>
-          <h1 className="mt-1 text-2xl lg:text-3xl font-bold tracking-tight">
-            {greeting}، <span className="esi-gradient-brand-text">{data?.greetingName ?? session?.displayName ?? ""}</span> 👋
+          <h1 className="mt-1 font-display text-4xl lg:text-5xl leading-tight">
+            {greeting}، <span className="text-primary">{data?.greetingName ?? session?.displayName ?? ""}</span> <span className="inline-block origin-[70%_70%] animate-[esi-wave-hand_2.4s_ease-in-out_1]" aria-hidden>👋</span>
           </h1>
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-1 px-3 py-1.5 text-xs text-esi-text-secondary">
-            <span className="text-base leading-none" aria-hidden>🔥</span>
+            <span className="esi-flame text-base leading-none" aria-hidden>🔥</span>
             <AnimatedCounter value={data?.gamification.streakDays ?? 0} className="tabular-nums font-semibold" />
             روز زنجیره
           </span>
@@ -164,16 +165,17 @@ export function DashboardView() {
             {/* Today workout — action card */}
             <motion.section
               aria-label="تمرین امروز"
-              className="lg:col-span-2 rounded-3xl border border-border bg-surface-1 p-6 relative overflow-hidden"
+              className="lg:col-span-2 esi-card rounded-3xl p-6 relative overflow-hidden"
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             >
-              <div aria-hidden className="absolute -top-16 -start-16 h-48 w-48 rounded-full bg-mint-400/6 blur-3xl" />
+              <div aria-hidden className="absolute -top-16 -start-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
+              <KhatamStar size={220} strokeWidth={0.5} spin className="pointer-events-none absolute -bottom-20 -end-16 text-primary/15" />
               <div className="flex items-start justify-between gap-4 relative">
                 <div>
                   <p className="text-xs font-semibold text-primary">امروز</p>
-                  <h2 className="mt-1 text-xl font-bold">
+                  <h2 className="mt-1 font-display text-3xl leading-tight">
                     {data.activeSession ? "تمرین نیمه‌تمام دارید!" : data.todayWorkout?.isRest ? "روز استراحت فعال" : data.todayWorkout?.name ?? "تمرین آزاد"}
                   </h2>
                   {data.todayWorkout && !data.activeSession && (
@@ -203,7 +205,7 @@ export function DashboardView() {
               )}
               <div className="mt-5 flex flex-wrap gap-3">
                 {data.activeSession ? (
-                  <Button asChild className="h-11 px-6">
+                  <Button asChild className="esi-sheen esi-glow h-12 px-8 text-base">
                     <Link href={`/workout/live?session=${data.activeSession.id}`}>ادامه تمرین</Link>
                   </Button>
                 ) : data.todayWorkout?.isRest ? (
@@ -211,7 +213,7 @@ export function DashboardView() {
                     <Link href="/workouts">انتخاب تمرین دلخواه</Link>
                   </Button>
                 ) : (
-                  <Button className="h-11 px-6 esi-glow" onClick={() => void startWorkout()}>
+                  <Button className="esi-sheen esi-glow h-12 px-8 text-base" onClick={() => void startWorkout()}>
                     شروع تمرین
                   </Button>
                 )}
@@ -225,7 +227,7 @@ export function DashboardView() {
             {readinessFlag && (
               <motion.section
                 aria-label="آمادگی امروز"
-                className="rounded-3xl border border-border bg-surface-1 p-6 flex flex-col items-center justify-center"
+                className="esi-card rounded-3xl p-6 flex flex-col items-center justify-center"
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
@@ -252,7 +254,7 @@ export function DashboardView() {
             {/* Nutrition */}
             <motion.section
               aria-label="تغذیه امروز"
-              className="lg:col-span-2 rounded-3xl border border-border bg-surface-1 p-6"
+              className="lg:col-span-2 esi-card rounded-3xl p-6"
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
@@ -275,7 +277,7 @@ export function DashboardView() {
             {/* Water quick-add */}
             <motion.section
               aria-label="آب روزانه"
-              className="rounded-3xl border border-border bg-surface-1 p-6 flex flex-col"
+              className="esi-card rounded-3xl p-6 flex flex-col"
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
@@ -283,7 +285,7 @@ export function DashboardView() {
               <h2 className="font-bold mb-4">آب امروز</h2>
               <div className="flex items-end justify-between">
                 <div>
-                  <p className="text-3xl font-extrabold tabular-nums">
+                  <p className="font-display text-5xl leading-none tabular-nums">
                     <AnimatedCounter value={Math.round(data.water.ml / 100) / 10} format="decimal" digits={1} />
                     <span className="text-sm font-medium text-esi-text-muted ms-1">لیتر</span>
                   </p>
@@ -318,7 +320,7 @@ export function DashboardView() {
             {goalFlag && data.goals.length > 0 && (
               <motion.section
                 aria-label="اهداف من"
-                className="rounded-3xl border border-border bg-surface-1 p-6"
+                className="esi-card rounded-3xl p-6"
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
@@ -357,7 +359,7 @@ export function DashboardView() {
 {/* Weight history mini */}
             <motion.section
               aria-label="وزن"
-              className="lg:col-span-3 rounded-3xl border border-border bg-surface-1 p-6"
+              className="lg:col-span-3 esi-card rounded-3xl p-6"
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
@@ -366,7 +368,7 @@ export function DashboardView() {
                 <div>
                   <h2 className="font-bold mb-1">وزن فعلی</h2>
                   {data.weight ? (
-                    <p className="text-3xl font-extrabold tabular-nums">
+                    <p className="font-display text-5xl leading-none tabular-nums">
                       {formatNumber(data.weight.current, { maximumFractionDigits: 1 })}
                       <span className="text-sm font-medium text-esi-text-muted ms-1">کیلوگرم</span>
                     </p>
@@ -393,14 +395,24 @@ export function DashboardView() {
 }
 
 function WaterGlass({ pct }: { pct: number }) {
+  const reduce = useReducedMotion();
   return (
-    <div className="relative h-16 w-12 rounded-b-2xl rounded-t-lg border-2 border-blue-500/40 overflow-hidden" aria-hidden>
+    <div className="relative h-24 w-16 overflow-hidden rounded-b-[22px] rounded-t-lg border-2 border-lapis/50 bg-lapis/5" aria-hidden>
       <motion.div
-        className="absolute bottom-0 inset-x-0 bg-blue-500/35"
+        className="absolute inset-x-0 bottom-0"
         initial={{ height: 0 }}
-        animate={{ height: `${pct}%` }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      />
+        animate={{ height: `${Math.max(pct, 4)}%` }}
+        transition={{ duration: reduce ? 0 : 1.1, ease: [0.22, 1, 0.36, 1] }}
+      >
+        {/* two offset sine waves, each 200% wide so translating -50% loops seamlessly */}
+        <svg viewBox="0 0 120 12" preserveAspectRatio="none" className="esi-wave absolute left-0 -top-2 h-3 w-[200%] text-lapis/55" fill="currentColor">
+          <path d="M0 6 Q15 0 30 6 T60 6 T90 6 T120 6 V12 H0Z" />
+        </svg>
+        <svg viewBox="0 0 120 12" preserveAspectRatio="none" className="esi-wave-slow absolute left-0 -top-1.5 h-3 w-[200%] text-lapis/35" fill="currentColor">
+          <path d="M0 6 Q15 12 30 6 T60 6 T90 6 T120 6 V12 H0Z" />
+        </svg>
+        <div className="absolute inset-0 top-1 bg-lapis/35" />
+      </motion.div>
     </div>
   );
 }

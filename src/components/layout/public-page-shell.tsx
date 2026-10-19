@@ -23,6 +23,7 @@ export function PublicPageShell({
   description,
   backHref,
   showFooter = true,
+  flush = false,
   children,
   className,
 }: {
@@ -33,6 +34,8 @@ export function PublicPageShell({
   backHref?: string;
   /** Footer on anonymous marketing surfaces; usually false for member-in-app views. */
   showFooter?: boolean;
+  /** Marketing pages that draw their own hero under the fixed navbar. */
+  flush?: boolean;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -54,7 +57,7 @@ export function PublicPageShell({
         <div className="min-h-dvh flex flex-col">
           <PublicNavbar />
           {/* Clears fixed h-16 navbar + safe-area; never overlap PageHeader. */}
-          <main className={cn("flex-1 pt-24 lg:pt-28 public-shell-main", className)}>
+          <main className={cn("flex-1 public-shell-main", !flush && "pt-24 lg:pt-28", className)}>
             {title ? <PageHeader title={title} description={description} backHref={backHref} /> : null}
             {children}
           </main>

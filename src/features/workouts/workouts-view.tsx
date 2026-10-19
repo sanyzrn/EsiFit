@@ -170,7 +170,7 @@ export function WorkoutsView({
       {/* Today plan */}
       {planDay && (
         <section aria-label="برنامه امروز" className="px-4 lg:px-8 mb-8">
-          <div className="rounded-3xl border border-border bg-surface-1 p-6">
+          <div className="esi-card rounded-3xl p-6">
             <div className="flex items-center justify-between gap-4 mb-4">
               <div>
                 <p className="text-xs font-semibold text-primary">برنامه امروز</p>
@@ -203,7 +203,7 @@ export function WorkoutsView({
 
       {/* Anatomy selector */}
       <section aria-label="انتخاب عضله با آناتومی" className="px-4 lg:px-8 mb-6">
-        <div className="rounded-3xl border border-border bg-surface-1 overflow-hidden">
+        <div className="esi-card rounded-3xl overflow-hidden">
           <button
             type="button"
             onClick={() => setAnatomyOpen((v) => !v)}
@@ -322,7 +322,7 @@ export function WorkoutsView({
           onClick={() => setSelected(null)}
         >
           <div
-            className="w-full sm:max-w-lg max-h-[85dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl border border-border bg-surface-1 p-6"
+            className="w-full sm:max-w-lg max-h-[85dvh] overflow-y-auto rounded-t-3xl sm:esi-card rounded-3xl p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">

@@ -46,9 +46,10 @@ export function PublicNavbar() {
               <Link
                 key={l.href}
                 href={l.href}
-                className="rounded-lg px-3 py-2 text-sm text-esi-text-secondary hover:text-esi-text-primary hover:bg-surface-2/60 transition-colors min-h-11 inline-flex items-center"
+                className="group/link relative rounded-lg px-3 py-2 text-sm text-esi-text-secondary hover:text-esi-text-primary transition-colors min-h-11 inline-flex items-center"
               >
                 {l.label}
+                <span aria-hidden className="absolute inset-x-3 bottom-1.5 h-px origin-right scale-x-0 bg-primary transition-transform duration-300 ease-[var(--ease-smooth)] group-hover/link:scale-x-100" />
               </Link>
             ))}
           </nav>

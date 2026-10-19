@@ -102,7 +102,7 @@ export function GoalsSection({ goals, onChanged }: { goals: GoalCard[]; onChange
   };
 
   return (
-    <section aria-label="اهداف" className="rounded-3xl border border-border bg-surface-1 p-6">
+    <section aria-label="اهداف" className="esi-card rounded-3xl p-6">
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
           <h2 className="font-bold flex items-center gap-2">

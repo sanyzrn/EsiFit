@@ -152,14 +152,14 @@ export function NutritionView() {
         {/* rings */}
         {loadState === "loading" && <Skeleton className="h-44 rounded-3xl" />}
         {loadState === "error" && (
-          <section aria-label="خطا در بارگذاری تغذیه" className="rounded-3xl border border-border bg-surface-1 p-8 text-center space-y-3">
+          <section aria-label="خطا در بارگذاری تغذیه" className="esi-card rounded-3xl p-8 text-center space-y-3">
             <p className="font-bold">بارگذاری تغذیه ناموفق بود</p>
             <p className="text-sm text-esi-text-secondary">اتصال را بررسی کنید و دوباره تلاش کنید.</p>
             <Button variant="secondary" onClick={() => void load(date)}>تلاش دوباره</Button>
           </section>
         )}
         {loadState === "ready" && data && (
-          <section aria-label="خلاصه روز" className="rounded-3xl border border-border bg-surface-1 p-6">
+          <section aria-label="خلاصه روز" className="esi-card rounded-3xl p-6">
             <MacroRingGroup totals={data.totals} targets={data.targets} size={96} />
             <p className="mt-5 text-center text-xs text-esi-text-muted">
               دیروز {formatNumber(data.yesterdayCalories)} کیلوکالری ثبت کرده بودید
@@ -167,14 +167,14 @@ export function NutritionView() {
           </section>
         )}
         {loadState === "ready" && !data && (
-          <section aria-label="روز خالی" className="rounded-3xl border border-border bg-surface-1 p-8 text-center">
+          <section aria-label="روز خالی" className="esi-card rounded-3xl p-8 text-center">
             <p className="text-sm text-esi-text-secondary">هنوز چیزی برای این روز ثبت نشده است.</p>
           </section>
         )}
 
         {/* water */}
         {data && (
-          <section aria-label="آب" className="rounded-3xl border border-border bg-surface-1 p-6">
+          <section aria-label="آب" className="esi-card rounded-3xl p-6">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-bold flex items-center gap-2">
                 <Icon name="Droplets" size={18} className="text-blue-500" />
@@ -213,7 +213,7 @@ export function NutritionView() {
             const items = data.slots[slot.key] ?? [];
             const slotCalories = items.reduce((a, i) => a + i.calories, 0);
             return (
-              <section key={slot.key} aria-label={slot.label} className="rounded-3xl border border-border bg-surface-1 p-5">
+              <section key={slot.key} aria-label={slot.label} className="esi-card rounded-3xl p-5">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="font-bold flex items-center gap-2">
                     <span aria-hidden>{slot.emoji}</span>
@@ -366,7 +366,7 @@ function FoodPicker({
         animate={{ y: 0 }}
         exit={{ y: 80 }}
         transition={{ type: "spring", stiffness: 380, damping: 30 }}
-        className="w-full sm:max-w-lg max-h-[85dvh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-border bg-surface-1"
+        className="w-full sm:max-w-lg max-h-[85dvh] flex flex-col rounded-t-3xl sm:esi-card rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-5 border-b border-border flex items-center justify-between shrink-0">

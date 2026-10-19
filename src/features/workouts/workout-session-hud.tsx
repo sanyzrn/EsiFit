@@ -9,6 +9,8 @@ import { enqueueOperation, newClientId, syncQueue } from "@/lib/offline/adapter"
 import { useFeatureFlag } from "@/lib/feature-flags/flag-provider";
 import { formatClock, parseLocaleNumber, toPersianDigits } from "@/lib/formatting/numbers";
 import { cn } from "@/lib/utils";
+import { burstConfetti } from "@/components/motion/confetti";
+import { KhatamStar } from "@/components/motion/khatam";
 
 /**
  * WorkoutSessionHUD — Live Workout Mode (DESIGN_BIBLE §8: session minimalism).
@@ -249,6 +251,10 @@ export function WorkoutSessionHUD({
     // 3) Best-effort immediate sync (queue replays on reconnect anyway)
     void syncQueue();
 
+    // Tiny reward for every logged set: a soft burst + a buzz where supported.
+    burstConfetti({ intensity: "soft", count: 18 });
+    navigator.vibrate?.(14);
+
     // 4) Rest timer (planned restSeconds)
     if (exercise.restSeconds > 0) {
       setRest({ remaining: exercise.restSeconds, total: exercise.restSeconds });
@@ -455,7 +461,7 @@ export function WorkoutSessionHUD({
           </div>
 
           {/* set entry — thumb-reachable */}
-          <div className="sticky bottom-0 rounded-3xl border border-border bg-surface-1 p-4 shadow-[var(--shadow-float)] space-y-3">
+          <div className="sticky bottom-0 esi-card rounded-3xl p-4 shadow-[var(--shadow-float)] space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <NumberPadInput
                 label="وزن (کیلوگرم)"
@@ -533,12 +539,13 @@ export function WorkoutSessionHUD({
                 <svg viewBox="0 0 64 64" className="-rotate-90">
                   <circle cx="32" cy="32" r="26" fill="none" stroke="var(--surface-3)" strokeWidth="6" />
                   <circle
-                    cx="32" cy="32" r="26" fill="none" stroke="var(--primary)" strokeWidth="6" strokeLinecap="round"
+                    cx="32" cy="32" r="26" fill="none" stroke={rest.remaining <= 3 ? "var(--turquoise)" : "var(--primary)"} strokeWidth="6" strokeLinecap="round"
                     strokeDasharray={163.4}
                     strokeDashoffset={163.4 * (1 - rest.remaining / rest.total)}
+                    style={{ transition: "stroke-dashoffset 1s linear, stroke 300ms" }}
                   />
                 </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-sm font-bold tabular-nums">
+                <span className={cn("absolute inset-0 flex items-center justify-center font-display text-2xl tabular-nums", rest.remaining <= 3 && "text-turquoise")}>
                   {toPersianDigits(rest.remaining)}
                 </span>
               </div>
@@ -611,7 +618,7 @@ export function WorkoutSessionHUD({
               exit={{ y: 80, opacity: 0 }}
               transition={{ type: "spring", stiffness: 320, damping: 32 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full sm:max-w-md max-h-[80dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl border border-border bg-surface-1 p-5 space-y-3"
+              className="w-full sm:max-w-md max-h-[80dvh] overflow-y-auto rounded-t-3xl sm:esi-card rounded-3xl p-5 space-y-3"
             >
               <div className="flex items-center justify-between">
                 <h3 className="font-bold flex items-center gap-2">
@@ -779,17 +786,35 @@ function NumberPadInput({
 }
 
 function WorkoutCompleteSummary({ sessionName, summary }: { sessionName: string; summary: CompleteSummary | null }) {
+  const hasPr = Boolean(summary?.prs?.length);
+  React.useEffect(() => {
+    // Finishing a workout is the app's big moment: a PR gets the full party.
+    const t = setTimeout(() => {
+      burstConfetti({ intensity: "party", count: hasPr ? 180 : 110 });
+      navigator.vibrate?.(hasPr ? [30, 60, 30, 60, 90] : [40, 40, 80]);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [hasPr]);
   return (
     <div className="fixed inset-0 z-50 bg-background flex items-center justify-center px-6 safe-top safe-bottom">
       <motion.div
         initial={{ opacity: 0, scale: 0.92 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-md rounded-3xl border border-border bg-surface-1 p-8 text-center relative overflow-hidden"
+        className="w-full max-w-md esi-card rounded-3xl p-8 text-center relative overflow-hidden"
       >
-        <div aria-hidden className="absolute -top-20 start-1/3 h-56 w-56 rounded-full bg-mint-400/12 blur-3xl" />
-        <span className="text-5xl" aria-hidden>🎉</span>
-        <h1 className="mt-4 text-2xl font-extrabold">تمرین کامل شد!</h1>
+        <div aria-hidden className="absolute -top-20 start-1/3 h-56 w-56 rounded-full bg-primary/15 blur-3xl" />
+        <KhatamStar size={260} strokeWidth={0.4} spin className="pointer-events-none absolute -top-24 start-1/2 -translate-x-1/2 text-primary/25 rtl:translate-x-1/2" />
+        <motion.span
+          className="relative inline-block text-6xl"
+          aria-hidden
+          initial={{ scale: 0, rotate: -25 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 12, delay: 0.15 }}
+        >
+          🎉
+        </motion.span>
+        <h1 className="relative mt-4 font-display text-4xl leading-tight">تمرین کامل شد!</h1>
         <p className="mt-1 text-sm text-esi-text-secondary">{sessionName}</p>
 
         {summary && (
@@ -801,15 +826,15 @@ function WorkoutCompleteSummary({ sessionName, summary }: { sessionName: string;
             ].map((s) => (
               <div key={s.label} className="rounded-2xl bg-surface-2 px-2 py-3">
                 <dt className="text-[11px] text-esi-text-muted">{s.label}</dt>
-                <dd className="mt-1 text-sm font-bold tabular-nums">{s.value}</dd>
+                <dd className="mt-1 font-display text-xl tabular-nums">{s.value}</dd>
               </div>
             ))}
           </dl>
         )}
 
         {summary?.prs && summary.prs.length > 0 && (
-          <div className="mt-4 rounded-2xl border border-amber-400/40 bg-amber-400/8 px-4 py-3 text-sm">
-            <p className="font-bold text-amber-400">🏆 رکورد شخصی جدید!</p>
+          <div className="esi-sheen mt-4 rounded-2xl border border-primary/50 bg-primary/10 px-4 py-3 text-sm">
+            <p className="font-bold text-primary">🏆 رکورد شخصی جدید!</p>
             <ul className="mt-2 space-y-1 text-xs text-esi-text-secondary">
               {summary.prs.map((pr, i) => (
                 <li key={i}>
@@ -865,7 +890,7 @@ function PickerSheet({
       initial={false}
       animate={{ y: 0, opacity: 1 }}
       onClick={(e) => e.stopPropagation()}
-      className="w-full sm:max-w-md max-h-[80dvh] overflow-hidden rounded-t-3xl sm:rounded-3xl border border-border bg-surface-1 flex flex-col"
+      className="w-full sm:max-w-md max-h-[80dvh] overflow-hidden rounded-t-3xl sm:esi-card rounded-3xl flex flex-col"
     >
       <div className="p-4 border-b border-border flex items-center justify-between gap-3">
         <h3 className="font-bold">افزودن حرکت</h3>

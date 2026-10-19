@@ -72,7 +72,7 @@ function intensityFor(slugs: string[], map: MuscleIntensityMap): number {
 }
 
 function colorFor(intensity: number, interactive: boolean, hovered: boolean): string {
-  if (hovered && interactive) return "#4F8CFF";
+  if (hovered && interactive) return "var(--lapis)";
   if (intensity <= 0) return "var(--surface-3)";
   // mint ramp: 0 → surface, high → full mint
   const t = Math.min(1, intensity / 100);

@@ -4,9 +4,12 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================================
-   EsiFit Design System — sourced from DESIGN_BIBLE.md
-   Calm performance intelligence: graphite depth, mint signal,
-   electric-blue support, motion as feedback.
+   EsiFit Design System — «لاجورد و زعفران» (Lapis & Saffron)
+   Deep lapis-ink surfaces, saffron as the one signal colour,
+   firouzeh (Persian turquoise) for "good", ember/coral for heat.
+   The recurring motif is the khatam — an eight-point star — drawn
+   from Persian tilework: it frames scores, textures the background
+   and anchors the brand.
    ============================================================ */
 
 @theme inline {
@@ -53,16 +56,27 @@
   --color-esi-text-muted: var(--text-muted);
   --color-focus: var(--focus);
 
-  /* Brand primitives (charts/illustrations only) */
-  --color-mint-400: #5be7c4;
-  --color-mint-500: #31d6af;
-  --color-blue-400: #70a7ff;
-  --color-blue-500: #4f8cff;
-  --color-amber-400: #f5c66a;
-  --color-red-400: #ff7a85;
-  --color-violet-400: #a99bff;
+  /* Signal colours — theme-aware so dark/light stay in parity */
+  --color-saffron: var(--saffron);
+  --color-turquoise: var(--turquoise);
+  --color-lapis: var(--lapis);
+  --color-ember: var(--ember);
+  --color-coral: var(--coral);
+  --color-iris: var(--iris);
 
-  /* Radius — sm=8 md=16 lg=24 per DESIGN_BIBLE */
+  /* Legacy names kept so existing markup keeps working, remapped to the new palette */
+  --color-mint-400: var(--turquoise);
+  --color-mint-500: var(--turquoise);
+  --color-turquoise-400: var(--turquoise);
+  --color-blue-400: var(--lapis);
+  --color-blue-500: var(--lapis);
+  --color-amber-400: var(--ember);
+  --color-amber-500: var(--ember);
+  --color-amber-600: var(--ember);
+  --color-red-400: var(--coral);
+  --color-violet-400: var(--iris);
+
+  /* Radius — sm=8 md=16 lg=24 */
   --radius-sm: 8px;
   --radius-md: 16px;
   --radius-lg: 24px;
@@ -71,6 +85,7 @@
   /* Motion tokens */
   --ease-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --duration-snappy: 180ms;
   --duration-smooth: 320ms;
 
@@ -79,109 +94,153 @@
   --shadow-raised: var(--shadow-raised);
   --shadow-float: var(--shadow-float);
 
-  /* Font */
+  /* Fonts: Vazirmatn carries the interface, Lalezar carries headlines & numerals */
   --font-sans: var(--font-vazir), Vazirmatn, "Segoe UI", Tahoma, sans-serif;
+  --font-display: var(--font-lalezar), var(--font-vazir), Vazirmatn, "Segoe UI", Tahoma, sans-serif;
 }
 
 /* ---------------- Dark theme (default) ---------------- */
 :root,
 .dark {
-  --background: #0a0d12;
-  --foreground: #f5f7fa;
-  --surface-1: #10151d;
-  --surface-2: #161d27;
-  --surface-3: #1d2632;
-  --text-primary: #f5f7fa;
-  --text-secondary: #b7c0cc;
-  --text-muted: #7f8a99;
-  --card: #10151d;
-  --card-foreground: #f5f7fa;
-  --popover: #161d27;
-  --popover-foreground: #f5f7fa;
-  --primary: #5be7c4;
-  --primary-foreground: #07120f;
-  --secondary: #161d27;
-  --secondary-foreground: #f5f7fa;
-  --muted: #161d27;
-  --muted-foreground: #b7c0cc;
-  --accent: #1d2632;
-  --accent-foreground: #f5f7fa;
-  --destructive: #ff7a85;
-  --destructive-foreground: #1a0508;
-  --border: #283240;
-  --input: #283240;
-  --ring: #70a7ff;
-  --focus: #70a7ff;
-  --chart-1: #5be7c4;
-  --chart-2: #4f8cff;
-  --chart-3: #a99bff;
-  --chart-4: #f5c66a;
-  --chart-5: #ff7a85;
-  --sidebar: #0d1117;
-  --sidebar-foreground: #f5f7fa;
-  --sidebar-primary: #5be7c4;
-  --sidebar-primary-foreground: #07120f;
-  --sidebar-accent: #161d27;
-  --sidebar-accent-foreground: #f5f7fa;
-  --sidebar-border: #1d2632;
-  --sidebar-ring: #70a7ff;
+  --background: #070b1f;
+  --foreground: #f6f3ea;
+  --surface-1: #0e1531;
+  --surface-2: #151d43;
+  --surface-3: #1e2859;
+  --text-primary: #f6f3ea;
+  --text-secondary: #bcc2de;
+  --text-muted: #8089b3;
+  --card: #0e1531;
+  --card-foreground: #f6f3ea;
+  --popover: #151d43;
+  --popover-foreground: #f6f3ea;
+  --primary: #ffc83d;
+  --primary-foreground: #1c1300;
+  --secondary: #151d43;
+  --secondary-foreground: #f6f3ea;
+  --muted: #151d43;
+  --muted-foreground: #bcc2de;
+  --accent: #1e2859;
+  --accent-foreground: #f6f3ea;
+  --destructive: #ff6b81;
+  --destructive-foreground: #1d0309;
+  --border: #29346b;
+  --input: #29346b;
+  --ring: #8aa2ff;
+  --focus: #8aa2ff;
 
-  --shadow-rest: 0 1px 2px rgb(0 0 0 / 0.4), 0 2px 8px rgb(0 0 0 / 0.25);
-  --shadow-raised: 0 4px 16px rgb(0 0 0 / 0.45), 0 2px 4px rgb(0 0 0 / 0.3);
-  --shadow-float: 0 16px 48px rgb(0 0 0 / 0.55), 0 4px 12px rgb(0 0 0 / 0.4);
-  --glow-mint: 0 0 24px rgb(91 231 196 / 0.25);
-  --glass-bg: rgb(16 21 29 / 0.6);
-  --hero-graphite: linear-gradient(135deg, #161d27 0%, #0a0d12 60%);
+  --saffron: #ffc83d;
+  --turquoise: #3de0c6;
+  --lapis: #7f9bff;
+  --ember: #ff9a4d;
+  --coral: #ff6b81;
+  --iris: #b79bff;
+
+  --chart-1: #ffc83d;
+  --chart-2: #3de0c6;
+  --chart-3: #7f9bff;
+  --chart-4: #b79bff;
+  --chart-5: #ff6b81;
+  --sidebar: #0a1028;
+  --sidebar-foreground: #f6f3ea;
+  --sidebar-primary: #ffc83d;
+  --sidebar-primary-foreground: #1c1300;
+  --sidebar-accent: #151d43;
+  --sidebar-accent-foreground: #f6f3ea;
+  --sidebar-border: #1e2859;
+  --sidebar-ring: #8aa2ff;
+
+  --shadow-rest: 0 1px 2px rgb(2 4 16 / 0.5), 0 2px 8px rgb(2 4 16 / 0.3);
+  --shadow-raised: 0 6px 20px rgb(2 4 16 / 0.5), 0 2px 4px rgb(2 4 16 / 0.35);
+  --shadow-float: 0 20px 56px rgb(2 4 16 / 0.6), 0 4px 12px rgb(2 4 16 / 0.4);
+  --glow-primary: 0 0 28px rgb(255 200 61 / 0.28);
+  --glow-mint: 0 0 28px rgb(255 200 61 / 0.28);
+  --glass-bg: rgb(10 16 40 / 0.62);
+  --hero-graphite: radial-gradient(120% 90% at 85% 0%, #17215a 0%, #0b1231 45%, #070b1f 100%);
+  --card-sheen: rgb(255 255 255 / 0.045);
+  --spot: rgb(255 200 61 / 0.1);
+  --pattern-stroke: rgb(255 200 61 / 0.1);
+  --grain-opacity: 0.07;
+  --grain-blend: overlay;
+  --aurora-a: rgb(255 200 61 / 0.16);
+  --aurora-b: rgb(127 155 255 / 0.2);
+  --aurora-c: rgb(61 224 198 / 0.12);
+  color-scheme: dark;
 }
 
 /* ---------------- Light theme (parity) ---------------- */
 .light {
-  --background: #f5f7fa;
-  --foreground: #111821;
+  --background: #f1f3fb;
+  --foreground: #0b1230;
   --surface-1: #ffffff;
-  --surface-2: #eef2f6;
-  --surface-3: #e5ebf1;
-  --text-primary: #111821;
-  --text-secondary: #46515f;
-  --text-muted: #687585;
+  --surface-2: #e9edf8;
+  --surface-3: #dce2f3;
+  --text-primary: #0b1230;
+  --text-secondary: #434c74;
+  --text-muted: #646d94;
   --card: #ffffff;
-  --card-foreground: #111821;
+  --card-foreground: #0b1230;
   --popover: #ffffff;
-  --popover-foreground: #111821;
-  --primary: #138b72;
+  --popover-foreground: #0b1230;
+  --primary: #b45f06;
   --primary-foreground: #ffffff;
-  --secondary: #eef2f6;
-  --secondary-foreground: #111821;
-  --muted: #eef2f6;
-  --muted-foreground: #46515f;
-  --accent: #e5ebf1;
-  --accent-foreground: #111821;
-  --destructive: #c93d4c;
+  --secondary: #e9edf8;
+  --secondary-foreground: #0b1230;
+  --muted: #e9edf8;
+  --muted-foreground: #434c74;
+  --accent: #dce2f3;
+  --accent-foreground: #0b1230;
+  --destructive: #c8344b;
   --destructive-foreground: #ffffff;
-  --border: #d7dee7;
-  --input: #d7dee7;
-  --ring: #2f72e8;
-  --focus: #2f72e8;
-  --chart-1: #138b72;
-  --chart-2: #2f72e8;
-  --chart-3: #7a5cff;
-  --chart-4: #946515;
-  --chart-5: #c93d4c;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #111821;
-  --sidebar-primary: #138b72;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eef2f6;
-  --sidebar-accent-foreground: #111821;
-  --sidebar-border: #e5ebf1;
-  --sidebar-ring: #2f72e8;
+  --border: #d0d7ee;
+  --input: #d0d7ee;
+  --ring: #3556d8;
+  --focus: #3556d8;
 
-  --shadow-rest: 0 1px 2px rgb(17 24 33 / 0.06), 0 2px 8px rgb(17 24 33 / 0.05);
-  --shadow-raised: 0 4px 16px rgb(17 24 33 / 0.1), 0 2px 4px rgb(17 24 33 / 0.06);
-  --shadow-float: 0 16px 48px rgb(17 24 33 / 0.16), 0 4px 12px rgb(17 24 33 / 0.08);
-  --glow-mint: 0 0 24px rgb(19 139 114 / 0.18);
-  --glass-bg: rgb(255 255 255 / 0.72);
-  --hero-graphite: linear-gradient(135deg, #eef2f6 0%, #f5f7fa 60%);
+  --saffron: #b45f06;
+  --turquoise: #0a7c6b;
+  --lapis: #3556d8;
+  --ember: #b8500a;
+  --coral: #c8344b;
+  --iris: #6644d6;
+
+  --chart-1: #b45f06;
+  --chart-2: #0a7c6b;
+  --chart-3: #3556d8;
+  --chart-4: #6644d6;
+  --chart-5: #c8344b;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0b1230;
+  --sidebar-primary: #b45f06;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e9edf8;
+  --sidebar-accent-foreground: #0b1230;
+  --sidebar-border: #dce2f3;
+  --sidebar-ring: #3556d8;
+
+  --shadow-rest: 0 1px 2px rgb(11 18 48 / 0.06), 0 2px 8px rgb(11 18 48 / 0.05);
+  --shadow-raised: 0 6px 20px rgb(11 18 48 / 0.1), 0 2px 4px rgb(11 18 48 / 0.06);
+  --shadow-float: 0 20px 56px rgb(11 18 48 / 0.16), 0 4px 12px rgb(11 18 48 / 0.08);
+  --glow-primary: 0 0 28px rgb(180 95 6 / 0.22);
+  --glow-mint: 0 0 28px rgb(180 95 6 / 0.22);
+  --glass-bg: rgb(255 255 255 / 0.74);
+  --hero-graphite: radial-gradient(120% 90% at 85% 0%, #dfe6ff 0%, #eef1fb 50%, #f1f3fb 100%);
+  --card-sheen: rgb(255 255 255 / 0.6);
+  --spot: rgb(180 95 6 / 0.08);
+  --pattern-stroke: rgb(53 86 216 / 0.09);
+  --grain-opacity: 0.05;
+  --grain-blend: multiply;
+  --aurora-a: rgb(255 200 61 / 0.3);
+  --aurora-b: rgb(127 155 255 / 0.3);
+  --aurora-c: rgb(61 224 198 / 0.2);
+  color-scheme: light;
+}
+
+/* Animatable custom props: lets the spotlight fade instead of snapping */
+@property --spot-alpha {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
 }
 
 /* ---------------- Base ---------------- */
@@ -204,6 +263,18 @@ body {
   overscroll-behavior-y: none;
 }
 
+/* Film grain: takes the digital flatness off big dark surfaces */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: var(--grain-blend);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
 /* Focus ring — visible, semantic */
 :focus-visible {
   outline: 2px solid var(--focus);
@@ -212,7 +283,15 @@ body {
 }
 
 ::selection {
-  background: rgb(91 231 196 / 0.3);
+  background: rgb(255 200 61 / 0.35);
+}
+
+/* Display type (Lalezar has one weight — never let the browser fake a bold) */
+.font-display {
+  font-family: var(--font-lalezar), var(--font-vazir), Vazirmatn, "Segoe UI", Tahoma, sans-serif;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: 0;
 }
 
 /* ---------------- Scrollbars ---------------- */
@@ -253,29 +332,71 @@ body {
 
 /* Layout shell reserves — keep in sync with AppShell / PublicPageShell */
 .app-main-content {
-  /* sticky mobile header is in-flow; no extra top pad required */
   min-width: 0;
 }
 .public-shell-main {
-  /* fixed PublicNavbar is h-16 + safe-area */
   scroll-margin-top: 5.5rem;
 }
 
-/* ---------------- Utilities ---------------- */
+/* ---------------- Surfaces ---------------- */
 .esi-glass {
   background: var(--glass-bg);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
 }
 
+/*
+ * Card: lit from above, with a soft saffron spotlight that follows the pointer
+ * (--mx/--my are written by <SpotlightProvider/>). Pure background layers, so
+ * it never paints over content and costs nothing at rest.
+ */
+.esi-card {
+  --spot-alpha: 0;
+  position: relative;
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(
+      420px circle at var(--mx, 50%) var(--my, 0%),
+      color-mix(in srgb, var(--spot) calc(var(--spot-alpha) * 100%), transparent),
+      transparent 65%
+    ),
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-1) 92%, var(--card-sheen)) 0%, var(--surface-1) 38%);
+  box-shadow: inset 0 1px 0 var(--card-sheen), var(--shadow-rest);
+  transition:
+    --spot-alpha 300ms var(--ease-smooth),
+    border-color 240ms var(--ease-smooth),
+    transform 240ms var(--ease-smooth),
+    box-shadow 240ms var(--ease-smooth);
+}
+@media (hover: hover) {
+  .esi-card:hover {
+    --spot-alpha: 1;
+    border-color: color-mix(in srgb, var(--primary) 32%, var(--border));
+  }
+  .esi-card-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: inset 0 1px 0 var(--card-sheen), var(--shadow-raised);
+  }
+}
+
+/* Signature gradient: saffron → ember, like a flame catching */
 .esi-gradient-brand {
-  background: linear-gradient(135deg, #5be7c4 0%, #4f8cff 100%);
+  background: linear-gradient(135deg, #ffd45e 0%, #ffb02e 52%, #ff8a3d 100%);
 }
 .esi-gradient-brand-text {
-  background: linear-gradient(135deg, #5be7c4 0%, #4f8cff 100%);
+  background: linear-gradient(120deg, #ffd45e 0%, #ffa42e 60%, #ff7e4a 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+.light .esi-gradient-brand-text {
+  background: linear-gradient(120deg, #b45f06 0%, #c2410c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.light .esi-gradient-brand {
+  background: linear-gradient(135deg, #e08a1e 0%, #c2570c 100%);
 }
 
 .esi-hero-graphite {
@@ -283,7 +404,36 @@ body {
 }
 
 .esi-glow {
-  box-shadow: var(--glow-mint);
+  box-shadow: var(--glow-primary);
+}
+
+/* Khatam tile — eight-point stars with a diamond at each junction */
+.esi-pattern {
+  --tile: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80' fill='none' stroke='%23888' stroke-width='1'><path d='M76 40 55.7 46.5 65.5 65.5 46.5 55.7 40 76 33.5 55.7 14.5 65.5 24.3 46.5 4 40 24.3 33.5 14.5 14.5 33.5 24.3 40 4 46.5 24.3 65.5 14.5 55.7 33.5Z'/><path d='M0 -6 6 0 0 6 -6 0Z M80 -6 86 0 80 6 74 0Z M0 74 6 80 0 86 -6 80Z M80 74 86 80 80 86 74 80Z'/></svg>");
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-color: var(--pattern-stroke);
+  -webkit-mask-image: var(--tile);
+  mask-image: var(--tile);
+  -webkit-mask-size: 80px 80px;
+  mask-size: 80px 80px;
+}
+.esi-pattern-fade {
+  -webkit-mask-composite: source-in;
+}
+
+/* Slow aurora behind hero surfaces */
+.esi-aurora {
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 42% at 78% 22%, var(--aurora-b), transparent 70%),
+    radial-gradient(32% 36% at 18% 12%, var(--aurora-a), transparent 70%),
+    radial-gradient(36% 40% at 62% 88%, var(--aurora-c), transparent 70%);
+  filter: blur(30px);
+  animation: esi-aurora 22s ease-in-out infinite alternate;
 }
 
 /* Numeric tabular data */
@@ -305,7 +455,7 @@ body {
   transform: scale(1.18);
 }
 
-/* Skeleton shimmer — reduced-motion safe */
+/* ---------------- Keyframes ---------------- */
 @keyframes esi-shimmer {
   0% {
     background-position: 200% 0;
@@ -315,17 +465,11 @@ body {
   }
 }
 .esi-skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--surface-2) 25%,
-    var(--surface-3) 50%,
-    var(--surface-2) 75%
-  );
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
   background-size: 200% 100%;
   animation: esi-shimmer 1.6s infinite linear;
 }
 
-/* Subtle ambient hero drift — barely perceptible */
 @keyframes esi-ambient {
   0%,
   100% {
@@ -339,20 +483,221 @@ body {
   animation: esi-ambient 14s ease-in-out infinite;
 }
 
-/* Rest timer pulse */
-@keyframes esi-pulse-ring {
+@keyframes esi-aurora {
   0% {
-    box-shadow: 0 0 0 0 rgb(91 231 196 / 0.35);
-  }
-  70% {
-    box-shadow: 0 0 0 14px rgb(91 231 196 / 0);
+    transform: translate3d(-3%, -2%, 0) rotate(0deg) scale(1);
   }
   100% {
-    box-shadow: 0 0 0 0 rgb(91 231 196 / 0);
+    transform: translate3d(3%, 3%, 0) rotate(6deg) scale(1.08);
+  }
+}
+
+@keyframes esi-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(255 200 61 / 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgb(255 200 61 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(255 200 61 / 0);
   }
 }
 .esi-pulse {
   animation: esi-pulse-ring 2s ease-out infinite;
+}
+
+@keyframes esi-spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.esi-spin-slow {
+  animation: esi-spin-slow 60s linear infinite;
+}
+.esi-spin-slower {
+  animation: esi-spin-slow 120s linear infinite reverse;
+}
+
+@keyframes esi-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+.esi-float {
+  animation: esi-float 6s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * -1.3s);
+}
+
+@keyframes esi-marquee {
+  to {
+    transform: translate3d(50%, 0, 0);
+  }
+}
+.esi-marquee {
+  animation: esi-marquee 38s linear infinite;
+  width: max-content;
+}
+.esi-marquee-wrap:hover .esi-marquee {
+  animation-play-state: paused;
+}
+
+@keyframes esi-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+/* Orchestrated entrance: set --i on each child to stagger */
+.esi-rise {
+  opacity: 0;
+  animation: esi-rise 700ms var(--ease-smooth) forwards;
+  animation-delay: calc(var(--i, 0) * 90ms + 80ms);
+}
+
+@keyframes esi-mask-up {
+  from {
+    transform: translate3d(0, 110%, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+.esi-line {
+  display: block;
+  overflow: hidden;
+  padding-block: 0.12em;
+  margin-block: -0.12em;
+}
+.esi-line > span {
+  display: block;
+  animation: esi-mask-up 900ms var(--ease-smooth) both;
+  animation-delay: calc(var(--i, 0) * 120ms + 120ms);
+}
+
+/* Button sheen — one slow light sweep across primary actions */
+@keyframes esi-sheen {
+  0% {
+    transform: translateX(120%) skewX(-18deg);
+  }
+  60%,
+  100% {
+    transform: translateX(-220%) skewX(-18deg);
+  }
+}
+.esi-sheen {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.esi-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 45%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.45), transparent);
+  transform: translateX(120%) skewX(-18deg);
+  animation: esi-sheen 4.6s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Flame flicker for streaks */
+@keyframes esi-flicker {
+  0%,
+  100% {
+    transform: scale(1) rotate(-2deg);
+    filter: drop-shadow(0 0 6px rgb(255 140 50 / 0.55));
+  }
+  35% {
+    transform: scale(1.08, 1.14) rotate(2deg);
+    filter: drop-shadow(0 0 10px rgb(255 170 60 / 0.8));
+  }
+  70% {
+    transform: scale(0.96, 1.04) rotate(-1deg);
+  }
+}
+.esi-flame {
+  display: inline-block;
+  transform-origin: 50% 90%;
+  animation: esi-flicker 2.4s ease-in-out infinite;
+}
+
+@keyframes esi-wave-hand {
+  0%, 100% { transform: rotate(0); }
+  15% { transform: rotate(16deg); }
+  30% { transform: rotate(-10deg); }
+  45% { transform: rotate(14deg); }
+  60% { transform: rotate(-6deg); }
+  75% { transform: rotate(8deg); }
+}
+
+/* Liquid wave for the water glass */
+@keyframes esi-wave {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.esi-wave {
+  animation: esi-wave 5s linear infinite;
+}
+.esi-wave-slow {
+  animation: esi-wave 9s linear infinite reverse;
+}
+
+@keyframes esi-twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+.esi-twinkle {
+  animation: esi-twinkle 3.2s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * -0.7s);
+}
+
+@keyframes esi-caret {
+  50% {
+    opacity: 0;
+  }
+}
+.esi-caret {
+  animation: esi-caret 1s steps(1) infinite;
+}
+
+/* Page transition: soft rise, used by the route wrapper */
+@keyframes esi-page-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Scroll progress hairline (public pages) */
+.esi-scroll-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 2px;
+  z-index: 60;
+  transform-origin: 100% 50%; /* RTL: grows from the right */
+  background: linear-gradient(90deg, var(--turquoise), var(--saffron));
 }
 
 /* ---------------- Reduced motion ---------------- */
@@ -368,7 +713,23 @@ body {
     transition-duration: 0.01ms !important;
   }
   .esi-ambient,
-  .esi-pulse {
+  .esi-pulse,
+  .esi-aurora,
+  .esi-spin-slow,
+  .esi-spin-slower,
+  .esi-float,
+  .esi-marquee,
+  .esi-sheen::after,
+  .esi-flame,
+  .esi-wave,
+  .esi-wave-slow,
+  .esi-twinkle {
+    animation: none !important;
+  }
+  .esi-rise,
+  .esi-line > span {
+    opacity: 1 !important;
+    transform: none !important;
     animation: none !important;
   }
 }
@@ -378,4 +739,49 @@ body {
   .no-print {
     display: none !important;
   }
+  body::after {
+    display: none;
+  }
+}
+
+/* ---------------- Range input (landing playground) ---------------- */
+.esi-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+.esi-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  /* RTL range: the filled part runs from the right edge */
+  background: linear-gradient(to left, var(--primary) var(--pct), var(--surface-3) var(--pct));
+}
+.esi-range::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(to left, var(--primary) var(--pct), var(--surface-3) var(--pct));
+}
+.esi-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 24px;
+  width: 24px;
+  margin-top: -9px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  border: 5px solid var(--primary);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.35);
+  transition: transform 160ms var(--ease-spring);
+}
+.esi-range:active::-webkit-slider-thumb {
+  transform: scale(1.18);
+}
+.esi-range::-moz-range-thumb {
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  border: 5px solid var(--primary);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.35);
 }

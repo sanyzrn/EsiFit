@@ -123,7 +123,7 @@ export function StoreView({ signedIn }: { signedIn: boolean }) {
                 initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: reduce ? 0.01 : 0.32, delay: reduce ? 0 : Math.min(i * 0.04, 0.28) }}
-                className="group flex flex-col rounded-3xl border border-border bg-surface-1 p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-raised)]"
+                className="group flex flex-col esi-card rounded-3xl p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-raised)]"
               >
                 <div className="flex items-start justify-between">
                   <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-2 text-3xl" aria-hidden>{p.emoji}</span>
@@ -238,7 +238,7 @@ export function StoreView({ signedIn }: { signedIn: boolean }) {
             <motion.div
               initial={{ scale: 0.92 }}
               animate={{ scale: 1 }}
-              className="w-full max-w-sm rounded-3xl border border-border bg-surface-1 p-8 text-center"
+              className="w-full max-w-sm esi-card rounded-3xl p-8 text-center"
               onClick={(e) => e.stopPropagation()}
             >
               <span className="text-4xl" aria-hidden>✅</span>

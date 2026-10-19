@@ -105,7 +105,7 @@ export function AdminConsoleView({ adminName }: { adminName: string }) {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.04, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                    className="rounded-3xl border border-border bg-surface-1 p-5"
+                    className="esi-card rounded-3xl p-5"
                   >
                     <Icon name={s.icon} size={18} className="text-primary" />
                     <p className="mt-2 text-2xl font-extrabold tabular-nums">
@@ -126,7 +126,7 @@ export function AdminConsoleView({ adminName }: { adminName: string }) {
                   const entries = Object.entries(group.data).filter(([, v]) => v > 0);
                   const total = entries.reduce((s, [, v]) => s + v, 0) || 1;
                   return (
-                    <div key={group.title} className="rounded-3xl border border-border bg-surface-1 p-5">
+                    <div key={group.title} className="esi-card rounded-3xl p-5">
                       <h3 className="text-sm font-bold mb-3">{group.title}</h3>
                       <ul className="space-y-2.5">
                         {entries.map(([k, v]) => (
@@ -152,7 +152,7 @@ export function AdminConsoleView({ adminName }: { adminName: string }) {
               </section>
 
               {/* Feature flags */}
-              <section aria-label="وضعیت قابلیت‌ها" className="rounded-3xl border border-border bg-surface-1 p-5">
+              <section aria-label="وضعیت قابلیت‌ها" className="esi-card rounded-3xl p-5">
                 <h3 className="text-sm font-bold mb-3">قابلیت‌ها (فلگ‌ها)</h3>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(overview.flags).map(([flag, on]) => (
@@ -170,7 +170,7 @@ export function AdminConsoleView({ adminName }: { adminName: string }) {
               </section>
 
               {/* Recent signups */}
-              <section aria-label="آخرین ثبت‌نام‌ها" className="rounded-3xl border border-border bg-surface-1 p-5">
+              <section aria-label="آخرین ثبت‌نام‌ها" className="esi-card rounded-3xl p-5">
                 <h3 className="text-sm font-bold mb-3">آخرین ثبت‌نام‌ها</h3>
                 <ul className="space-y-2">
                   {overview.recentUsers.map((u) => (
@@ -239,7 +239,7 @@ function UsersTab() {
   const pages = Math.max(1, Math.ceil(total / 12));
 
   return (
-    <div className="rounded-3xl border border-border bg-surface-1 p-5">
+    <div className="esi-card rounded-3xl p-5">
       <div className="flex items-center gap-3 mb-4">
         <Input value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="جست‌وجو بر اساس نام یا شماره…" className="max-w-xs" aria-label="جست‌وجوی کاربر" />
         <span className="text-xs text-esi-text-muted tabular-nums">{toPersianDigits(total)} کاربر</span>
@@ -335,7 +335,7 @@ function ModerationTab() {
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
-      <section aria-label="پست‌های اخیر" className="rounded-3xl border border-border bg-surface-1 p-5">
+      <section aria-label="پست‌های اخیر" className="esi-card rounded-3xl p-5">
         <h3 className="text-sm font-bold mb-3">پست‌های اخیر</h3>
         <ul className="space-y-2">
           {data?.posts.map((p) => (
@@ -361,7 +361,7 @@ function ModerationTab() {
         </ul>
       </section>
 
-      <section aria-label="دیدگاه‌های اخیر" className="rounded-3xl border border-border bg-surface-1 p-5">
+      <section aria-label="دیدگاه‌های اخیر" className="esi-card rounded-3xl p-5">
         <h3 className="text-sm font-bold mb-3">دیدگاه‌های اخیر</h3>
         <ul className="space-y-2">
           {data?.comments.map((c) => (

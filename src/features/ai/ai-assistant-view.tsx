@@ -95,7 +95,7 @@ export function AIAssistantView({ tier }: { tier: string }) {
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 lg:px-8 space-y-4" aria-live="polite">
         {messages.length === 0 && (
           <div className="pt-8">
-            <div className="rounded-3xl border border-border bg-surface-1 p-6 text-center">
+            <div className="esi-card rounded-3xl p-6 text-center">
               <span className="text-3xl" aria-hidden>🤖</span>
               <p className="mt-3 text-sm leading-6 text-esi-text-secondary max-w-md mx-auto">
                 سلام! من مربی اسی‌فیت هستم. درباره تمرین، تغذیه و ریکاوری بپرسید.
@@ -108,7 +108,7 @@ export function AIAssistantView({ tier }: { tier: string }) {
                   key={p.text}
                   type="button"
                   onClick={() => void send(p.text)}
-                  className="flex items-center gap-3 rounded-2xl border border-border bg-surface-1 px-4 py-3 text-start text-sm transition-all hover:border-primary/50 hover:bg-surface-2"
+                  className="flex items-center gap-3 esi-card rounded-2xl px-4 py-3 text-start text-sm transition-all hover:border-primary/50 hover:bg-surface-2"
                 >
                   <span aria-hidden>{p.icon}</span>
                   {p.text}

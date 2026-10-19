@@ -21,7 +21,7 @@ export function InsightsCard({ insights }: { insights: Insight[] }) {
   const reduce = useReducedMotion();
   if (insights.length === 0) {
     return (
-      <section aria-label="بینش‌های پیشرفت" className="rounded-3xl border border-border bg-surface-1 p-6">
+      <section aria-label="بینش‌های پیشرفت" className="esi-card rounded-3xl p-6">
         <h2 className="font-bold flex items-center gap-2 mb-2">
           <Icon name="Sparkles" size={18} className="text-primary" />
           بینش‌های پیشرفت
@@ -34,7 +34,7 @@ export function InsightsCard({ insights }: { insights: Insight[] }) {
   }
 
   return (
-    <section aria-label="بینش‌های پیشرفت" className="rounded-3xl border border-border bg-surface-1 p-6">
+    <section aria-label="بینش‌های پیشرفت" className="esi-card rounded-3xl p-6">
       <h2 className="font-bold flex items-center gap-2 mb-1">
         <Icon name="Sparkles" size={18} className="text-primary" />
         بینش‌های پیشرفت

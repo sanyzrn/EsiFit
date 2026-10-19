@@ -12,6 +12,7 @@ import { TIER_LABELS, type UserTier } from "@/lib/entitlements/entitlements";
 import { ROLE_LABELS, type Role } from "@/lib/auth/session-types";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { KhatamMark } from "@/components/motion/khatam";
 
 /**
  * Shared navigation model — single source for sidebar + bottom nav.
@@ -71,7 +72,7 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
       href={item.href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors duration-150",
+        "group/nav relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors duration-150",
         active
           ? "text-esi-text-primary font-semibold"
           : "text-esi-text-secondary hover:text-esi-text-primary hover:bg-surface-2",
@@ -80,14 +81,15 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
       {active && (
         <motion.span
           layoutId="nav-active-pill"
-          className="absolute inset-0 rounded-lg bg-surface-3"
+          className="absolute inset-0 rounded-xl bg-surface-3 shadow-[inset_0_1px_0_var(--card-sheen)]"
           transition={{ type: "spring", stiffness: 420, damping: 34 }}
           aria-hidden
-        />
+        >
+          <span className="absolute inset-y-2 start-0 w-[3px] rounded-full bg-primary shadow-[0_0_12px_var(--primary)]" />
+        </motion.span>
       )}
-      <Icon name={item.icon} size={20} className={cn("relative z-10", active && "text-primary")} />
+      <Icon name={item.icon} size={20} className={cn("relative z-10 transition-transform duration-200 group-hover/nav:scale-110", active && "text-primary")} />
       <span className="relative z-10">{item.label}</span>
-      {active && <span className="relative z-10 ms-auto h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />}
     </Link>
   );
 }
@@ -171,7 +173,7 @@ export function MobileBottomNav() {
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 inset-x-0 z-40 esi-glass border-t border-border safe-bottom"
+      className="lg:hidden fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 rounded-[26px] border border-border esi-glass shadow-[var(--shadow-float)]"
       aria-label="ناوبری موبایل"
     >
       <div className="grid grid-cols-5 h-16">
@@ -190,7 +192,7 @@ export function MobileBottomNav() {
               {active && (
                 <motion.span
                   layoutId="esifit-bottom-nav-pill"
-                  className="absolute inset-x-2 top-1 h-8 rounded-2xl bg-primary/12"
+                  className="absolute inset-x-2 top-1.5 h-8 rounded-2xl bg-primary/15 shadow-[0_0_18px_-4px_var(--primary)]"
                   transition={{ type: "spring", stiffness: 420, damping: 34 }}
                   aria-hidden
                 />
@@ -209,18 +211,14 @@ function roleSectionTitleFa(role: "coach" | "admin"): string {
   return role === "coach" ? "مربی‌گری" : "مدیریت";
 }
 
-/** Brand mark — wordmark + geometric dumbbell glyph. */
+/** Brand mark — khatam glyph + Lalezar wordmark. */
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
-    <Link href="/" className="flex items-center gap-2.5 group" aria-label="اسی‌فیت — صفحه اصلی">
-      <span className="relative flex h-9 w-9 items-center justify-center rounded-xl esi-gradient-brand shadow-[var(--shadow-rest)] transition-transform duration-150 group-hover:scale-105">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path d="M4 9v6M8 7v10M16 7v10M20 9v6M8 12h8" stroke="var(--primary-foreground)" strokeWidth="2.2" strokeLinecap="round" />
-        </svg>
-      </span>
+    <Link href="/" className="flex items-center gap-2 group" aria-label="اسی‌فیت — صفحه اصلی">
+      <KhatamMark size={38} className="transition-transform duration-500 ease-[var(--ease-spring)] group-hover:rotate-[22.5deg] group-hover:scale-110" />
       {!compact && (
-        <span className="text-lg font-extrabold tracking-tight">
-          اسی<span className="esi-gradient-brand-text">‌فیت</span>
+        <span className="font-display text-[26px] leading-none pt-1">
+          اسی<span className="text-primary">‌فیت</span>
         </span>
       )}
     </Link>

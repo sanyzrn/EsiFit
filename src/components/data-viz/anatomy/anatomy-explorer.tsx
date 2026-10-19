@@ -50,7 +50,7 @@ export function AnatomyExplorer({
   const caption = hovered ?? (selected.size === 1 ? [...selected][0] : null);
 
   return (
-    <div className={cn("rounded-3xl border border-border bg-surface-1 p-5", className)}>
+    <div className={cn("esi-card rounded-3xl p-5", className)}>
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-1 rounded-full bg-surface-2 p-1" role="group" aria-label="نمای بدن">

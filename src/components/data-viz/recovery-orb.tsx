@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { READINESS_STATE_FA } from "@/lib/domain/body-math";
 import { cn } from "@/lib/utils";
+import { KhatamDial } from "@/components/motion/khatam";
 
 /**
  * RecoveryOrb — signature readiness visualization.
@@ -23,11 +24,11 @@ export type ReadinessFactor = {
   source: string;
 };
 
-const STATE_META: Record<ReadinessState, { color: string; glow: string; bg: string }> = {
-  ready: { color: "#5BE7C4", glow: "rgba(91,231,196,0.22)", bg: "rgba(91,231,196,0.08)" },
-  moderate: { color: "#70A7FF", glow: "rgba(112,167,255,0.22)", bg: "rgba(112,167,255,0.08)" },
-  caution: { color: "#F5C66A", glow: "rgba(245,198,106,0.2)", bg: "rgba(245,198,106,0.08)" },
-  recover: { color: "#FF7A85", glow: "rgba(255,122,133,0.2)", bg: "rgba(255,122,133,0.08)" },
+const STATE_META: Record<ReadinessState, { color: string }> = {
+  ready: { color: "var(--turquoise)" },
+  moderate: { color: "var(--lapis)" },
+  caution: { color: "var(--ember)" },
+  recover: { color: "var(--coral)" },
 };
 
 export function RecoveryOrb({
@@ -47,42 +48,20 @@ export function RecoveryOrb({
 }) {
   const reduced = useReducedMotion();
   const meta = STATE_META[state] ?? STATE_META.moderate;
-  const pct = Math.min(100, Math.max(0, score)) / 100;
-  const r = size / 2 - 14;
-  const c = 2 * Math.PI * r;
 
   return (
-    <div className={cn("flex flex-col items-center gap-4", className)}>
-      <div className="relative" style={{ width: size, height: size }}>
-        {/* Ambient glow — signal not wallpaper */}
-        <div
-          className={cn("absolute inset-4 rounded-full blur-2xl", !reduced && state === "ready" && "esi-ambient")}
-          style={{ background: meta.glow }}
-          aria-hidden
-        />
-        <svg width={size} height={size} className="-rotate-90 relative" role="img" aria-label={`امتیاز آمادگی ${score} از ۱۰۰ — ${READINESS_STATE_FA[state]}`}>
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--surface-3)" strokeWidth={10} />
-          <motion.circle
-            cx={size / 2}
-            cy={size / 2}
-            r={r}
-            fill="none"
-            stroke={meta.color}
-            strokeWidth={10}
-            strokeLinecap="round"
-            strokeDasharray={c}
-            initial={{ strokeDashoffset: reduced ? c * (1 - pct) : c }}
-            animate={{ strokeDashoffset: c * (1 - pct) }}
-            transition={{ duration: reduced ? 0 : 1, ease: [0.22, 1, 0.36, 1] }}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-          <AnimatedCounter value={score} className="text-5xl font-bold tabular-nums" />
-          <span className="text-sm font-medium" style={{ color: meta.color }}>
-            {READINESS_STATE_FA[state]}
-          </span>
-        </div>
-      </div>
+    <div className={cn("flex w-full flex-col items-center gap-4", className)}>
+      <KhatamDial
+        value={score}
+        size={size}
+        color={meta.color}
+        label={`امتیاز آمادگی ${score} از ۱۰۰ — ${READINESS_STATE_FA[state]}`}
+      >
+        <AnimatedCounter value={score} className="font-display text-[44px] leading-none tabular-nums" />
+        <span className="mt-1 text-sm font-medium" style={{ color: meta.color }}>
+          {READINESS_STATE_FA[state]}
+        </span>
+      </KhatamDial>
 
       {isEstimated && (
         <span className="text-[11px] text-esi-text-muted -mt-2">تخمینی — بر اساس داده‌های ثبت‌شده</span>

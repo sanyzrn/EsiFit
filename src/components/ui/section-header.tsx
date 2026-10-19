@@ -14,11 +14,9 @@ export function SectionHeader({
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div className="max-w-2xl">
-        {eyebrow && (
-          <p className="text-xs font-semibold tracking-wide text-primary mb-2">{eyebrow}</p>
-        )}
-        <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">{title}</h2>
-        {description && <p className="mt-2 text-sm leading-7 text-esi-text-secondary">{description}</p>}
+        {eyebrow && <p className="text-sm text-primary mb-2">{eyebrow}</p>}
+        <h2 className="font-display text-3xl lg:text-5xl leading-[1.25]">{title}</h2>
+        {description && <p className="mt-3 text-sm lg:text-base leading-7 text-esi-text-secondary">{description}</p>}
       </div>
       {action}
     </div>
