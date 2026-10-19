@@ -25,7 +25,7 @@ export async function GET() {
         where: { userId: session.id, startedAt: { gte: localDayStartUTC(today, session.timezone as string) }, status: { in: ["active", "paused"] } },
         orderBy: { startedAt: "desc" },
       }),
-      getTodayPlanDay(session.id),
+      getTodayPlanDay(session.id, session.timezone),
       db.waterLog.aggregate({
         where: { userId: session.id, logDate: today },
         _sum: { ml: true },

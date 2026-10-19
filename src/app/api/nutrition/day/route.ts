@@ -119,10 +119,12 @@ export async function POST(req: NextRequest) {
           servingMultiplier: 1,
           clientId: body.clientId,
         },
+      }).catch((error) => {
+        // Concurrent replay of the same clientId is idempotent, not an error.
+        if ((error as { code?: string })?.code !== "P2002") throw error;
       });
     }
 
-    // Daily protein mission tracking
     return NextResponse.json({ ok: true });
   } catch (error) {
     return appErrorResponse(error);

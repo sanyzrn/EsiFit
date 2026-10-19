@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { db } from "@/lib/db";
+import { addDaysISO, todayISO } from "@/lib/dates/jalali";
 import { createPlanFromTemplate, PLAN_TEMPLATE_FA } from "@/features/workouts/data/plan-templates";
 
 const bodySchema = z.object({
@@ -32,14 +33,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const athlete = await db.user.findUnique({ where: { id: athleteId }, select: { id: true, status: true } });
+    const athlete = await db.user.findUnique({ where: { id: athleteId }, select: { id: true, status: true, timezone: true } });
     if (!athlete || athlete.status !== "active") {
       return NextResponse.json({ ok: false, code: "not_found" }, { status: 404 });
     }
 
     // Coach-prescribed programs start tomorrow (matches UI copy).
-    const startsOn = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
-    const plan = await createPlanFromTemplate(athleteId, template, startsOn);
+    const startsOn = addDaysISO(todayISO(athlete.timezone), 1);
+    const plan = await createPlanFromTemplate(athleteId, template, startsOn, undefined, athlete.timezone);
 
     // Persist/refresh the coaching note — create the roster link when admin assigns.
     if (note != null && note !== "") {

@@ -23,7 +23,8 @@ export type QueuedOperation = {
 const DB_NAME = "esifit-offline";
 const STORE_OPS = "ops";
 const STORE_CACHE = "cache";
-const MAX_ATTEMPTS = 8;
+/** Transient failures (offline, 5xx) never burn attempts; only server-reported op failures do. */
+const MAX_ATTEMPTS = 20;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -56,14 +57,24 @@ function tx<T>(store: string, mode: IDBTransactionMode, fn: (s: IDBObjectStore) 
       new Promise<T>((resolve, reject) => {
         const t = db.transaction(store, mode);
         const request = fn(t.objectStore(store));
-        request.onsuccess = () => resolve(request.result);
+        if (mode === "readwrite") {
+          // Resolve on commit, not on request success — a queued set must be durable
+          // before the UI treats it as saved.
+          t.oncomplete = () => resolve(request.result);
+          t.onabort = () => reject(t.error ?? request.error ?? new Error("idb-tx-aborted"));
+        } else {
+          request.onsuccess = () => resolve(request.result);
+        }
         request.onerror = () => reject(request.error ?? new Error("idb-tx-failed"));
       }),
   );
 }
 
 export function newClientId(prefix: string): string {
-  const rand = Math.random().toString(36).slice(2, 10);
+  const rand =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID().slice(0, 8)
+      : Math.random().toString(36).slice(2, 10);
   return `${prefix}-${Date.now().toString(36)}-${rand}`;
 }
 
@@ -83,7 +94,9 @@ export async function getQueuedOperations(): Promise<QueuedOperation[]> {
     const all = await tx<QueuedOperation[]>(STORE_OPS, "readonly", (s) => s.getAll() as IDBRequest<QueuedOperation[]>);
     // "conflict" is terminal: the server has rejected the op for good (deleted
     // session, wrong account). Retrying it forever would pin the pending badge on.
-    return all.filter((o) => o.status !== "synced" && o.status !== "conflict");
+    return all
+      .filter((o) => o.status !== "synced" && o.status !== "conflict")
+      .sort((a, b) => a.createdAt - b.createdAt); // replay in the order the user did things
   } catch {
     return [];
   }
@@ -94,10 +107,15 @@ export async function queuedCount(): Promise<number> {
   return ops.length;
 }
 
-export async function markOpStatus(clientId: string, status: SyncStatus): Promise<void> {
+export async function markOpStatus(
+  clientId: string,
+  status: SyncStatus,
+  opts: { countAttempt?: boolean } = {},
+): Promise<void> {
+  const countAttempt = opts.countAttempt ?? status === "failed";
   const op = await tx<QueuedOperation | undefined>(STORE_OPS, "readonly", (s) => s.get(clientId) as IDBRequest<QueuedOperation | undefined>);
   if (op) {
-    await tx(STORE_OPS, "readwrite", (s) => s.put({ ...op, status, attempts: op.attempts + (status === "failed" ? 1 : 0) }));
+    await tx(STORE_OPS, "readwrite", (s) => s.put({ ...op, status, attempts: op.attempts + (countAttempt ? 1 : 0) }));
     window.dispatchEvent(new CustomEvent("esifit:queue-changed"));
   }
 }
@@ -108,11 +126,25 @@ async function removeOp(clientId: string): Promise<void> {
 
 // ---------------- Sync engine ----------------
 
-let syncing = false;
+let inflight: Promise<{ synced: number; failed: number }> | null = null;
 
+/**
+ * Drain the queue. A call made while a drain is running waits for it and then
+ * drains again, so "finish workout" can never race past sets still in flight.
+ */
 export async function syncQueue(): Promise<{ synced: number; failed: number }> {
-  if (syncing || typeof navigator === "undefined" || !navigator.onLine) return { synced: 0, failed: 0 };
-  syncing = true;
+  if (typeof navigator === "undefined" || !navigator.onLine) return { synced: 0, failed: 0 };
+  if (inflight) {
+    await inflight.catch(() => undefined);
+  }
+  if (inflight) return inflight; // another caller started the follow-up pass first
+  inflight = drainQueue().finally(() => {
+    inflight = null;
+  });
+  return inflight;
+}
+
+async function drainQueue(): Promise<{ synced: number; failed: number }> {
   window.dispatchEvent(new CustomEvent("esifit:sync-status", { detail: "syncing" }));
   let synced = 0;
   let failed = 0;
@@ -147,21 +179,27 @@ export async function syncQueue(): Promise<{ synced: number; failed: number }> {
             synced++;
             await removeOp(op.clientId);
           }
-        } else if (res.status === 401 || res.status === 404 || res.status === 410) {
-          // Auth/validity errors will not fix themselves — park as conflict
+        } else if (res.status === 401) {
+          // Session expired: nothing will succeed until the user signs in again, and
+          // the sets are real training data — keep them queued, don't burn attempts.
+          await markOpStatus(op.clientId, "local", { countAttempt: false });
+          failed++;
+          break;
+        } else if (res.status === 404 || res.status === 410) {
+          // Target no longer exists — will not fix itself, park as conflict
           await markOpStatus(op.clientId, "conflict");
           failed++;
         } else {
-          await markOpStatus(op.clientId, "failed");
+          // 5xx / 429 / anything transient: retry later without burning attempts.
+          await markOpStatus(op.clientId, "failed", { countAttempt: false });
           failed++;
         }
       } catch {
-        await markOpStatus(op.clientId, "failed");
+        await markOpStatus(op.clientId, "failed", { countAttempt: false });
         failed++;
       }
     }
   } finally {
-    syncing = false;
     const remaining = await queuedCount();
     window.dispatchEvent(new CustomEvent("esifit:sync-status", { detail: remaining > 0 ? "failed" : "synced" }));
     window.dispatchEvent(new CustomEvent("esifit:queue-changed"));

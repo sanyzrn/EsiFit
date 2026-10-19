@@ -10,16 +10,15 @@ export async function GET() {
   try {
     const session = await getSessionUser();
     if (!session) return NextResponse.json({ ok: true, notifications: [], unread: 0 });
-    const notifications = await db.notification.findMany({
-      where: { userId: session.id },
-      orderBy: { createdAt: "desc" },
-      take: 40,
-    });
-    return NextResponse.json({
-      ok: true,
-      notifications,
-      unread: notifications.filter((n) => !n.readAt).length,
-    });
+    const [notifications, unread] = await Promise.all([
+      db.notification.findMany({
+        where: { userId: session.id },
+        orderBy: { createdAt: "desc" },
+        take: 40,
+      }),
+      db.notification.count({ where: { userId: session.id, readAt: null } }),
+    ]);
+    return NextResponse.json({ ok: true, notifications, unread });
   } catch (error) {
     return appErrorResponse(error);
   }

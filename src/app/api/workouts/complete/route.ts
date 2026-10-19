@@ -49,17 +49,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Atomic completion: only one concurrent complete wins.
+    // One write claims the completion AND stores its results: a crash between two
+    // writes would otherwise leave a "completed" session with no volume/duration.
     const claimed = await db.workoutSession.updateMany({
       where: { id: session.id, status: { notIn: ["completed"] } },
-      data: { status: "completed" },
-    });
-    if (claimed.count === 0) {
-      return NextResponse.json({ ok: true, alreadyCompleted: true, summary: existingSummary });
-    }
-
-    await db.workoutSession.update({
-      where: { id: session.id },
       data: {
+        status: "completed",
         endedAt: session.endedAt ?? new Date(),
         durationSeconds,
         totalVolumeKg: volume,
@@ -67,6 +62,9 @@ export async function POST(req: NextRequest) {
         note: body.note ?? session.note,
       },
     });
+    if (claimed.count === 0) {
+      return NextResponse.json({ ok: true, alreadyCompleted: true, summary: existingSummary });
+    }
 
     // PR detection per exercise (best set by estimated 1RM)
     const prResults: Array<{ exerciseName: string; value: number; unit: string }> = [];

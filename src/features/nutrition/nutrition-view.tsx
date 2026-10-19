@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { api, errorMessage } from "@/lib/client/api";
+import { api, errorMessage, isApiError } from "@/lib/client/api";
 import { enqueueOperation, newClientId } from "@/lib/offline/adapter";
 import { useFeatureFlag } from "@/lib/feature-flags/flag-provider";
 import { formatNumber, toPersianDigits } from "@/lib/formatting/numbers";
@@ -104,10 +104,16 @@ export function NutritionView() {
   const addWater = async (ml: number) => {
     const clientId = newClientId("water");
     setData((d) => (d ? { ...d, water: { ...d.water, ml: d.water.ml + ml } } : d));
+    const loggedAt = new Date().toISOString();
     try {
-      await api("/api/water", { method: "POST", json: { ml, clientId } });
-    } catch {
-      if (offline) await enqueueOperation({ clientId, kind: "water", endpoint: "/api/water", payload: { ml, clientId } });
+      await api("/api/water", { method: "POST", json: { ml, clientId, loggedAt } });
+    } catch (e) {
+      if (offline && isApiError(e) && e.code === "network") {
+        await enqueueOperation({ clientId, kind: "water", endpoint: "/api/water", payload: { ml, clientId, loggedAt } });
+      } else {
+        // Server refused it: take the optimistic bump back out.
+        setData((d) => (d ? { ...d, water: { ...d.water, ml: Math.max(0, d.water.ml - ml) } } : d));
+      }
     }
   };
 

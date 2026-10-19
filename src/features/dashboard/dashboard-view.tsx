@@ -10,7 +10,7 @@ import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/ui/icon";
-import { api, errorMessage } from "@/lib/client/api";
+import { api, errorMessage, isApiError } from "@/lib/client/api";
 import { cacheGet, cachePut, enqueueOperation, newClientId } from "@/lib/offline/adapter";
 import { useSession } from "@/lib/client/use-session";
 import { useFeatureFlag } from "@/lib/feature-flags/flag-provider";
@@ -90,14 +90,15 @@ export function DashboardView() {
   const addWater = async (ml: number) => {
     setWaterBusy(true);
     const clientId = newClientId("water");
-    const op = { clientId, kind: "water" as const, endpoint: "/api/water", payload: { ml, clientId } };
+    const loggedAt = new Date().toISOString();
+    const op = { clientId, kind: "water" as const, endpoint: "/api/water", payload: { ml, clientId, loggedAt } };
     try {
-      await api("/api/water", { method: "POST", json: { ml, clientId } });
+      await api("/api/water", { method: "POST", json: { ml, clientId, loggedAt } });
       setData((d) =>
         d ? { ...d, water: { ...d.water, ml: d.water.ml + ml } } : d,
       );
     } catch (e) {
-      if (offlineFlag) {
+      if (offlineFlag && isApiError(e) && e.code === "network") {
         await enqueueOperation(op);
         setData((d) => (d ? { ...d, water: { ...d.water, ml: d.water.ml + ml } } : d));
       } else {

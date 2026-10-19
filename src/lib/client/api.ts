@@ -9,12 +9,23 @@ export type ApiError = { code: string; message: string; status: number };
 
 export async function api<T>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
   const { json, ...rest } = init ?? {};
-  const res = await fetch(path, {
-    ...rest,
-    headers: { "Content-Type": "application/json", ...(rest.headers ?? {}) },
-    body: json !== undefined ? JSON.stringify(json) : rest.body,
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(path, {
+      ...rest,
+      headers: { "Content-Type": "application/json", ...(rest.headers ?? {}) },
+      body: json !== undefined ? JSON.stringify(json) : rest.body,
+      cache: "no-store",
+    });
+  } catch {
+    // fetch only rejects when the request never reached a server (offline, DNS, abort).
+    const error: ApiError = {
+      code: "network",
+      message: "اتصال برقرار نشد. اینترنت خود را بررسی کنید.",
+      status: 0,
+    };
+    throw error;
+  }
   let data: unknown = null;
   try {
     data = await res.json();
@@ -38,7 +49,12 @@ export function isApiError(e: unknown): e is ApiError {
 }
 
 export function errorMessage(e: unknown, fallback = "خطای غیرمنتظره. دوباره تلاش کنید."): string {
-  if (isApiError(e)) return e.message;
+  if (isApiError(e)) {
+    if (e.code === "network" && typeof navigator !== "undefined" && !navigator.onLine) {
+      return "شما آفلاین هستید — تغییرات محلی ذخیره شد.";
+    }
+    return e.message;
+  }
   if (typeof navigator !== "undefined" && !navigator.onLine) return "شما آفلاین هستید — تغییرات محلی ذخیره شد.";
   return fallback;
 }

@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     const session = await requireUser();
     const body = schema.parse(await req.json().catch(() => ({})));
     const equipment = await getUserEquipmentSet(session.id);
-    const plan = await createPlanFromTemplate(session.id, body.template, undefined, equipment);
+    const plan = await createPlanFromTemplate(session.id, body.template, undefined, equipment, session.timezone);
     const dayCount = await db.workoutPlanDay.count({ where: { planId: plan.id } });
     return NextResponse.json({
       ok: true,

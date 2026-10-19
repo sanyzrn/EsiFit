@@ -13,8 +13,18 @@ export type RateLimitResult = {
   retryAfterSeconds?: number;
 };
 
+const MAX_BUCKETS = 5_000;
+
+/** Drop expired windows so a long-lived process never grows the map without bound. */
+function prune(now: number): void {
+  for (const [key, bucket] of buckets) {
+    if (bucket.resetAt <= now) buckets.delete(key);
+  }
+}
+
 export function rateLimit(key: string, limit: number, windowMs: number): RateLimitResult {
   const now = Date.now();
+  if (buckets.size >= MAX_BUCKETS) prune(now);
   const existing = buckets.get(key);
   if (!existing || existing.resetAt <= now) {
     buckets.set(key, { count: 1, resetAt: now + windowMs });
