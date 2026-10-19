@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
+import { DEFAULT_TIMEZONE, daysBetweenISO, todayISO } from "@/lib/dates/jalali";
 
 /**
  * Starter plan templates — attached to every new account so the dashboard
@@ -167,8 +168,12 @@ const TEMPLATES: Record<PlanTemplateKey, { name: string; description: string; da
   },
 };
 
-export async function createDefaultPlanForUser(userId: string, availableEquipment?: Set<string> | null) {
-  return createPlanFromTemplate(userId, "ppl", undefined, availableEquipment);
+export async function createDefaultPlanForUser(
+  userId: string,
+  availableEquipment?: Set<string> | null,
+  timezone?: string,
+) {
+  return createPlanFromTemplate(userId, "ppl", undefined, availableEquipment, timezone);
 }
 
 /** Progressive overload by week: baseline → build → peak → deload. */
@@ -210,6 +215,7 @@ export async function createPlanFromTemplate(
   templateKey: PlanTemplateKey,
   startsOn?: string,
   availableEquipment?: Set<string> | null,
+  timezone: string = DEFAULT_TIMEZONE,
 ) {
   const tpl = TEMPLATES[templateKey] ?? TEMPLATES.ppl;
   const { loadExerciseCatalog, resolveExerciseForEquipment } = await import("@/lib/workout/catalog");
@@ -222,13 +228,14 @@ export async function createPlanFromTemplate(
     equipment = await getUserEquipmentSet(userId);
   }
 
-  // Archive any previous active plan so "today" resolves to the new one.
-  await db.workoutPlan.updateMany({
-    where: { userId, status: "active" },
-    data: { status: "archived" },
-  });
-
   return db.$transaction(async (tx) => {
+    // Archive any previous active plan so "today" resolves to the new one. Done in
+    // the same transaction: a failed build must never leave the user plan-less.
+    await tx.workoutPlan.updateMany({
+      where: { userId, status: "active" },
+      data: { status: "archived" },
+    });
+
     const plan = await tx.workoutPlan.create({
       data: {
         userId,
@@ -236,7 +243,7 @@ export async function createPlanFromTemplate(
         goalType: "build_muscle",
         weeks: PLAN_WEEKS,
         status: "active",
-        startsOn: startsOn ?? new Date().toISOString().slice(0, 10),
+        startsOn: startsOn ?? todayISO(timezone),
         description: `${tpl.description} — بلوک ${PLAN_WEEKS} هفته‌ای (رشد → اوج → دی‌لود).`,
       },
     });
@@ -303,14 +310,14 @@ export async function createPlanFromTemplate(
     }
 
     return plan;
-  });
+  }, { timeout: 30_000, maxWait: 10_000 });
 }
 
 /**
  * Pick today's plan day from the active multi-week plan.
  * Sequence: day-of-cycle from `startsOn`, week = floor(elapsed / cycleLen) + 1.
  */
-export async function getTodayPlanDay(userId: string) {
+export async function getTodayPlanDay(userId: string, timezone: string = DEFAULT_TIMEZONE) {
   const plan = await db.workoutPlan.findFirst({
     where: { userId, status: "active" },
     include: { days: { include: { exercises: { include: { exercise: { include: { muscles: { include: { muscleGroup: true } } } } } }, plan: true } } },
@@ -325,8 +332,7 @@ export async function getTodayPlanDay(userId: string) {
 
   const cycleLen = weekOne.length;
   const start = plan.startsOn;
-  const today = new Date().toISOString().slice(0, 10);
-  const elapsed = Math.max(0, Math.round((Date.parse(today) - Date.parse(start)) / 86_400_000));
+  const elapsed = Math.max(0, daysBetweenISO(todayISO(timezone), start));
   const weekNumber = Math.min(plan.weeks || PLAN_WEEKS, Math.floor(elapsed / cycleLen) + 1);
   const dayNumber = (elapsed % cycleLen) + 1;
 

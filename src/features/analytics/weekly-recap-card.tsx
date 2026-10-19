@@ -68,12 +68,12 @@ export function WeeklyRecapCard({
   };
 
   if (loading) {
-    return <div className="rounded-3xl border border-border bg-surface-1 p-6 h-40 animate-pulse" aria-hidden />;
+    return <div className="esi-card rounded-3xl p-6 h-40 animate-pulse" aria-hidden />;
   }
 
   if (locked) {
     return (
-      <section aria-label="جمع‌بندی هفتگی" className="rounded-3xl border border-border bg-surface-1 p-6">
+      <section aria-label="جمع‌بندی هفتگی" className="esi-card rounded-3xl p-6">
         <h2 className="font-bold flex items-center gap-2 mb-2">
           <Icon name="ScrollText" size={18} className="text-esi-text-secondary" />
           جمع‌بندی هوشمند هفته
@@ -90,7 +90,7 @@ export function WeeklyRecapCard({
 
   if (!recap) {
     return (
-      <section aria-label="جمع‌بندی هفتگی" className="rounded-3xl border border-border bg-surface-1 p-6">
+      <section aria-label="جمع‌بندی هفتگی" className="esi-card rounded-3xl p-6">
         <h2 className="font-bold flex items-center gap-2 mb-2">
           <Icon name="ScrollText" size={18} className="text-primary" />
           جمع‌بندی هوشمند هفته
@@ -110,7 +110,7 @@ export function WeeklyRecapCard({
   ];
 
   return (
-    <section aria-label="جمع‌بندی هفتگی" className="relative overflow-hidden rounded-3xl border border-border bg-surface-1 p-6">
+    <section aria-label="جمع‌بندی هفتگی" className="relative overflow-hidden esi-card rounded-3xl p-6">
       {/* Ambient accent */}
       <div className="pointer-events-none absolute -top-24 -end-24 h-48 w-48 rounded-full bg-primary/10 blur-3xl" aria-hidden />
 

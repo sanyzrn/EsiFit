@@ -130,7 +130,7 @@ export function AnalyticsView() {
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="rounded-3xl border border-border bg-surface-1 p-5 text-center"
+                className="esi-card rounded-3xl p-5 text-center"
               >
                 <Icon name={s.icon} size={20} className="text-primary mx-auto" />
                 <p className="mt-2 text-2xl lg:text-3xl font-extrabold tabular-nums">
@@ -148,7 +148,7 @@ export function AnalyticsView() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: reduce ? 0 : 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="relative overflow-hidden rounded-3xl border border-border bg-surface-1 p-6"
+              className="relative overflow-hidden esi-card rounded-3xl p-6"
             >
               <div className="pointer-events-none absolute -top-20 -start-20 h-56 w-56 rounded-full bg-primary/8 blur-3xl" aria-hidden />
               <div className="relative">
@@ -164,7 +164,7 @@ export function AnalyticsView() {
             </motion.section>
           )}
           {esiFlag && !data.esiScore && !ent.advancedAnalytics && (
-            <section aria-label="امتیاز اسی" className="rounded-3xl border border-border bg-surface-1 p-6">
+            <section aria-label="امتیاز اسی" className="esi-card rounded-3xl p-6">
               <h2 className="font-bold mb-2">امتیاز اسی</h2>
               <p className="text-sm leading-6 text-esi-text-secondary">
                 امتیاز اسی و تحلیل‌های پیشرفته از پلن وی‌آی‌پی فعال می‌شوند.{" "}
@@ -175,7 +175,7 @@ export function AnalyticsView() {
 
           {/* Muscle heat map — anatomy on real geometry */}
           {heatFlag && (
-            <section aria-label="نقشه حرارتی عضلات" className="rounded-3xl border border-border bg-surface-1 p-6">
+            <section aria-label="نقشه حرارتی عضلات" className="esi-card rounded-3xl p-6">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
                   <h2 className="font-bold">نقشه حرارتی عضلات</h2>
@@ -224,7 +224,7 @@ export function AnalyticsView() {
 
           <div className="grid gap-5 lg:grid-cols-2">
             {/* Weight trend — gradient area */}
-            <section aria-label="روند وزن" className="rounded-3xl border border-border bg-surface-1 p-6">
+            <section aria-label="روند وزن" className="esi-card rounded-3xl p-6">
               <h2 className="font-bold mb-1">روند وزن</h2>
               <p className="text-xs text-esi-text-secondary mb-4">
                 {data.weightTrend.length > 1
@@ -280,7 +280,7 @@ export function AnalyticsView() {
             </section>
 
             {/* Strength radar */}
-            <section aria-label="رادار قدرت" className="rounded-3xl border border-border bg-surface-1 p-6">
+            <section aria-label="رادار قدرت" className="esi-card rounded-3xl p-6">
               <h2 className="font-bold mb-1">رادار قدرت نسبی</h2>
               <p className="text-xs text-esi-text-secondary mb-2">بیشینه تخمینی هر الگوی حرکتی نسبت به قوی‌ترین الگوی شما</p>
               <BodyRadar data={data.radar.map((r) => ({ ...r, pattern: PATTERN_FA[r.pattern] ?? r.pattern }))} />
@@ -288,7 +288,7 @@ export function AnalyticsView() {
           </div>
 
           {/* Streak calendar */}
-          <section aria-label="تقویم پیوستگی" className="rounded-3xl border border-border bg-surface-1 p-6 overflow-x-auto">
+          <section aria-label="تقویم پیوستگی" className="esi-card rounded-3xl p-6 overflow-x-auto">
             <h2 className="font-bold mb-1">تقویم پیوستگی</h2>
             <p className="text-xs text-esi-text-secondary mb-4">۱۳ هفته اخیر — تمرین و ثبت آب روزانه</p>
             <StreakCalendar activity={data.activity} />
@@ -296,7 +296,7 @@ export function AnalyticsView() {
 
           <div className="grid gap-5 lg:grid-cols-2">
             {/* Weekly volume */}
-            <section aria-label="حجم هفتگی" className="rounded-3xl border border-border bg-surface-1 p-6">
+            <section aria-label="حجم هفتگی" className="esi-card rounded-3xl p-6">
               <h2 className="font-bold mb-4">حجم تمرینی هفتگی (تُن)</h2>
               {volumeChartData.some((v) => v.volume > 0) ? (
                 <div dir="ltr">
@@ -327,7 +327,7 @@ export function AnalyticsView() {
 
             {/* PRs with history */}
             {prFlag && (
-              <section aria-label="رکوردهای شخصی" className="rounded-3xl border border-border bg-surface-1 p-6">
+              <section aria-label="رکوردهای شخصی" className="esi-card rounded-3xl p-6">
                 <h2 className="font-bold mb-4">رکوردهای شخصی فعال</h2>
                 {data.prs.length === 0 ? (
                   <p className="py-8 text-center text-sm text-esi-text-muted">
@@ -347,7 +347,7 @@ export function AnalyticsView() {
 
           {/* Strength trend sparklines */}
           {data.strengthTrend.length > 0 && (
-            <section aria-label="روند قدرت حرکات" className="rounded-3xl border border-border bg-surface-1 p-6">
+            <section aria-label="روند قدرت حرکات" className="esi-card rounded-3xl p-6">
               <h2 className="font-bold mb-1">روند بیشینه تخمینی</h2>
               <p className="text-xs text-esi-text-secondary mb-4">هر نقطه، بهترین ست آن حرکت در یک جلسه است (مدل Epley/Brzycki)</p>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

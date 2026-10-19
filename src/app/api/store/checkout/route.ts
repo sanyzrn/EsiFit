@@ -21,6 +21,14 @@ export async function POST(req:NextRequest) {
     if (!session) {
       return NextResponse.json({ ok: false, code: "authentication", message: "برای تکمیل خرید وارد شوید." }, { status: 401 });
     }
+    // Orders are created as "paid" without a real transaction — in production
+    // that is only acceptable behind the explicit sandbox opt-in.
+    if (process.env.NODE_ENV === "production" && process.env.ALLOW_MOCK_PAYMENT !== "true") {
+      return NextResponse.json(
+        { ok: false, code: "provider", message: "پرداخت واقعی هنوز متصل نشده است. لطفاً بعداً تلاش کنید." },
+        { status: 502 },
+      );
+    }
     const body = schema.parse(await req.json());
 
     // Reject duplicate productIds — otherwise stock math double-counts.

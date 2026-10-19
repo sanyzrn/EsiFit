@@ -1,24 +1,23 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0A0D12"/>
-      <stop offset="100%" stop-color="#161D27"/>
-    </linearGradient>
+    <radialGradient id="bg" cx="70%" cy="10%" r="110%">
+      <stop offset="0%" stop-color="#1a2566"/>
+      <stop offset="55%" stop-color="#0b1231"/>
+      <stop offset="100%" stop-color="#070b1f"/>
+    </radialGradient>
     <linearGradient id="brand" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#5BE7C4"/>
-      <stop offset="100%" stop-color="#4F8CFF"/>
+      <stop offset="0%" stop-color="#ffd45e"/>
+      <stop offset="100%" stop-color="#ff8a3d"/>
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="92" fill="url(#bg)"/>
-  <circle cx="256" cy="256" r="190" fill="url(#brand)" opacity="0.14"/>
-  <g transform="translate(96,96)">
-    <rect x="0" y="0" width="320" height="320" rx="72" fill="url(#brand)"/>
-    <g stroke="#07120F" stroke-width="24" stroke-linecap="round">
-      <path d="M64 116 v88"/>
-      <path d="M112 88 v144"/>
-      <path d="M208 88 v144"/>
-      <path d="M256 116 v88"/>
-      <path d="M112 160 h96"/>
-    </g>
+  <path d="M256.0 42.0 L318.7 104.7 L407.3 104.7 L407.3 193.3 L470.0 256.0 L407.3 318.7 L407.3 407.3 L318.7 407.3 L256.0 470.0 L193.3 407.3 L104.7 407.3 L104.7 318.7 L42.0 256.0 L104.7 193.3 L104.7 104.7 L193.3 104.7Z" fill="none" stroke="#ffc83d" stroke-opacity=".22" stroke-width="3"/>
+  <path d="M256.0 80.0 L307.5 131.5 L380.5 131.5 L380.5 204.5 L432.0 256.0 L380.5 307.5 L380.5 380.5 L307.5 380.5 L256.0 432.0 L204.5 380.5 L131.5 380.5 L131.5 307.5 L80.0 256.0 L131.5 204.5 L131.5 131.5 L204.5 131.5Z" fill="url(#brand)"/>
+  <g stroke="#101a4a" stroke-width="22" stroke-linecap="round">
+    <path d="M196 218v76"/>
+    <path d="M226 190v132"/>
+    <path d="M286 190v132"/>
+    <path d="M316 218v76"/>
+    <path d="M226 256h60"/>
   </g>
 </svg>

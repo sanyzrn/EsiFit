@@ -22,7 +22,7 @@ export function CalculatorsHub() {
           <Link
             key={c.slug}
             href={`/calculators/${c.slug}`}
-            className="group rounded-3xl border border-border bg-surface-1 p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-raised)]"
+            className="group esi-card rounded-3xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-raised)]"
           >
             <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-2 text-2xl" aria-hidden>
               {c.emoji}

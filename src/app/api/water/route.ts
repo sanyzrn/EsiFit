@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { z } from "zod";
-import { todayISO } from "@/lib/dates/jalali";
+import { isoDateOnly } from "@/lib/dates/jalali";
 
 const postSchema = z.object({
   ml: z.number().int().min(50).max(2000),
@@ -25,19 +25,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, duplicate: true });
     }
 
-    const loggedAt = body.loggedAt ? new Date(body.loggedAt) : new Date();
-    const logDate = todayISO(session.timezone);
+    // Offline entries replay later: bucket by when the water was drunk (never in
+    // the future), not by when the queue happened to flush.
+    const now = new Date();
+    const claimedAt = body.loggedAt ? new Date(body.loggedAt) : now;
+    const loggedAt = claimedAt.getTime() > now.getTime() ? now : claimedAt;
+    const logDate = isoDateOnly(loggedAt, session.timezone);
 
-    const created = await db.waterLog.create({
-      data: {
-        userId: session.id,
-        ml: body.ml,
-        loggedAt,
-        logDate,
-        syncStatus: "synced",
-        clientId: body.clientId,
-      },
-    });
+    let created;
+    try {
+      created = await db.waterLog.create({
+        data: {
+          userId: session.id,
+          ml: body.ml,
+          loggedAt,
+          logDate,
+          syncStatus: "synced",
+          clientId: body.clientId,
+        },
+      });
+    } catch (error) {
+      // Two flushes of the same offline entry racing: the unique clientId wins once.
+      if ((error as { code?: string })?.code === "P2002") return NextResponse.json({ ok: true, duplicate: true });
+      throw error;
+    }
 
     const dayTotal = await db.waterLog.aggregate({
       where: { userId: session.id, logDate },

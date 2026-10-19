@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { z } from "zod";
+import { todayISO } from "@/lib/dates/jalali";
 import { computeMacroTargets } from "@/lib/domain/body-math";
 import { serializeAvailableEquipment } from "@/lib/workout/equipment";
 import { equipmentSetFromList } from "@/lib/workout/equipment";
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
       goal: profileFields.primaryGoal,
     });
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayISO(session.timezone);
     const equipmentJson = serializeAvailableEquipment(availableEquipment ?? []);
 
     await db.$transaction([
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
     ]);
 
     // Rebuild the starter plan so equipment substitutions apply immediately.
-    await createDefaultPlanForUser(session.id, equipmentSetFromList(availableEquipment ?? []));
+    await createDefaultPlanForUser(session.id, equipmentSetFromList(availableEquipment ?? []), session.timezone);
 
     return NextResponse.json({ ok: true, macros });
   } catch (error) {

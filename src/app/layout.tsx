@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { ServiceWorkerRegistrar } from "@/components/layout/service-worker-registrar";
+import { SpotlightProvider } from "@/components/motion/spotlight-provider";
 
 const vazir = localFont({
   src: [
@@ -14,6 +15,14 @@ const vazir = localFont({
     { path: "../../public/fonts/Vazirmatn-ExtraBold.woff2", weight: "800", style: "normal" },
   ],
   variable: "--font-vazir",
+  display: "swap",
+  preload: true,
+});
+
+/** Display face: chunky Persian poster lettering for headlines and big numerals. */
+const lalezar = localFont({
+  src: [{ path: "../../public/fonts/Lalezar-Regular.woff2", weight: "400", style: "normal" }],
+  variable: "--font-lalezar",
   display: "swap",
   preload: true,
 });
@@ -85,8 +94,8 @@ export const viewport: Viewport = {
   maximumScale: 5,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0A0D12" },
-    { media: "(prefers-color-scheme: light)", color: "#F5F7FA" },
+    { media: "(prefers-color-scheme: dark)", color: "#070B1F" },
+    { media: "(prefers-color-scheme: light)", color: "#F1F3FB" },
   ],
 };
 
@@ -95,11 +104,12 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fa" dir="rtl" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body className={`${vazir.variable} antialiased bg-background text-foreground min-h-screen`}>
+      <body className={`${vazir.variable} ${lalezar.variable} antialiased bg-background text-foreground min-h-screen`}>
         <ThemeProvider defaultTheme="dark" storageKey="esifit-theme">
           {children}
           <Toaster position="top-center" dir="rtl" richColors closeButton />
           <ServiceWorkerRegistrar />
+          <SpotlightProvider />
         </ThemeProvider>
       </body>
     </html>

@@ -14,9 +14,9 @@ import { AnimatedCounter } from "@/components/ui/animated-counter";
 
 const RINGS = [
   { key: "calories", label: "کالری", color: "var(--primary)", unit: "کالری" },
-  { key: "proteinG", label: "پروتئین", color: "#4F8CFF", unit: "گرم" },
-  { key: "carbsG", label: "کربوهیدرات", color: "#F5C66A", unit: "گرم" },
-  { key: "fatG", label: "چربی", color: "#A99BFF", unit: "گرم" },
+  { key: "proteinG", label: "پروتئین", color: "var(--lapis)", unit: "گرم" },
+  { key: "carbsG", label: "کربوهیدرات", color: "var(--turquoise)", unit: "گرم" },
+  { key: "fatG", label: "چربی", color: "var(--iris)", unit: "گرم" },
 ] as const;
 
 export function MacroRingGroup({
@@ -57,13 +57,14 @@ export function MacroRingGroup({
                   strokeWidth={strokeWidth}
                   strokeLinecap="round"
                   strokeDasharray={c}
+                  style={{ filter: pct > 0 ? `drop-shadow(0 0 5px color-mix(in srgb, ${color} 50%, transparent))` : undefined }}
                   initial={{ strokeDashoffset: reduced ? c * (1 - pct) : c }}
                   animate={{ strokeDashoffset: c * (1 - pct) }}
                   transition={{ duration: reduced ? 0 : 0.9, ease: [0.22, 1, 0.36, 1] }}
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className={cn("font-semibold tabular-nums", target > 0 && pct >= 1 ? "text-xs" : "text-sm")}>
+                <span className={cn("font-display tabular-nums", target > 0 && pct >= 1 ? "text-base" : "text-lg")}>
                   <AnimatedCounter value={value} format="decimal" digits={0} />
                 </span>
               </div>

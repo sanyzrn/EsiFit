@@ -57,7 +57,7 @@ export function CoachWorkspaceView({
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="rounded-3xl border border-border bg-surface-1 p-5"
+            className="esi-card rounded-3xl p-5"
           >
             <Icon name={s.icon} size={20} className="text-primary" />
             <p className="mt-2 text-2xl lg:text-3xl font-extrabold tabular-nums">
@@ -97,7 +97,7 @@ export function CoachWorkspaceView({
           <RevealOnScroll key={athlete.athleteId} delay={i * 0.04}>
             <Link
               href={`/coach/athletes/${athlete.athleteId}`}
-              className="block rounded-3xl border border-border bg-surface-1 p-5 transition-all duration-200 hover:border-primary/40 hover:shadow-[var(--shadow-raised)] hover:-translate-y-0.5 group"
+              className="block esi-card rounded-3xl p-5 transition-all duration-200 hover:border-primary/40 hover:shadow-[var(--shadow-raised)] hover:-translate-y-0.5 group"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">

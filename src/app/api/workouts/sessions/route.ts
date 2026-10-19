@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
         note: e.note,
       }));
     } else {
-      const today = await getTodayPlanDay(session.id);
+      const today = await getTodayPlanDay(session.id, session.timezone);
       // Rest days keep their active-recovery entries (walk/mobility) so the
       // live HUD is never an empty dead-end.
       if (today) {

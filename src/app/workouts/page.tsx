@@ -14,7 +14,7 @@ export default async function WorkoutsPage() {
   if (!session) redirect("/auth/login");
 
   const [planDay, exercises, activePlan] = await Promise.all([
-    getTodayPlanDay(session.id),
+    getTodayPlanDay(session.id, session.timezone),
     db.exercise.findMany({
       include: { muscles: { include: { muscleGroup: true } } },
       orderBy: { nameFa: "asc" },

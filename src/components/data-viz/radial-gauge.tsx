@@ -13,10 +13,10 @@ export type GaugeTone = "primary" | "blue" | "amber" | "red" | "violet" | "neutr
 
 const TONE_COLORS: Record<GaugeTone, string> = {
   primary: "var(--primary)",
-  blue: "#4F8CFF",
-  amber: "#F5C66A",
-  red: "#FF7A85",
-  violet: "#A99BFF",
+  blue: "var(--lapis)",
+  amber: "var(--ember)",
+  red: "var(--coral)",
+  violet: "var(--iris)",
   neutral: "var(--surface-3)",
 };
 
@@ -69,6 +69,7 @@ export function RadialGauge({
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={c}
+          style={{ filter: `drop-shadow(0 0 6px color-mix(in srgb, ${TONE_COLORS[tone]} 55%, transparent))` }}
           initial={{ strokeDashoffset: reduced ? target : c }}
           animate={{ strokeDashoffset: target }}
           transition={{ duration: reduced ? 0 : 0.8, ease: [0.22, 1, 0.36, 1] }}

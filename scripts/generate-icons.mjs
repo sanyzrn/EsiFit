@@ -1,54 +1,63 @@
 /**
- * Generates EsiFit PWA icons (maskable + regular) from a vector drawing
- * rendered via sharp. Mint→blue brand gradient, dumbbell glyph.
+ * Generates EsiFit PWA icons (maskable + regular) and the vector icon from one
+ * drawing: a saffron khatam (eight-point star) on lapis, dumbbell at its heart.
+ * Run from the repo root:  node scripts/generate-icons.mjs
  */
 import sharp from "sharp";
-import { mkdirSync } from "fs";
+import { mkdirSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
+const OUT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "public", "icons");
 const W = 512;
 
-const svg = (pad = 0, radius = W) => `
+/** {8/2} octagram (two overlaid squares): inner/outer radius ratio. */
+const INNER = Math.SQRT1_2 / Math.cos(Math.PI / 8);
+function star(cx, cy, outer, rotation = -90) {
+  const pts = [];
+  for (let k = 0; k < 16; k++) {
+    const r = k % 2 === 0 ? outer : outer * INNER;
+    const a = ((rotation + k * 22.5) * Math.PI) / 180;
+    pts.push(`${(cx + r * Math.cos(a)).toFixed(1)} ${(cy + r * Math.sin(a)).toFixed(1)}`);
+  }
+  return `M${pts.join(" L")}Z`;
+}
+
+const svg = (radius = W) => `
 <svg width="${W}" height="${W}" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0A0D12"/>
-      <stop offset="100%" stop-color="#161D27"/>
-    </linearGradient>
+    <radialGradient id="bg" cx="70%" cy="10%" r="110%">
+      <stop offset="0%" stop-color="#1a2566"/>
+      <stop offset="55%" stop-color="#0b1231"/>
+      <stop offset="100%" stop-color="#070b1f"/>
+    </radialGradient>
     <linearGradient id="brand" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#5BE7C4"/>
-      <stop offset="100%" stop-color="#4F8CFF"/>
+      <stop offset="0%" stop-color="#ffd45e"/>
+      <stop offset="100%" stop-color="#ff8a3d"/>
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="${radius}" fill="url(#bg)"/>
-  <circle cx="256" cy="256" r="190" fill="url(#brand)" opacity="0.14"/>
-  <g transform="translate(96,96)">
-    <rect x="0" y="0" width="320" height="320" rx="72" fill="url(#brand)"/>
-    <g stroke="#07120F" stroke-width="24" stroke-linecap="round">
-      <path d="M64 116 v88"/>
-      <path d="M112 88 v144"/>
-      <path d="M208 88 v144"/>
-      <path d="M256 116 v88"/>
-      <path d="M112 160 h96"/>
-    </g>
+  <path d="${star(256, 256, 214)}" fill="none" stroke="#ffc83d" stroke-opacity=".22" stroke-width="3"/>
+  <path d="${star(256, 256, 176)}" fill="url(#brand)"/>
+  <g stroke="#101a4a" stroke-width="22" stroke-linecap="round">
+    <path d="M196 218v76"/>
+    <path d="M226 190v132"/>
+    <path d="M286 190v132"/>
+    <path d="M316 218v76"/>
+    <path d="M226 256h60"/>
   </g>
 </svg>`;
 
 async function make(size, name, radius) {
-  const img = sharp(Buffer.from(svg(0, radius))).resize(size, size);
-  await img.png().toFile(`/home/z/my-project/public/icons/${name}`);
+  await sharp(Buffer.from(svg(radius))).resize(size, size).png().toFile(path.join(OUT, name));
   console.log(`✓ ${name}`);
 }
 
-mkdirSync("/home/z/my-project/public/icons", { recursive: true });
-
+mkdirSync(OUT, { recursive: true });
 await make(192, "icon-192.png", 46);
 await make(512, "icon-512.png", 92);
 await make(180, "apple-touch-icon.png", 41);
 await make(512, "icon-maskable.png", 0); // full-bleed maskable
-
-// Favicon-quality 32
-await sharp(Buffer.from(svg(0, 10))).resize(32, 32).png().toFile("/home/z/my-project/public/icons/icon-32.png");
-
-// Vector source kept for crispness
-await sharp(Buffer.from(svg(0, 92))).resize(512, 512).png().toFile("/home/z/my-project/public/icons/icon-512.png");
-console.log("done");
+await make(32, "icon-32.png", 8);
+writeFileSync(path.join(OUT, "icon.svg"), svg(92).trim() + "\n");
+console.log("✓ icon.svg\ndone");

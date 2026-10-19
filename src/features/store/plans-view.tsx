@@ -64,7 +64,7 @@ export function PlansView({ currentTier }: { currentTier: string | null }) {
   return (
     <div className="px-4 lg:px-8 pb-8 max-w-6xl mx-auto">
       {/* Free plan banner */}
-      <div className="mb-5 rounded-3xl border border-border bg-surface-1 p-6 flex flex-wrap items-center justify-between gap-4">
+      <div className="mb-5 esi-card rounded-3xl p-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="font-bold">پلن رایگان — همیشه</h2>
           <p className="mt-1 text-sm text-esi-text-secondary">

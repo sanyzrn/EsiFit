@@ -59,7 +59,14 @@ export function AppShell({
   return (
     <FeatureFlagProvider flags={flags}>
       <SessionProvider initial={session}>
-        <div className="min-h-dvh flex">
+        <div className="relative min-h-dvh flex">
+          {/* faint khatam lattice, fading out toward the bottom — felt more than seen */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] overflow-hidden [mask-image:linear-gradient(to_bottom,black,transparent)]"
+          >
+            <div className="esi-pattern opacity-60" />
+          </div>
           {showMemberChrome && <AppSidebar />}
           <div className="flex-1 flex flex-col min-w-0">
             {showMobileHeader && <MobileAppHeader />}
@@ -67,10 +74,10 @@ export function AppShell({
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={pathname}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: reduce ? 0.01 : MOTION.duration.snappy, ease: MOTION.ease }}
+                  transition={{ duration: reduce ? 0.01 : MOTION.duration.smooth, ease: MOTION.ease }}
                 >
                   {children}
                 </motion.div>
@@ -130,7 +137,7 @@ export function PageHeader({
             بازگشت
           </Link>
         )}
-        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{title}</h1>
+        <h1 className="font-display text-3xl lg:text-4xl leading-tight">{title}</h1>
         {description && <p className="text-sm text-esi-text-secondary mt-1">{description}</p>}
       </div>
       {action ? <div className="flex flex-wrap items-center gap-2 shrink-0">{action}</div> : null}

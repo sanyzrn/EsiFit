@@ -26,7 +26,7 @@ export function ExerciseCard({
     <button
       type="button"
       onClick={onOpen}
-      className="group text-start rounded-2xl border border-border bg-surface-1 p-4 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-raised)] min-h-11"
+      className="group text-start esi-card rounded-2xl p-4 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-raised)] min-h-11"
     >
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-sm font-bold leading-6">{exercise.name}</h3>

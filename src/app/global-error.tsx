@@ -13,7 +13,7 @@ export default function GlobalError({
 }) {
   return (
     <html lang="fa" dir="rtl">
-      <body style={{ fontFamily: "Vazirmatn, system-ui, sans-serif", background: "#0a0d12", color: "#e8eef5" }}>
+      <body style={{ fontFamily: "Vazirmatn, system-ui, sans-serif", background: "#070b1f", color: "#f6f3ea" }}>
         <div
           style={{
             minHeight: "100dvh",
@@ -38,8 +38,8 @@ export default function GlobalError({
               padding: "0.625rem 1.25rem",
               borderRadius: "0.75rem",
               border: "none",
-              background: "#3dffa8",
-              color: "#0a0d12",
+              background: "#ffc83d",
+              color: "#070b1f",
               fontWeight: 600,
               cursor: "pointer",
             }}

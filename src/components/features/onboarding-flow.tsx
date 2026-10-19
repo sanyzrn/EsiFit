@@ -130,7 +130,7 @@ export function OnboardingFlow({ displayName }: { displayName: string }) {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 24 }}
           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-          className="rounded-3xl border border-border bg-surface-1 p-8 shadow-[var(--shadow-float)]"
+          className="esi-card rounded-3xl p-8 shadow-[var(--shadow-float)]"
         >
           {step === 0 && (
             <>

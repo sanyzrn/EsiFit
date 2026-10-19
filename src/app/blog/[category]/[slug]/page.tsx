@@ -172,7 +172,7 @@ export default async function ArticlePage({
 
         {/* Sources */}
         {article.sources.length > 0 && (
-          <section className="mt-12 rounded-2xl border border-border bg-surface-1 p-5" aria-label="منابع">
+          <section className="mt-12 esi-card rounded-2xl p-5" aria-label="منابع">
             <h2 className="text-sm font-bold mb-3">منابع</h2>
             <ol className="space-y-2">
               {article.sources.map((s) => (

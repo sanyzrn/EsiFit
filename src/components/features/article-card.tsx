@@ -21,7 +21,7 @@ export function ArticleCard({
   return (
     <Link
       href={href}
-      className="group flex h-full flex-col rounded-3xl border border-border bg-surface-1 p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-raised)] focus-visible:outline-2"
+      className="group flex h-full flex-col esi-card rounded-3xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-raised)] focus-visible:outline-2"
     >
       <div className="flex items-center justify-between">
         <span className="text-3xl" aria-hidden>{emoji}</span>

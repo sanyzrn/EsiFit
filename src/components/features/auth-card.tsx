@@ -76,10 +76,10 @@ export function AuthCard() {
 
   return (
     <div className="w-full max-w-md">
-      <div className="flex justify-center mb-8">
+      <div className="flex justify-center mb-8 lg:hidden">
         <BrandMark />
       </div>
-      <div className="rounded-3xl border border-border bg-surface-1 p-8 shadow-[var(--shadow-float)]">
+      <div className="esi-card rounded-3xl p-8 shadow-[var(--shadow-float)]">
         <AnimatePresence mode="wait">
           {step === "phone" ? (
             <motion.div
@@ -89,7 +89,7 @@ export function AuthCard() {
               exit={{ opacity: 0, x: 24 }}
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
-              <h1 className="text-2xl font-bold">ورود یا ثبت‌نام</h1>
+              <h1 className="font-display text-4xl leading-tight">ورود یا ثبت‌نام</h1>
               <p className="mt-2 text-sm leading-6 text-esi-text-secondary">
                 فقط با شماره موبایل — بدون رمز عبور. کد یک‌بارمصرف پیامک می‌شود.
               </p>
@@ -123,7 +123,7 @@ export function AuthCard() {
                     <p role="alert" className="mt-2 text-xs text-destructive">{error}</p>
                   )}
                 </div>
-                <Button type="submit" size="lg" className="w-full h-12 text-base" disabled={loading}>
+                <Button type="submit" size="lg" className="esi-sheen w-full h-12 text-base" disabled={loading}>
                   {loading ? "در حال ارسال کد…" : "دریافت کد ورود"}
                 </Button>
               </form>
@@ -136,7 +136,7 @@ export function AuthCard() {
               exit={{ opacity: 0, x: 24 }}
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
-              <h1 className="text-2xl font-bold">کد را وارد کنید</h1>
+              <h1 className="font-display text-4xl leading-tight">کد را وارد کنید</h1>
               <p className="mt-2 text-sm leading-6 text-esi-text-secondary">
                 کد ۶ رقمی به شماره <span dir="ltr" className="font-medium">{toPersianDigits(toLatinDigits(phone))}</span> پیامک شد.
               </p>
@@ -173,7 +173,7 @@ export function AuthCard() {
                 {error && (
                   <p role="alert" className="mt-4 text-center text-xs text-destructive">{error}</p>
                 )}
-                <Button type="submit" size="lg" className="mt-6 w-full h-12 text-base" disabled={loading || code.length !== 6}>
+                <Button type="submit" size="lg" className="esi-sheen mt-6 w-full h-12 text-base" disabled={loading || code.length !== 6}>
                   {loading ? "بررسی کد…" : "ورود به اسی‌فیت"}
                 </Button>
               </form>

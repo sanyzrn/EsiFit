@@ -1,0 +1,78 @@
+"use client";
+
+import * as React from "react";
+import { motion, useReducedMotion, useScroll, useSpring, useTransform } from "framer-motion";
+import { toPersianDigits } from "@/lib/formatting/numbers";
+
+/**
+ * A day with the app, as a real sequence — so the numbered markers earn their place.
+ * The spine fills as the section scrolls past; each step wakes when it reaches the
+ * middle of the viewport.
+ */
+
+const STEPS = [
+  {
+    time: "۰۷:۳۰",
+    title: "صبح: آمادگی‌ات را ببین",
+    text: "امتیاز آمادگی از خواب، بار تمرین دیروز و پیوستگی‌ات ساخته می‌شود. مربی تطبیقی همان‌جا حجم امروز را کم یا زیاد می‌کند.",
+  },
+  {
+    time: "۱۸:۰۰",
+    title: "عصر: ست‌هایت را زنده ثبت کن",
+    text: "وزنه، تکرار، RPE. رکورد جدید خودکار شناسایی می‌شود و دردی که گزارش داده‌ای، پیشنهاد حرکت را فیلتر می‌کند.",
+  },
+  {
+    time: "۲۱:۰۰",
+    title: "شب: وعده‌ها را ببند",
+    text: "غذاهای ایرانی را با مقدار سرو واقعی ثبت کن و ببین حلقه‌های پروتئین و کالری امروز کجا ایستاده‌اند.",
+  },
+  {
+    time: "جمعه",
+    title: "آخر هفته: جمع‌بندی هوشمند",
+    text: "روایتی از داده‌های واقعی خودت: چه چیزی بهتر شد، کجا ثبات از دست رفت و هفته بعد روی چه تمرکز کنی.",
+  },
+];
+
+export function DayFlow() {
+  const reduce = useReducedMotion();
+  const ref = React.useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 70%", "end 60%"] });
+  const fill = useSpring(scrollYProgress, { stiffness: 120, damping: 24, mass: 0.3 });
+  const scaleY = useTransform(fill, [0, 1], [0, 1]);
+
+  return (
+    <div ref={ref} className="relative mt-14 max-w-3xl">
+      {/* spine */}
+      <div aria-hidden className="absolute inset-y-2 start-[27px] w-px bg-border">
+        <motion.div
+          className="absolute inset-0 origin-top bg-gradient-to-b from-turquoise to-primary shadow-[0_0_12px_var(--primary)]"
+          style={reduce ? undefined : { scaleY }}
+        />
+      </div>
+      <ol className="space-y-12">
+        {STEPS.map((s, i) => (
+          <motion.li
+            key={s.time}
+            className="relative flex items-start gap-5 ps-20"
+            initial={reduce ? false : { opacity: 0.4, x: 16 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ margin: "-35% 0px -35% 0px", once: false }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className="min-w-0">
+              <p className="font-display text-4xl lg:text-5xl leading-none text-primary tabular-nums">{s.time}</p>
+              <h3 className="mt-3 text-lg font-bold">{s.title}</h3>
+              <p className="mt-2 max-w-xl text-sm leading-7 text-esi-text-secondary">{s.text}</p>
+            </div>
+            <span
+              className="absolute start-0 top-0 flex h-14 w-14 items-center justify-center rounded-full border border-border bg-surface-1 font-display text-xl shadow-[var(--shadow-rest)]"
+              aria-hidden
+            >
+              {toPersianDigits(i + 1)}
+            </span>
+          </motion.li>
+        ))}
+      </ol>
+    </div>
+  );
+}

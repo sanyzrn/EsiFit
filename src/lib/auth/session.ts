@@ -145,10 +145,13 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   });
   if (!session || session.revokedAt || session.user.status !== "active") return null;
 
-  // Touch last seen (fire and forget; not awaited in callers).
-  void db.session
-    .update({ where: { id: session.id }, data: { lastSeenAt: new Date() } })
-    .catch(() => undefined);
+  // Touch last seen at most every 5 minutes — a write on every page/API hit is
+  // wasted load (and the device list only needs minute-level freshness).
+  if (Date.now() - session.lastSeenAt.getTime() > 5 * 60_000) {
+    void db.session
+      .update({ where: { id: session.id }, data: { lastSeenAt: new Date() } })
+      .catch(() => undefined);
+  }
 
   const tier = await resolveEffectiveTier(session.user.id, session.user.tier);
   return toSessionUser({ ...session.user, tier }, Boolean(session.user.profile?.onboardedAt));

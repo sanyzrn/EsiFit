@@ -95,7 +95,7 @@ export function InstallPrompt() {
     <div
       role="dialog"
       aria-label="نصب اسی‌فیت"
-      className="fixed bottom-20 lg:bottom-6 inset-x-4 lg:inset-x-auto lg:end-6 lg:w-96 z-50 rounded-2xl border border-border bg-surface-1 p-4 shadow-[var(--shadow-float)]"
+      className="fixed bottom-20 lg:bottom-6 inset-x-4 lg:inset-x-auto lg:end-6 lg:w-96 z-50 esi-card rounded-2xl p-4 shadow-[var(--shadow-float)]"
     >
       <div className="flex items-start gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl esi-gradient-brand">

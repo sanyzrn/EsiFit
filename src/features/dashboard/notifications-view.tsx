@@ -70,7 +70,7 @@ export function NotificationsView() {
         {!items ? (
           [1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-2xl" />)
         ) : items.length === 0 ? (
-          <div className="rounded-3xl border border-border bg-surface-1 p-10 text-center space-y-4">
+          <div className="esi-card rounded-3xl p-10 text-center space-y-4">
             <span className="text-3xl" aria-hidden>🔔</span>
             <p className="text-sm text-esi-text-secondary">هنوز اعلانی ندارید — اولین تمرین را ثبت کنید!</p>
             <Button asChild className="h-11">

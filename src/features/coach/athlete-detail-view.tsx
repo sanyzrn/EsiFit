@@ -85,7 +85,7 @@ export function AthleteDetailView({ detail, backHref }: { detail: AthleteDetail;
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="rounded-3xl border border-border bg-surface-1 p-4 text-center"
+              className="esi-card rounded-3xl p-4 text-center"
             >
               <Icon name={s.icon} size={18} className="text-primary mx-auto" />
               <p className="mt-1.5 text-xl font-extrabold tabular-nums">
@@ -117,7 +117,7 @@ export function AthleteDetailView({ detail, backHref }: { detail: AthleteDetail;
 
         <div className="grid gap-5 lg:grid-cols-2">
           {/* Weight trend */}
-          <section aria-label="روند وزن" className="rounded-3xl border border-border bg-surface-1 p-6">
+          <section aria-label="روند وزن" className="esi-card rounded-3xl p-6">
             <h2 className="font-bold mb-1">روند وزن</h2>
             <p className="text-xs text-esi-text-secondary mb-4">
               {weightData.length >= 2
@@ -148,7 +148,7 @@ export function AthleteDetailView({ detail, backHref }: { detail: AthleteDetail;
           </section>
 
           {/* Weekly tonnage */}
-          <section aria-label="حجم هفتگی" className="rounded-3xl border border-border bg-surface-1 p-6">
+          <section aria-label="حجم هفتگی" className="esi-card rounded-3xl p-6">
             <h2 className="font-bold mb-4">حجم هفتگی (تُن)</h2>
             {tonnageData.some((t) => t.tonnage > 0) ? (
               <div dir="ltr">
@@ -170,7 +170,7 @@ export function AthleteDetailView({ detail, backHref }: { detail: AthleteDetail;
 
         <div className="grid gap-5 lg:grid-cols-2">
           {/* PRs */}
-          <section aria-label="رکوردهای فعلی" className="rounded-3xl border border-border bg-surface-1 p-6">
+          <section aria-label="رکوردهای فعلی" className="esi-card rounded-3xl p-6">
             <h2 className="font-bold mb-4">رکوردهای شخصی فعال</h2>
             {detail.currentPrs.length === 0 ? (
               <p className="py-6 text-center text-sm text-esi-text-muted">هنوز رکوردی ثبت نشده</p>
@@ -188,7 +188,7 @@ export function AthleteDetailView({ detail, backHref }: { detail: AthleteDetail;
           </section>
 
           {/* Goals */}
-          <section aria-label="اهداف" className="rounded-3xl border border-border bg-surface-1 p-6">
+          <section aria-label="اهداف" className="esi-card rounded-3xl p-6">
             <h2 className="font-bold mb-4">اهداف فعال</h2>
             {detail.goals.length === 0 ? (
               <p className="py-6 text-center text-sm text-esi-text-muted">هدفی تعیین نشده است</p>
@@ -218,7 +218,7 @@ export function AthleteDetailView({ detail, backHref }: { detail: AthleteDetail;
         </div>
 
         {/* Assign program */}
-        <section aria-label="تجویز برنامه" className="rounded-3xl border border-border bg-surface-1 p-6">
+        <section aria-label="تجویز برنامه" className="esi-card rounded-3xl p-6">
           <h2 className="font-bold flex items-center gap-2 mb-1">
             <Icon name="ClipboardList" size={18} className="text-primary" />
             تجویز برنامه جدید
@@ -251,7 +251,7 @@ export function AthleteDetailView({ detail, backHref }: { detail: AthleteDetail;
         </section>
 
         {/* Recent sessions */}
-        <section aria-label="جلسات اخیر" className="rounded-3xl border border-border bg-surface-1 p-6">
+        <section aria-label="جلسات اخیر" className="esi-card rounded-3xl p-6">
           <h2 className="font-bold mb-4">جلسات اخیر</h2>
           <ul className="space-y-2">
             {detail.recentSessions.slice(0, 6).map((s) => (
