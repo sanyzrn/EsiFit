@@ -6,6 +6,7 @@ import { todayISO, parseISODateOnly, isoDateOnly, addDaysISO } from "@/lib/dates
 import { oneRepMax } from "@/lib/domain/body-math";
 import { buildProgressInsights, type StrengthSeries } from "@/lib/domain/plateau";
 import { computeEsiScore } from "@/lib/domain/esi-score";
+import { computeBalance, recencyIntensity, recoveryState } from "@/lib/domain/balance";
 import { computeGoalProgress } from "@/lib/domain/goals";
 import { currentValueForGoal } from "@/lib/goal-values";
 import { getEntitlements, type UserTier } from "@/lib/entitlements/entitlements";
@@ -58,6 +59,38 @@ export async function GET(_req: NextRequest) {
       }
     }
     const maxVol = Math.max(1, ...Object.values(muscleVolume));
+
+    // ---- Hard sets per muscle (28d → weekly average) + last-trained time — advanced only ----
+    // Volume in kg misses bodyweight/timed work, so balance and recovery use sets.
+    const setsByGroup: Record<string, number> = {};
+    const lastTrainedAt: Record<string, number> = {};
+    const groupNames: Record<string, string> = {};
+    if (advanced) {
+      const start28 = parseISODateOnly(addDaysISO(today, -27));
+      for (const s of sessions) {
+        for (const log of s.exerciseLogs) {
+          const working = log.sets.filter((st) => !st.isWarmup && ((st.reps ?? 0) > 0 || (st.durationSeconds ?? 0) > 0)).length;
+          if (working === 0) continue;
+          for (const m of log.exercise.muscles) {
+            const slug = m.muscleGroup.slug;
+            groupNames[slug] = m.muscleGroup.nameFa;
+            if (s.startedAt >= start28) setsByGroup[slug] = (setsByGroup[slug] ?? 0) + working * m.intensity;
+            if (m.intensity >= 0.5) lastTrainedAt[slug] = Math.max(lastTrainedAt[slug] ?? 0, (s.endedAt ?? s.startedAt).getTime());
+          }
+        }
+      }
+    }
+    const weeklySets = Object.fromEntries(Object.entries(setsByGroup).map(([k, v]) => [k, Math.round((v / 4) * 10) / 10]));
+    const balance = advanced ? computeBalance(weeklySets) : [];
+    const nowMs = Date.now();
+    const recovery = advanced
+      ? Object.entries(lastTrainedAt)
+          .map(([slug, at]) => {
+            const hoursSince = Math.max(0, Math.round((nowMs - at) / 3_600_000));
+            return { slug, nameFa: groupNames[slug] ?? slug, hoursSince, state: recoveryState(hoursSince), intensity: recencyIntensity(hoursSince) };
+          })
+          .sort((a, b) => a.hoursSince - b.hoursSince)
+      : [];
 
     // ---- Strength radar per movement pattern — advanced only ----
     const patternBest: Record<string, number> = {};
@@ -252,6 +285,9 @@ export async function GET(_req: NextRequest) {
       muscleVolume: Object.fromEntries(
         Object.entries(muscleVolume).map(([k, v]) => [k, Math.round((v / maxVol) * 100)]),
       ),
+      weeklySets,
+      balance,
+      recovery,
       radar: radarPatterns.map((p) => ({
         pattern: p,
         value: Math.round(((patternBest[p] ?? 0) / radarMax) * 100),

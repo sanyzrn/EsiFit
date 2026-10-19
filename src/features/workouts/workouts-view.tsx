@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import { ExerciseCard } from "@/features/workouts/exercise-card";
+import { rankBySearch } from "@/lib/search/normalize";
 import { AnatomyExplorer } from "@/components/data-viz/anatomy/anatomy-explorer";
 import type { BodySlug } from "@/components/data-viz/anatomy/muscle-body";
 import { MUSCLE_GROUP_TO_BODY, BODY_SLUG_FA } from "@/components/data-viz/anatomy/muscle-mapping";
@@ -117,15 +118,18 @@ export function WorkoutsView({
     [exercises],
   );
 
-  const filtered = exercises.filter(
-    (e) =>
-      (equipment === "all" || e.equipment === equipment) &&
-      (!query.trim() || e.name.includes(query.trim()) || e.muscles.some((m) => m.name.includes(query.trim()))) &&
-      (selectedMuscles.size === 0 ||
-        e.muscles.some((m) => {
-          const body = m.slug ? MUSCLE_GROUP_TO_BODY[m.slug] : undefined;
-          return body && selectedMuscles.has(body);
-        })),
+  const filtered = rankBySearch(
+    exercises.filter(
+      (e) =>
+        (equipment === "all" || e.equipment === equipment) &&
+        (selectedMuscles.size === 0 ||
+          e.muscles.some((m) => {
+            const body = m.slug ? MUSCLE_GROUP_TO_BODY[m.slug] : undefined;
+            return body && selectedMuscles.has(body);
+          })),
+    ),
+    query,
+    (e) => [e.name, ...e.muscles.map((m) => m.name)],
   );
 
   const startToday = async () => {
