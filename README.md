@@ -90,7 +90,7 @@ bunx tsc --noEmit   # تایپ‌چک کامل (strict)
 - **آفلاین:** صف IndexedDB با clientId پایدار، sync idempotent، هرگز تمرین فعال از دست نمی‌رود
 - **حرکت و جلوه:** `components/motion/` — دایل ختم، کانفتی کانواسی، مگنتیک، مارکی، اسپات‌لایت کارت‌ها؛ همه با احترام به `prefers-reduced-motion`
 - **آیکن‌ها:** `node scripts/generate-icons.mjs` از روی یک طرح برداری همه آیکن‌های PWA را بازمی‌سازد
-- **آناتومی:** هندسه MIT از `react-muscle-highlighter` (vendored با ذکر منبع) + رندر اختصاصی انیمیشنی (`components/data-viz/anatomy/`)
+- **آناتومی:** پکیج رسمی [`react-muscle-highlighter`](https://github.com/soroojshehryar/react-muscle-highlighter) (MIT، نسخه ثابت ۱٫۲٫۰) هندسه کامل بدن (۴ مدل، همه نواحی + سر/مو/دست/پا و خط دور بدن) را می‌دهد؛ `components/data-viz/anatomy/muscle-body.tsx` فقط رنگ تم، انتخاب/درد، هاور و انیمیشن را روی آن می‌گذارد
 
 ## قابلیت‌های کلیدی
 
