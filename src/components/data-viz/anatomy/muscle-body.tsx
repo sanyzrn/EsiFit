@@ -1,11 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
-import { bodyFrontData } from "./bodyFront";
-import { bodyBackData } from "./bodyBack";
-import { bodyFemaleFrontData } from "./bodyFemaleFront";
-import { bodyFemaleBackData } from "./bodyFemaleBack";
+import Body, { type ExtendedBodyPart, type Slug } from "react-muscle-highlighter";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   BODY_SLUG_FA,
   MUSCLE_GROUP_TO_BODY,
@@ -16,28 +13,21 @@ import {
 import { cn } from "@/lib/utils";
 
 /**
- * MuscleBody — premium animated anatomy renderer on top of vendored
- * react-muscle-highlighter geometry (MIT). Theme-aware fills via CSS
- * color-mix, animated fill transitions (reduced-motion safe), tap/hover
- * feedback, and an accessible text fallback.
+ * MuscleBody — EsiFit's anatomy view, rendered by the real
+ * `react-muscle-highlighter` package (MIT, github.com/soroojshehryar/react-muscle-highlighter).
+ *
+ * The library owns the geometry: all four models (male/female × front/back),
+ * every region including head, hair, neck, hands, feet and the body outline.
+ * This wrapper only supplies EsiFit's theme-aware fills, selection/pain states,
+ * hover feedback, entrance motion and a Persian text alternative.
  *
  * Two modes:
  *  - display:     both views side by side, intensity map 0–100 per muscle group
- *  - interactive: single view + gender/side toggles handled by parent,
- *                 selection callbacks per muscle with glow transitions
+ *  - interactive: single view; click toggles trained regions, hover reports the slug
  */
 
 export type Gender = "male" | "female";
 export type BodySide = "front" | "back";
-
-type BodyPart = { slug: string; color: string; path: { left: string[]; right: string[] } };
-
-const MODELS: Record<`${Gender}-${BodySide}`, { parts: BodyPart[]; viewBox: string }> = {
-  "male-front": { parts: bodyFrontData as unknown as BodyPart[], viewBox: "0 0 724 1448" },
-  "male-back": { parts: bodyBackData as unknown as BodyPart[], viewBox: "724 0 724 1448" },
-  "female-front": { parts: bodyFemaleFrontData as unknown as BodyPart[], viewBox: "-50 -40 734 1538" },
-  "female-back": { parts: bodyFemaleBackData as unknown as BodyPart[], viewBox: "756 0 774 1448" },
-};
 
 export type MuscleBodyProps = {
   mode?: "display" | "interactive";
@@ -56,13 +46,31 @@ export type MuscleBodyProps = {
   ariaLabel?: string;
 };
 
+/** The library draws its svg at 400px tall at scale 1. */
+const LIB_BASE_HEIGHT = 400;
+
 function intensityFill(intensity01: number): string {
-  const pct = Math.round(18 + Math.min(1, Math.max(0, intensity01)) * 82);
-  return `color-mix(in srgb, var(--primary) ${pct}%, var(--surface-3))`;
+  const pct = Math.round(26 + Math.min(1, Math.max(0, intensity01)) * 74);
+  return `color-mix(in oklab, var(--primary) ${pct}%, var(--surface-3))`;
 }
 
-/** One <svg> body. Paths animate fill via CSS transitions (var-compatible). */
-function BodySvg({
+/** Resting colour of a region: lifted off the card so the whole figure reads, not just the lit muscles. */
+const NEUTRAL_FILL = "color-mix(in oklab, var(--surface-3) 80%, var(--text-muted))";
+
+const ALL_SLUGS: Slug[] = [
+  "abs", "adductors", "ankles", "biceps", "calves", "chest", "deltoids", "feet", "forearm",
+  "gluteal", "hamstring", "hands", "hair", "head", "knees", "lower-back", "neck", "obliques",
+  "quadriceps", "tibialis", "trapezius", "triceps", "upper-back",
+];
+
+const TRAINED_SELECTOR = TRAINED_SLUGS.map((s) => `#${cssEscape(s)}`).join(",");
+/** Slugs like "lower-back" are valid CSS idents already; keep a hook for safety. */
+function cssEscape(s: string): string {
+  return s.replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+}
+
+/** One <Body> with EsiFit's state layered on as per-part fills. */
+function BodyView({
   gender,
   side,
   mode,
@@ -72,7 +80,6 @@ function BodySvg({
   onToggle,
   onHover,
   height,
-  className,
 }: {
   gender: Gender;
   side: BodySide;
@@ -83,66 +90,72 @@ function BodySvg({
   onToggle?: (slug: BodySlug) => void;
   onHover?: (slug: BodySlug | null) => void;
   height: number;
-  className?: string;
 }) {
-  const model = MODELS[`${gender}-${side}`];
   const interactive = mode === "interactive";
+  const scope = `esi-anatomy-${React.useId().replace(/:/g, "")}`;
+
+  const data = React.useMemo<ExtendedBodyPart[]>(() => {
+    const parts: ExtendedBodyPart[] = [];
+    // Every slug gets an explicit fill: the library otherwise falls back to its own
+    // per-region greys, which clash with the EsiFit surfaces (head, hair, hands, feet…).
+    for (const slug of ALL_SLUGS) {
+      if (slug === "head") {
+        parts.push({ slug, styles: { fill: "color-mix(in oklab, var(--text-muted) 38%, var(--surface-3))" } });
+      } else if (slug === "hair") {
+        parts.push({ slug, styles: { fill: "color-mix(in oklab, var(--background) 55%, var(--surface-3))" } });
+      } else if (selected?.has(slug as BodySlug) && interactive) {
+        parts.push({ slug, styles: { fill: "var(--primary)", stroke: "var(--primary)", strokeWidth: 6 } });
+      } else if (painSlugs?.has(slug as BodySlug)) {
+        parts.push({ slug, styles: { fill: "color-mix(in oklab, var(--destructive) 50%, var(--surface-3))" } });
+      } else if ((intensityBySlug[slug as BodySlug] ?? 0) > 0) {
+        parts.push({ slug, styles: { fill: intensityFill((intensityBySlug[slug as BodySlug] ?? 0) / 100) } });
+      } else {
+        parts.push({ slug, styles: { fill: NEUTRAL_FILL } });
+      }
+    }
+    return parts;
+  }, [intensityBySlug, selected, painSlugs, interactive]);
+
+  const handlePress = React.useCallback(
+    (part: ExtendedBodyPart) => {
+      const slug = part.slug as BodySlug | undefined;
+      if (!interactive || !slug || !TRAINED_SLUGS.includes(slug)) return;
+      onToggle?.(slug);
+    },
+    [interactive, onToggle],
+  );
+
+  const reportHover = (target: EventTarget | null) => {
+    const id = (target as Element | null)?.id as BodySlug | undefined;
+    onHover?.(id && TRAINED_SLUGS.includes(id) && slugVisibleOn(id, side) ? id : null);
+  };
 
   return (
-    <motion.svg
-      key={`${gender}-${side}`}
-      viewBox={model.viewBox}
-      style={{ height, width: "auto", display: "block" }}
-      className={cn("overflow-visible", className)}
-      role="img"
-      aria-label={`آناتومی بدن — نمای ${side === "front" ? "روبرو" : "پشت"} (${gender === "male" ? "مرد" : "زن"})`}
-      initial={{ opacity: 0, scale: 0.985, y: 6 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+    <div
+      className={scope}
+      data-interactive={interactive}
+      onPointerOver={interactive ? (e) => reportHover(e.target) : undefined}
+      onPointerLeave={interactive ? () => onHover?.(null) : undefined}
     >
-      {model.parts.map((part, pi) => {
-        const slug = part.slug as BodySlug;
-        const trained = TRAINED_SLUGS.includes(slug);
-        const isSelected = selected?.has(slug) ?? false;
-        const isPain = painSlugs?.has(slug) ?? false;
-        const rawIntensity = intensityBySlug[slug] ?? 0;
-
-        let fill = "var(--surface-3)";
-        if (isPain) fill = "color-mix(in srgb, var(--destructive) 45%, var(--surface-3))";
-        else if (isSelected) fill = "var(--primary)";
-        else if (rawIntensity > 0) fill = intensityFill(rawIntensity);
-
-        const paths = [...(part.path.left ?? []), ...(part.path.right ?? [])];
-        const label = BODY_SLUG_FA[slug] ?? slug;
-        const clickable = interactive && trained;
-
-        return paths.map((d, i) => (
-          <motion.path
-            key={`${pi}-${slug}-${i}`}
-            d={d}
-            fill={fill}
-            stroke={isSelected ? "var(--primary)" : "var(--border)"}
-            strokeWidth={isSelected ? 2 : 0.75}
-            vectorEffect="non-scaling-stroke"
-            style={{
-              transition: "fill 420ms var(--ease-smooth), stroke 240ms var(--ease-smooth)",
-              cursor: clickable ? "pointer" : "default",
-              ...(isSelected ? { filter: "drop-shadow(0 0 10px color-mix(in srgb, var(--primary) 60%, transparent))" } : {}),
-            }}
-            {...(clickable
-              ? {
-                  onClick: () => onToggle?.(slug),
-                  onMouseEnter: () => onHover?.(slug),
-                  onMouseLeave: () => onHover?.(null),
-                  whileTap: { scale: 0.99 },
-                }
-              : {})}
-          >
-            <title>{label}</title>
-          </motion.path>
-        ));
-      })}
-    </motion.svg>
+      {/* Scoped styling for the library's svg: smooth fills, honest cursors, hover lift. */}
+      <style>{`
+        .${scope} path { cursor: default !important; transition: fill 420ms var(--ease-smooth), stroke 240ms var(--ease-smooth), filter 240ms var(--ease-smooth); }
+        .${scope}[data-interactive="true"] :is(${TRAINED_SELECTOR}) { cursor: pointer !important; }
+        .${scope}[data-interactive="true"] :is(${TRAINED_SELECTOR}):hover { filter: brightness(1.28) saturate(1.1); }
+        .${scope} path[stroke-width="6"] { filter: drop-shadow(0 0 10px color-mix(in srgb, var(--primary) 60%, transparent)); }
+      `}</style>
+      <Body
+        data={data}
+        gender={gender}
+        side={side}
+        scale={height / LIB_BASE_HEIGHT}
+        onBodyPartPress={interactive ? handlePress : undefined}
+        defaultFill={NEUTRAL_FILL}
+        defaultStroke="var(--border)"
+        defaultStrokeWidth={2.5}
+        border="color-mix(in srgb, var(--text-muted) 55%, transparent)"
+      />
+    </div>
   );
 }
 
@@ -175,38 +188,30 @@ export function MuscleBody({
   }, [intensity]);
 
   const transition = reduceMotion ? { duration: 0 } : { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const };
+  const enter = reduceMotion ? false : ({ opacity: 0, scale: 0.985, y: 6 } as const);
 
   if (mode === "display") {
     return (
-      <div className={cn("flex items-end justify-center gap-2 sm:gap-6", className)} dir="ltr">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div key={`f-${gender}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={transition}>
-            <BodySvg
-              gender={gender}
-              side="front"
-              mode="display"
-              intensityBySlug={intensityBySlug}
-              height={height}
-            />
+      <div className={cn("flex items-end justify-center gap-2 sm:gap-6", className)} dir="ltr" role="group" aria-label={ariaLabel ?? "نقشه درگیری عضلات"}>
+        {(["front", "back"] as const).map((s) => (
+          <motion.div
+            key={`${s}-${gender}`}
+            initial={enter}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={transition}
+            aria-hidden
+          >
+            <BodyView gender={gender} side={s} mode="display" intensityBySlug={intensityBySlug} height={height} />
           </motion.div>
-          <motion.div key={`b-${gender}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={transition}>
-            <BodySvg
-              gender={gender}
-              side="back"
-              mode="display"
-              intensityBySlug={intensityBySlug}
-              height={height}
-            />
-          </motion.div>
-        </AnimatePresence>
+        ))}
         {/* Non-visual summary for screen readers */}
         <span className="sr-only">
           {ariaLabel ?? "نقشه درگیری عضلات"}:{" "}
           {Object.entries(intensityBySlug)
-            .filter(([, v]) => v > 0)
-            .sort((a, b) => b[1] - a[1])
+            .filter(([, v]) => (v ?? 0) > 0)
+            .sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))
             .slice(0, 5)
-            .map(([slug, v]) => `${BODY_SLUG_FA[slug]} (${v}٪)`)
+            .map(([slug, v]) => `${BODY_SLUG_FA[slug as BodySlug]} (${v}٪)`)
             .join("، ") || "داده‌ای موجود نیست"}
         </span>
       </div>
@@ -214,8 +219,16 @@ export function MuscleBody({
   }
 
   return (
-    <div className={cn("flex items-center justify-center", className)}>
-      <BodySvg
+    <motion.div
+      key={`${gender}-${side}`}
+      className={cn("flex items-center justify-center", className)}
+      initial={enter}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={transition}
+      role="group"
+      aria-label={`آناتومی بدن — نمای ${side === "front" ? "روبرو" : "پشت"} (${gender === "male" ? "مرد" : "زن"})`}
+    >
+      <BodyView
         gender={gender}
         side={side}
         mode="interactive"
@@ -226,7 +239,7 @@ export function MuscleBody({
         onHover={onHover}
         height={height}
       />
-    </div>
+    </motion.div>
   );
 }
 

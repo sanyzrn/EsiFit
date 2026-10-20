@@ -1,7 +1,7 @@
 /**
  * Anatomy slug ↔ EsiFit muscle-group mapping + Persian labels.
  *
- * react-muscle-highlighter slugs (23) are coarser than EsiFit's 20 muscle
+ * react-muscle-highlighter slugs (23, from the npm package) are coarser than EsiFit's 20 muscle
  * groups: deltoids/trapezius/quadriceps/hamstring/gluteal collapse our
  * front/side/rear variants, and `upper-back` stands in for `lats`.
  */
@@ -83,7 +83,7 @@ export function slugVisibleOn(slug: BodySlug, side: "front" | "back"): boolean {
   return side === "front" ? FRONT_SLUGS.has(slug) : BACK_SLUGS.has(slug);
 }
 
-/** Available in the vendored geometry (all four models). */
+/** Available in the library geometry (all four models). */
 export function slugHasGeometry(slug: BodySlug, gender: "male" | "female", side: "front" | "back"): boolean {
   // Female back model lacks `ankles`.
   if (gender === "female" && side === "back" && slug === "ankles") return false;

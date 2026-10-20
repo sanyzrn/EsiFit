@@ -9,6 +9,9 @@ import { enqueueOperation, newClientId, syncQueue } from "@/lib/offline/adapter"
 import { useFeatureFlag } from "@/lib/feature-flags/flag-provider";
 import { formatClock, parseLocaleNumber, toPersianDigits } from "@/lib/formatting/numbers";
 import { cn } from "@/lib/utils";
+import { LastTimeCard, PlateCalculator, WarmupHint, type ExerciseHistoryView } from "@/features/workouts/exercise-assist";
+import { incrementFor } from "@/lib/workout/progression";
+import { rankBySearch } from "@/lib/search/normalize";
 import { burstConfetti } from "@/components/motion/confetti";
 import { KhatamStar } from "@/components/motion/khatam";
 
@@ -29,6 +32,8 @@ export type LiveExercise = {
   targetRpe: number;
   restSeconds: number;
   note: string;
+  equipment?: string;
+  history?: ExerciseHistoryView;
   sets?: Array<{ id?: string; setNumber: number; weightKg: number | null; reps: number | null; rpe?: number | null; isPr?: boolean }>;
 };
 
@@ -205,10 +210,26 @@ export function WorkoutSessionHUD({
   // sets so the next entry keeps weight/reps after an offline log.
   React.useEffect(() => {
     const last = loggedSets[loggedSets.length - 1];
-    setWeight(last?.weightKg != null ? String(last.weightKg) : "");
-    setReps(last?.reps != null ? String(last.reps) : "");
+    if (last) {
+      setWeight(last.weightKg != null ? String(last.weightKg) : "");
+      setReps(last.reps != null ? String(last.reps) : "");
+    } else {
+      // First set of this exercise: open on today's suggested load (from last time)
+      // instead of empty inputs.
+      const s = exercise?.history?.suggestion;
+      setWeight(s?.weightKg != null ? String(s.weightKg) : "");
+      setReps(s?.reps != null ? String(s.reps) : "");
+    }
     setRpe(null);
   }, [currentIdx, loggedSets]);
+
+  const applySuggestion = () => {
+    const s = exercise?.history?.suggestion;
+    if (!s) return;
+    if (s.weightKg != null) setWeight(String(s.weightKg));
+    if (s.reps != null) setReps(String(s.reps));
+  };
+  const [plateOpen, setPlateOpen] = React.useState(false);
 
   const logSet = async () => {
     if (!exercise) return;
@@ -432,6 +453,11 @@ export function WorkoutSessionHUD({
             </div>
           </div>
 
+          <LastTimeCard history={exercise.history} onApply={loggedSets.length === 0 ? applySuggestion : undefined} />
+          {loggedSets.length === 0 && exercise.equipment === "barbell" && (parseLocaleNumber(weight) ?? 0) > 20 && (
+            <WarmupHint workKg={parseLocaleNumber(weight) ?? 0} />
+          )}
+
           {/* set list */}
           <div className="space-y-2">
             {loggedSets.length === 0 && (
@@ -467,7 +493,7 @@ export function WorkoutSessionHUD({
                 label="وزن (کیلوگرم)"
                 value={weight}
                 onChange={setWeight}
-                step={2.5}
+                step={incrementFor(exercise.equipment ?? "barbell")}
               />
               <NumberPadInput
                 label="تکرار"
@@ -477,6 +503,16 @@ export function WorkoutSessionHUD({
                 integer
               />
             </div>
+            {exercise.equipment === "barbell" && (parseLocaleNumber(weight) ?? 0) > 0 && (
+              <button
+                type="button"
+                onClick={() => setPlateOpen(true)}
+                className="flex min-h-9 w-full items-center justify-center gap-2 rounded-lg bg-surface-2 text-xs font-medium text-esi-text-secondary transition-colors hover:text-primary active:scale-[0.99]"
+              >
+                <Icon name="Dumbbell" size={14} />
+                چه صفحه‌هایی ببندم؟
+              </button>
+            )}
             <div className="flex items-center gap-2">
               <span className="text-xs text-esi-text-muted shrink-0">RPE:</span>
               {[6.5, 7.5, 8.5, 9.5].map((v) => (
@@ -521,6 +557,10 @@ export function WorkoutSessionHUD({
           )}
         </div>
       </div>
+
+      <AnimatePresence>
+        {plateOpen && <PlateCalculator targetKg={parseLocaleNumber(weight) ?? 0} onClose={() => setPlateOpen(false)} />}
+      </AnimatePresence>
 
       {/* ---- Rest timer overlay ---- */}
       <AnimatePresence>
@@ -885,6 +925,7 @@ function PickerSheet({
   onAdd: (exerciseId: string) => void;
   onClose: () => void;
 }) {
+  const results = React.useMemo(() => rankBySearch(library, query, (ex) => [ex.nameFa]), [library, query]);
   return (
     <motion.div
       initial={false}
@@ -910,8 +951,7 @@ function PickerSheet({
       <ul className="overflow-y-auto p-3 space-y-1.5">
         {loading && <li className="py-8 text-center text-sm text-esi-text-muted">در حال بارگذاری…</li>}
         {!loading &&
-          library
-            .filter((ex) => !query.trim() || ex.nameFa.includes(query.trim()))
+          results
             .slice(0, 40)
             .map((ex) => (
               <li key={ex.id}>
@@ -924,7 +964,7 @@ function PickerSheet({
                 </button>
               </li>
             ))}
-        {!loading && library.every((ex) => query.trim() && !ex.nameFa.includes(query.trim())) && (
+        {!loading && results.length === 0 && (
           <li className="py-8 text-center text-sm text-esi-text-muted">حرکتی با این نام پیدا نشد</li>
         )}
       </ul>

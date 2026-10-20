@@ -22,14 +22,18 @@ import { formatJalaliLong, formatRelative } from "@/lib/dates/jalali";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { GoalsSection, type GoalCard } from "@/features/analytics/goals-section";
 import { InsightsCard } from "@/features/analytics/insights-card";
+import { BalanceCard } from "@/features/analytics/balance-card";
 import { WeeklyRecapCard } from "@/features/analytics/weekly-recap-card";
 import { PRHistoryCard } from "@/features/analytics/pr-history-card";
 import type { Insight } from "@/lib/domain/plateau";
 import type { EsiScoreResult } from "@/lib/domain/esi-score";
+import type { BalancePair, RecoveryState } from "@/lib/domain/balance";
 import { cn } from "@/lib/utils";
 
 type AnalyticsData = {
   muscleVolume: Record<string, number>;
+  balance?: BalancePair[];
+  recovery?: Array<{ slug: string; nameFa: string; hoursSince: number; state: RecoveryState; intensity: number }>;
   radar: Array<{ pattern: string; value: number }>;
   activity: Record<string, number>;
   weightTrend: Array<{ date: string; weight: number | null; bodyFat: number | null }>;
@@ -57,6 +61,7 @@ export function AnalyticsView() {
   const [data, setData] = React.useState<AnalyticsData | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [gender, setGender] = React.useState<Gender>("male");
+  const [mapMode, setMapMode] = React.useState<"volume" | "recovery">("volume");
   const session = useSession();
   const router = useRouter();
   const reduce = useReducedMotion();
@@ -179,9 +184,32 @@ export function AnalyticsView() {
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
                   <h2 className="font-bold">نقشه حرارتی عضلات</h2>
-                  <p className="text-xs text-esi-text-secondary mt-1">حجم تمرینی ۳۰ روز گذشته بر اساس شدت درگیری هر عضله</p>
+                  <p className="text-xs text-esi-text-secondary mt-1">
+                    {mapMode === "volume"
+                      ? "حجم تمرینی ۳۰ روز گذشته بر اساس شدت درگیری هر عضله"
+                      : "هرچه رنگ پررنگ‌تر، عضله تازه‌تر کار کرده و به ریکاوری نیاز دارد"}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 rounded-full bg-surface-2 p-1" role="group" aria-label="نوع نقشه">
+                    {([["volume", "حجم"], ["recovery", "ریکاوری"]] as const).map(([m, label]) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setMapMode(m)}
+                        aria-pressed={mapMode === m}
+                        className={cn(
+                          "relative rounded-full px-3 py-1 text-[11px] font-semibold transition-colors",
+                          mapMode === m ? "text-primary-foreground" : "text-esi-text-secondary hover:text-esi-text-primary",
+                        )}
+                      >
+                        {mapMode === m && (
+                          <motion.span layoutId="heat-mode-pill" className="absolute inset-0 rounded-full bg-primary" transition={{ type: "spring", stiffness: 420, damping: 32 }} aria-hidden />
+                        )}
+                        <span className="relative z-10">{label}</span>
+                      </button>
+                    ))}
+                  </div>
                   <div className="flex items-center gap-1 rounded-full bg-surface-2 p-1" role="group" aria-label="نوع آناتومی">
                     {(["male", "female"] as Gender[]).map((g) => (
                       <button
@@ -204,9 +232,42 @@ export function AnalyticsView() {
                   <span className="hidden sm:block rounded-full bg-surface-2 px-3 py-1.5 text-[11px] text-esi-text-muted">۳۰ روز اخیر</span>
                 </div>
               </div>
-              <MuscleBody mode="display" intensity={data.muscleVolume} gender={gender} height={300} />
+              <MuscleBody
+                mode="display"
+                intensity={mapMode === "volume" ? data.muscleVolume : Object.fromEntries((data.recovery ?? []).map((r) => [r.slug, r.intensity]))}
+                gender={gender}
+                height={300}
+              />
+              {mapMode === "recovery" && (
+                <ul className="mt-4 flex flex-wrap justify-center gap-2" aria-label="وضعیت ریکاوری عضلات">
+                  {(data.recovery ?? []).length === 0 && (
+                    <li className="text-xs text-esi-text-muted">هنوز تمرینی برای محاسبه ریکاوری ثبت نشده.</li>
+                  )}
+                  {(data.recovery ?? []).map((r) => (
+                    <li
+                      key={r.slug}
+                      className={cn(
+                        "rounded-full border px-3 py-1 text-[11px] font-medium",
+                        r.state === "recovering" && "border-primary/40 bg-primary/10 text-primary",
+                        r.state === "ready" && "border-turquoise/40 bg-turquoise/10 text-turquoise",
+                        r.state === "neglected" && "border-border bg-surface-2 text-esi-text-muted",
+                      )}
+                    >
+                      {r.nameFa} ·{" "}
+                      {r.state === "recovering"
+                        ? `در ریکاوری (${toPersianDigits(Math.max(1, Math.round(r.hoursSince / 24 * 10) / 10))} روز پیش)`
+                        : r.state === "ready"
+                          ? "آماده"
+                          : "مدتی است کار نشده"}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
           )}
+
+          {/* Structural balance */}
+          {ent.advancedAnalytics && <BalanceCard pairs={data.balance ?? []} />}
 
           {/* Insights */}
           {plateauFlag && <InsightsCard insights={data.insights} />}
