@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * AuthCard — mobile + OTP first-party sign-in.
- * Dev mode surfaces the OTP inline (never in production).
+ * Local development or explicitly allowlisted public demo accounts surface OTP inline.
  * Cooldown timer mirrors the server's 60s resend window.
  */
 
@@ -138,7 +138,7 @@ export function AuthCard() {
             >
               <h1 className="font-display text-4xl leading-tight">کد را وارد کنید</h1>
               <p className="mt-2 text-sm leading-6 text-esi-text-secondary">
-                کد ۶ رقمی به شماره <span dir="ltr" className="font-medium">{toPersianDigits(toLatinDigits(phone))}</span> پیامک شد.
+                {devCode ? "کد آزمایشی برای شماره " : "کد ۶ رقمی به شماره "}<span dir="ltr" className="font-medium">{toPersianDigits(toLatinDigits(phone))}</span>{devCode ? " در پایین نمایش داده شده است." : " پیامک شد."}
               </p>
 
               {devCode && (
