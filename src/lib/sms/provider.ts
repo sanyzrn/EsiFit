@@ -153,10 +153,13 @@ let cached: SmsProvider | null = null;
 export function getSmsProvider(): SmsProvider {
   if (cached) return cached;
   const name = (process.env.SMS_PROVIDER as SmsProviderName | undefined) ?? "dev";
+  if (!["kavenegar", "melipayamak", "smsir", "dev"].includes(name)) {
+    throw new Error("[esifit] Invalid SMS_PROVIDER configuration.");
+  }
   // Production rejects dev SMS unless explicitly in restricted demo mode.
   if (process.env.NODE_ENV === "production" && name === "dev" && process.env.ESIFIT_DEMO_MODE !== "true") {
     throw new Error(
-      "[esifit] FATAL: SMS_PROVIDER is 'dev' or unset in production. OTP codes would be written to logs. Set a real SMS provider.",
+      "[esifit] FATAL: Production dev SMS requires restricted ESIFIT_DEMO_MODE. Set a real SMS provider otherwise.",
     );
   }
   switch (name) {
