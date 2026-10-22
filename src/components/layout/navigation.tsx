@@ -163,8 +163,8 @@ export function MobileBottomNav() {
   const nav = useMemberNav().filter((i) => i.mobile);
   const staff = useStaffNav();
 
-  // Athlete essentials (4) + one extra slot: staff workspace when present,
-  // otherwise the first nav item not already shown (never a duplicate).
+  // Athlete essentials (4) + staff workspace (5) only when available.
+  // The grid below uses the actual item count, without reserving an empty slot.
   const items = React.useMemo(() => {
     const base = nav.slice(0, 4);
     const extra = staff && session ? staff.items[0] : nav.find((i) => !base.includes(i));
@@ -176,7 +176,7 @@ export function MobileBottomNav() {
       className="lg:hidden fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 rounded-[26px] border border-border esi-glass shadow-[var(--shadow-float)]"
       aria-label="ناوبری موبایل"
     >
-      <div className="grid grid-cols-5 h-16">
+      <div className="grid h-16" style={{ gridTemplateColumns: `repeat(${items.length || 1}, minmax(0, 1fr))` }}>
         {items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
@@ -185,20 +185,20 @@ export function MobileBottomNav() {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-1 text-[10px] min-h-[44px] transition-colors",
+                "relative min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 text-[10px] min-h-[44px] transition-colors",
                 active ? "text-primary font-semibold" : "text-esi-text-muted",
               )}
             >
               {active && (
                 <motion.span
                   layoutId="esifit-bottom-nav-pill"
-                  className="absolute inset-x-2 top-1.5 h-8 rounded-2xl bg-primary/15 shadow-[0_0_18px_-4px_var(--primary)]"
+                  className="absolute inset-x-1.5 inset-y-1 rounded-2xl bg-primary/15 shadow-[0_0_18px_-4px_var(--primary)]"
                   transition={{ type: "spring", stiffness: 420, damping: 34 }}
                   aria-hidden
                 />
               )}
-              <Icon name={item.icon} size={22} strokeWidth={active ? 2 : 1.75} className="relative" />
-              <span className="relative">{item.label}</span>
+              <Icon name={item.icon} size={22} strokeWidth={active ? 2 : 1.75} className="relative z-10 shrink-0" />
+              <span className="relative z-10 text-center leading-tight">{item.label}</span>
             </Link>
           );
         })}
