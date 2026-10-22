@@ -19,13 +19,17 @@ class DevSmsProvider implements SmsProvider {
   readonly name: SmsProviderName = "dev";
 
   async sendOtp(phone: string, code: string): Promise<{ messageId: string }> {
-    // Never a real SMS: surfaced in API response only outside production.
-    console.info(`[sms:dev] OTP for ${phone}: ${code}`);
+    // Never sends an SMS. Production demo codes are returned only to allowlisted test accounts.
+    if (process.env.NODE_ENV !== "production") {
+      console.info(`[sms:dev] OTP for ${phone}: ${code}`);
+    }
     return { messageId: `dev-${Date.now()}` };
   }
 
   async sendTemplate(phone: string, template: string, tokens: Record<string, string>): Promise<{ messageId: string }> {
-    console.info(`[sms:dev] template=${template} to=${phone}`, tokens);
+    if (process.env.NODE_ENV !== "production") {
+      console.info(`[sms:dev] template=${template} to=${phone}`, tokens);
+    }
     return { messageId: `dev-${Date.now()}` };
   }
 }
@@ -149,10 +153,13 @@ let cached: SmsProvider | null = null;
 export function getSmsProvider(): SmsProvider {
   if (cached) return cached;
   const name = (process.env.SMS_PROVIDER as SmsProviderName | undefined) ?? "dev";
-  // Fail closed in production: log-printed OTPs are full account takeover.
-  if (process.env.NODE_ENV === "production" && (name === "dev" || !name)) {
+  if (!["kavenegar", "melipayamak", "smsir", "dev"].includes(name)) {
+    throw new Error("[esifit] Invalid SMS_PROVIDER configuration.");
+  }
+  // Production rejects dev SMS unless explicitly in restricted demo mode.
+  if (process.env.NODE_ENV === "production" && name === "dev" && process.env.ESIFIT_DEMO_MODE !== "true") {
     throw new Error(
-      "[esifit] FATAL: SMS_PROVIDER is 'dev' or unset in production. OTP codes would be written to logs. Set a real SMS provider.",
+      "[esifit] FATAL: Production dev SMS requires restricted ESIFIT_DEMO_MODE. Set a real SMS provider otherwise.",
     );
   }
   switch (name) {

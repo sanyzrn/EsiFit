@@ -21,6 +21,24 @@ const PHONE_HOURLY_LIMIT = 5;
 const IP_HOURLY_LIMIT = 20;
 const VERIFY_HOURLY_LIMIT = 20;
 
+// Only preapproved throwaway accounts may obtain an on-screen OTP on a public demo.
+function isDemoOtpMode(): boolean {
+  return process.env.NODE_ENV === "production"
+    && process.env.ESIFIT_DEMO_MODE === "true"
+    && (process.env.SMS_PROVIDER ?? "dev") === "dev";
+}
+
+function assertDemoPhoneAllowed(phone: string): void {
+  if (!isDemoOtpMode()) return;
+  const allowlist = (process.env.ESIFIT_DEMO_PHONES ?? "")
+    .split(",").map((value) => value.trim()).filter(Boolean);
+  if (!allowlist.includes(phone)) {
+    throw new AppError("authorization", {
+      userMessage: "ورود آزمایشی فقط برای حساب‌های تست فعال است.",
+    });
+  }
+}
+
 export function normalizeIranMobile(input: string): string | null {
   const digits = input
     .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
@@ -50,7 +68,7 @@ function safeEqualHex(a: string, b: string): boolean {
 export type RequestOtpResult = {
   phone: string;
   resendAfterSeconds: number;
-  /** dev-only convenience; undefined in production */
+  /** Available locally or for explicitly allowlisted public demo accounts. */
   devCode?: string;
 };
 
@@ -59,6 +77,8 @@ export async function requestOtp(rawPhone: string, ip: string | null): Promise<R
   if (!phone) {
     throw new AppError("validation", { userMessage: "شماره موبایل معتبر نیست. با ۰۹ شروع شود و ۱۱ رقم باشد." });
   }
+
+  assertDemoPhoneAllowed(phone);
 
   const now = Date.now();
 
@@ -111,7 +131,7 @@ export async function requestOtp(rawPhone: string, ip: string | null): Promise<R
   return {
     phone,
     resendAfterSeconds: RESEND_COOLDOWN_MS / 1000,
-    ...(process.env.NODE_ENV !== "production" ? { devCode: code } : {}),
+    ...(process.env.NODE_ENV !== "production" || isDemoOtpMode() ? { devCode: code } : {}),
   };
 }
 
@@ -120,6 +140,7 @@ export type VerifyOtpResult = { phone: string; isNewUser: boolean };
 export async function verifyOtp(rawPhone: string, rawCode: string, ip: string | null = null): Promise<VerifyOtpResult> {
   const phone = normalizeIranMobile(rawPhone);
   if (!phone) throw new AppError("validation", { userMessage: "شماره موبایل معتبر نیست." });
+  assertDemoPhoneAllowed(phone);
 
   const code = rawCode
     .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
