@@ -30,8 +30,9 @@ export function EsiScoreDial({ score, className }: { score: EsiScoreResult; clas
   return (
     <div className={cn("flex flex-col sm:flex-row items-center gap-6", className)}>
       {/* Dial */}
-      <div className="relative shrink-0" style={{ width: 200, height: 122 }} role="img" aria-label={`امتیاز اسی: ${score.score} از ۱۰۰ — سطح ${score.bandFa}`}>
-        <svg viewBox="0 0 200 122" className="w-full h-full">
+      <div className="flex shrink-0 flex-col items-center" role="img" aria-label={`امتیاز اسی: ${score.score} از ۱۰۰ — سطح ${score.bandFa}`}>
+        <div className="relative h-[122px] w-[200px]">
+          <svg viewBox="0 0 200 122" className="w-full h-full">
           {/* Track */}
           <path
             d="M 22 100 A 78 78 0 0 1 178 100"
@@ -80,12 +81,11 @@ export function EsiScoreDial({ score, className }: { score: EsiScoreResult; clas
           <div className="w-full h-full rounded-full esi-gradient-brand" />
           <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-3 w-3 rounded-full bg-primary shadow-[0_0_10px_var(--primary)]" />
         </motion.div>
-        {/* Score */}
-        <div className="absolute inset-x-0 bottom-0 text-center">
-          <p className="text-4xl font-extrabold tabular-nums leading-none">
-            <AnimatedCounter value={score.score} />
-          </p>
         </div>
+        {/* Keep the score below the needle pivot so neither can overlap. */}
+        <p className="mt-2 text-3xl font-extrabold tabular-nums leading-none text-center">
+          <AnimatedCounter value={score.score} />
+        </p>
       </div>
 
       {/* Factors */}
