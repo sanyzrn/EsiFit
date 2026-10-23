@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth/session";
+import { requireMember } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { z } from "zod";
@@ -17,7 +17,7 @@ export const MEAL_SLOT_FA: Record<string, string> = {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const date = getSchema.parse({ date: new URL(req.url).searchParams.get("date") ?? undefined }).date ?? todayISO(session.timezone);
 
     const [day, profile, yesterday] = await Promise.all([
@@ -92,7 +92,7 @@ const addSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const body = addSchema.parse(await req.json());
     const date = body.date ?? todayISO(session.timezone);
 
@@ -135,7 +135,7 @@ const deleteSchema = z.object({ entryId: z.string() });
 
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const body = deleteSchema.parse(await req.json());
     const entry = await db.mealEntry.findUnique({
       where: { id: body.entryId },
