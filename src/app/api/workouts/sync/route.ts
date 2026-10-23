@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth/session";
+import { requireMember } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { toAppError } from "@/lib/errors/app-error";
 import { appErrorResponse } from "@/lib/errors/respond";
@@ -29,7 +29,7 @@ const bodySchema = z.object({ sets: z.array(setOp).max(200) });
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireUser();
+    const user = await requireMember();
     const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success) {
       console.error("[sync] validation failed:", JSON.stringify(parsed.error.issues?.slice(0, 3)));
