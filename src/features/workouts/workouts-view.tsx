@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import { ExerciseCard } from "@/features/workouts/exercise-card";
+import { ExerciseVisual } from "@/features/workouts/exercise-visual";
 import { rankBySearch } from "@/lib/search/normalize";
 import { AnatomyExplorer } from "@/components/data-viz/anatomy/anatomy-explorer";
 import type { BodySlug } from "@/components/data-viz/anatomy/muscle-body";
@@ -30,6 +31,7 @@ type PlanExercise = {
 
 type LibraryExercise = {
   id: string;
+  slug: string;
   name: string;
   equipment: string;
   pattern: string;
@@ -350,6 +352,7 @@ export function WorkoutsView({
                 <Badge key={m.name} variant="neutral">{m.name}</Badge>
               ))}
             </div>
+            <div className="mt-5"><ExerciseVisual slug={selected.slug} name={selected.name} /></div>
             <p className="mt-5 text-sm leading-7 text-esi-text-secondary">{selected.instructions}</p>
 
             {/* Smart alternatives */}
