@@ -99,6 +99,63 @@ export function SettingsView({
     }
   };
 
+  // Staff has an account control panel, not a partially hidden athlete panel.
+  // Avoid constructing workout tracking components or calling personal APIs.
+  if (!memberAccount) {
+    return (
+      <div className="mx-auto w-full max-w-2xl space-y-4 pb-8">
+        <PageHeader
+          title="تنظیمات حساب"
+          description={session.role === "admin" ? "مدیریت حساب مدیر سیستم" : "تنظیمات حساب مربی"}
+          backHref={session.role === "admin" ? "/admin" : "/coach"}
+        />
+        <div className="space-y-4 px-4 lg:px-8">
+          <section className="rounded-2xl border border-border bg-surface-1 p-5" aria-label="حساب کاری">
+            <div className="flex items-center gap-3">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 font-bold text-primary">
+                {session.displayName.trim()[0] || "؟"}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold">{session.displayName}</p>
+                <p className="mt-1 text-xs text-esi-text-muted" dir="ltr">{toPersianDigits(session.phone)}</p>
+              </div>
+              <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1.5 text-[11px] font-bold text-primary">
+                {session.role === "admin" ? "مدیر سیستم" : "مربی"}
+              </span>
+            </div>
+            <p className="mt-4 border-t border-border pt-3 text-xs leading-6 text-esi-text-secondary">
+              این حساب فقط برای امور {session.role === "admin" ? "مدیریت سایت" : "مربی‌گری"} است؛
+              بخش‌های تمرین شخصی، تجهیزات ورزشی، تغذیه و اشتراک ورزشکار در این حساب وجود ندارند.
+            </p>
+          </section>
+          <section className="rounded-2xl border border-border bg-surface-1 p-5" aria-label="دستگاه‌های فعال">
+            <h2 className="text-sm font-bold">دستگاه‌های فعال</h2>
+            <ul className="mt-3 space-y-2">
+              {devices.length === 0 && <li className="py-3 text-xs text-esi-text-muted">دستگاه فعالی یافت نشد.</li>}
+              {devices.map((device) => (
+                <li key={device.id} className="flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-3">
+                  <Icon name="Smartphone" size={16} className="shrink-0 text-esi-text-muted" />
+                  <span dir="ltr" className="min-w-0 flex-1 truncate text-xs">{device.deviceLabel}</span>
+                  <span className="shrink-0 text-[10px] text-esi-text-muted">{formatRelative(device.lastSeenAt)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <section className="rounded-2xl border border-border bg-surface-1 p-5" aria-label="امنیت و حریم خصوصی">
+            <h2 className="text-sm font-bold">امنیت حساب</h2>
+            <p className="mt-2 text-xs leading-6 text-esi-text-secondary">
+              تنظیمات هویتی و دسترسی‌های حساس، فقط از جریان‌های مدیریت مجاز تغییر می‌کنند.
+            </p>
+          </section>
+          <Button variant="secondary" className="h-12 w-full" onClick={() => void logout()}>
+            <Icon name="LogOut" size={17} />
+            خروج از حساب
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto w-full pb-6 space-y-5">
       <PageHeader title="تنظیمات" description="حساب، ترجیحات و حریم خصوصی" backHref={session.role === "admin" ? "/admin" : session.role === "coach" ? "/coach" : "/dashboard"} />

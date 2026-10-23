@@ -60,6 +60,7 @@ model User {
   exerciseSwaps       ExerciseSwap[]
   coachClients        CoachClient[]    @relation("CoachAthletes")
   coachOf             CoachClient[]    @relation("CoachRoster")
+  aiCoachEnrollment   AiCoachEnrollment?
   weeklyRecaps        WeeklyRecap[]
 }
 
@@ -812,6 +813,17 @@ model ExerciseSwap {
 }
 
 // ------------------------- Coaching & insights -------------------------
+
+/** An AI coach is NOT a User and cannot authenticate, view rosters or issue
+ * coaching plans before the separate safety-reviewed AI coach rollout. */
+model AiCoachEnrollment {
+  id        String   @id @default(cuid())
+  athleteId String   @unique
+  status    String   @default("reserved") // reserved | enabled | disabled
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  athlete   User     @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+}
 
 model CoachClient {
   id        String   @id @default(cuid())

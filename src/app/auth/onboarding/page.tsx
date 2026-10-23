@@ -9,6 +9,7 @@ export const metadata = { title: "تکمیل پروفایل" };
 export default async function OnboardingPage() {
   const session = await getSessionUser();
   if (!session) redirect("/auth/login");
+  if (session.role !== "member") redirect(session.role === "admin" ? "/admin" : "/coach");
   return (
     <AppShell session={session} variant="auth">
       <div className="min-h-dvh flex items-center justify-center px-4 py-10">

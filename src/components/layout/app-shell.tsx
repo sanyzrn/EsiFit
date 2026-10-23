@@ -84,7 +84,7 @@ export function AppShell({
               </AnimatePresence>
             </main>
           </div>
-          <OfflineIndicator />
+          {session?.role === "member" && <OfflineIndicator />}
         </div>
         {showBottomNav && <MobileBottomNav />}
       </SessionProvider>
