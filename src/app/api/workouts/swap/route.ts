@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth/session";
+import { requireMember } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { db } from "@/lib/db";
 import { defaultPrescription } from "@/lib/workout/prescription";
@@ -20,7 +20,7 @@ const bodySchema = z.object({
  */
 export async function POST(req: Request) {
   try {
-    const sessionUser = await requireUser();
+    const sessionUser = await requireMember();
     const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json({ ok: false, code: "validation" }, { status: 400 });
