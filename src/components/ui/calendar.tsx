@@ -50,13 +50,6 @@ function dateParts(iso: string) {
   return toJalali(parseISODateOnly(iso));
 }
 
-function monthBounds(jy: number, jm: number) {
-  return {
-    first: jalaliToISO({ jy, jm, jd: 1 }),
-    last: jalaliToISO({ jy, jm, jd: jalaliMonthLength(jy, jm) }),
-  };
-}
-
 export function Calendar({ value, onChange, min, max, className }: JalaliCalendarProps) {
   const selected = /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : todayISO();
   const initial = dateParts(selected);
