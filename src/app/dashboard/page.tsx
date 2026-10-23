@@ -13,6 +13,7 @@ export default async function DashboardPage() {
   // Admin accounts supervise coaches/athletes instead of tracking personal
   // workouts, hydration or nutrition; /admin is their canonical dashboard.
   if (session.role === "admin") redirect("/admin");
+  if (session.role === "coach") redirect("/coach");
   if (!session.onboarded) redirect("/auth/onboarding");
 
   return (
