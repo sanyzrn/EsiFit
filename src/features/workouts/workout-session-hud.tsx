@@ -10,6 +10,7 @@ import { useFeatureFlag } from "@/lib/feature-flags/flag-provider";
 import { formatClock, parseLocaleNumber, toPersianDigits } from "@/lib/formatting/numbers";
 import { cn } from "@/lib/utils";
 import { LastTimeCard, PlateCalculator, WarmupHint, type ExerciseHistoryView } from "@/features/workouts/exercise-assist";
+import { ExerciseVisual } from "@/features/workouts/exercise-visual";
 import { incrementFor } from "@/lib/workout/progression";
 import { rankBySearch } from "@/lib/search/normalize";
 import { burstConfetti } from "@/components/motion/confetti";
@@ -568,6 +569,8 @@ export function WorkoutSessionHUD({
               {targetComplete ? "ست‌های برنامه این حرکت کامل شد" : `${toPersianDigits(loggedSets.length)} از ${toPersianDigits(targetSets)} ست کامل شده`}
             </p>
           </section>
+
+          <ExerciseVisual slug={exercise.slug} name={exercise.name} />
 
           <LastTimeCard history={exercise.history} onApply={loggedSets.length === 0 ? applySuggestion : undefined} />
           {loggedSets.length === 0 && exercise.equipment === "barbell" && (parseLocaleNumber(weight) ?? 0) > 20 && (
