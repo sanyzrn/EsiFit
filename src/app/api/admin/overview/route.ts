@@ -26,6 +26,7 @@ export async function GET() {
         db.exercise.count(),
         db.food.count(),
         db.user.findMany({
+          where: { role: { in: ["member", "coach"] } },
           orderBy: { createdAt: "desc" },
           take: 8,
           select: { id: true, displayName: true, phone: true, role: true, tier: true, status: true, createdAt: true },
