@@ -10,6 +10,7 @@ export const metadata = { title: "تمرین زنده" };
 export default async function LiveWorkoutPage() {
   const session = await getSessionUser();
   if (!session) redirect("/auth/login");
+  if (session.role === "admin") redirect("/admin");
 
   return (
     <AppShell session={session} flags={resolveEnabledFlags()}>
