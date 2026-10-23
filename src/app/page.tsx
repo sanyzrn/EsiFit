@@ -9,7 +9,6 @@ import { LandingHero } from "@/components/landing/hero";
 import { FeatureBento } from "@/components/landing/bento";
 import { DayFlow } from "@/components/landing/day-flow";
 import { BmiPlayground } from "@/components/landing/bmi-playground";
-import { Marquee } from "@/components/motion/marquee";
 import { KhatamStar } from "@/components/motion/khatam";
 import { ScrollProgress } from "@/components/motion/scroll-progress";
 import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
@@ -33,11 +32,6 @@ async function getLatestArticles() {
   }
 }
 
-const TICKER = [
-  "اسکوات", "چلوکباب برگ", "ددلیفت", "عدسی", "پرس سینه", "آبگوشت", "زیربغل سیم‌کش", "ماست و خیار",
-  "پرس سرشانه", "قیمه‌نثار", "هیپ‌تراست", "کشک بادمجان", "بارفیکس", "زرشک‌پلو با مرغ",
-];
-
 export default async function LandingPage() {
   const [session, flags, articles] = await Promise.all([
     getSessionUser(),
@@ -49,14 +43,6 @@ export default async function LandingPage() {
     <PublicPageShell session={session} flags={flags} showFooter flush backHref={undefined}>
       <ScrollProgress />
       <LandingHero signedIn={Boolean(session)} />
-
-      {/* ============ TICKER ============ */}
-      <div className="border-y border-border bg-surface-1 py-5">
-        <Marquee
-          className="font-display text-2xl text-esi-text-muted"
-          items={TICKER}
-        />
-      </div>
 
       {/* ============ FEATURES ============ */}
       <section className="mx-auto max-w-6xl px-4 lg:px-8 py-24">
