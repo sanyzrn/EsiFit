@@ -10,6 +10,7 @@ export const metadata = { title: "دستیار هوشمند" };
 export default async function AIPage() {
   const session = await getSessionUser();
   if (!session) redirect("/auth/login");
+  if (session.role !== "member") redirect(session.role === "admin" ? "/admin" : "/coach");
   return (
     <AppShell session={session} flags={resolveEnabledFlags()}>
       <AIAssistantView tier={session.tier} />
