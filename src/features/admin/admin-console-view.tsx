@@ -3,6 +3,7 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/layout/app-shell";
+import { CoachAssignmentsTab } from "@/features/admin/coach-assignments-tab";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,7 +66,7 @@ export function AdminConsoleView({ adminName }: { adminName: string }) {
 
   return (
     <div className="max-w-6xl mx-auto w-full pb-6">
-      <PageHeader title="کنسول مدیریت" description={`پنل سرپرستی ${adminName} — داده‌های واقعی سیستم`} backHref="/dashboard" />
+      <PageHeader title="کنسول مدیریت" description={`مدیریت مربی‌ها، ورزشکاران و عملکرد سیستم — ${adminName}`} />
 
       {error && (
         <div role="alert" className="mx-4 lg:mx-8 rounded-2xl border border-destructive/30 bg-destructive/8 px-4 py-3 text-sm text-destructive">
@@ -73,12 +74,15 @@ export function AdminConsoleView({ adminName }: { adminName: string }) {
         </div>
       )}
 
-      <Tabs defaultValue="overview" className="px-4 lg:px-8">
+      <Tabs defaultValue="coaches" className="px-4 lg:px-8">
         <TabsList className="mb-5">
+          <TabsTrigger value="coaches">مربی‌ها و ورزشکاران</TabsTrigger>
           <TabsTrigger value="overview">نمای کلی</TabsTrigger>
           <TabsTrigger value="users">کاربران</TabsTrigger>
           <TabsTrigger value="moderation">مدیریت محتوا</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="coaches"><CoachAssignmentsTab /></TabsContent>
 
         <TabsContent value="overview" className="space-y-5">
           {!overview ? (
