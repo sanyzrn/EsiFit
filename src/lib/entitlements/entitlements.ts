@@ -1,18 +1,18 @@
 /**
  * Entitlement model per DATA_MODEL §17.
- * Tiers: free | vip | vip_plus | coach
+ * Member-only tiers: free | vip | vip_plus; staff access comes from role.
  * Product logic resolves capabilities here — never string-compare tiers in UI/API.
  * NOTE: client imports of this module get the *display* defaults only;
  * authoritative checks run server-side via getEntitlements(userTier).
  */
 
-export type UserTier = "free" | "vip" | "vip_plus" | "coach";
+import type { MemberTier } from "@/lib/auth/access-policy";
+export type UserTier = MemberTier;
 
 export const TIER_LABELS: Record<UserTier, string> = {
   free: "رایگان",
   vip: "وی‌آی‌پی",
   vip_plus: "وی‌آی‌پی پلاس",
-  coach: "مربی",
 };
 
 export type Entitlements = {
@@ -27,8 +27,6 @@ export type Entitlements = {
   weeklyRecap: boolean;
   /** Export personal data. */
   dataExport: boolean;
-  /** Coach marketplace publishing tools. */
-  coachTools: boolean;
   /** Priority AI context (longer system context). */
   aiDeepContext: boolean;
   /** Store discount percent (0–100). */
@@ -42,7 +40,6 @@ const FREE: Entitlements = {
   advancedAnalytics: false,
   weeklyRecap: false,
   dataExport: false,
-  coachTools: false,
   aiDeepContext: false,
   storeDiscountPercent: 0,
 };
@@ -54,7 +51,6 @@ const VIP: Entitlements = {
   advancedAnalytics: true,
   weeklyRecap: true,
   dataExport: true,
-  coachTools: false,
   aiDeepContext: true,
   storeDiscountPercent: 5,
 };
@@ -66,19 +62,6 @@ const VIP_PLUS: Entitlements = {
   advancedAnalytics: true,
   weeklyRecap: true,
   dataExport: true,
-  coachTools: false,
-  aiDeepContext: true,
-  storeDiscountPercent: 10,
-};
-
-const COACH: Entitlements = {
-  tier: "coach",
-  aiMessagesPerDay: 120,
-  historyMonths: 36,
-  advancedAnalytics: true,
-  weeklyRecap: true,
-  dataExport: true,
-  coachTools: true,
   aiDeepContext: true,
   storeDiscountPercent: 10,
 };
@@ -87,7 +70,6 @@ export const ENTITLEMENT_TABLE: Record<UserTier, Entitlements> = {
   free: FREE,
   vip: VIP,
   vip_plus: VIP_PLUS,
-  coach: COACH,
 };
 
 export function getEntitlements(tier: UserTier): Entitlements {
