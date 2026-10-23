@@ -5,6 +5,7 @@ import { createHash, randomBytes, createHmac } from "crypto";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors/app-error";
 import type { User } from "@prisma/client";
+import { canAccessRole, isRole, isMemberTier, type AccessScope } from "@/lib/auth/access-policy";
 
 /**
  * First-party session layer.
@@ -143,7 +144,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     where: { tokenHash },
     include: { user: { include: { profile: true } } },
   });
-  if (!session || session.revokedAt || session.user.status !== "active") return null;
+  if (!session || session.revokedAt || session.user.status !== "active" || !isRole(session.user.role)) return null;
 
   // Touch last seen at most every 5 minutes — a write on every page/API hit is
   // wasted load (and the device list only needs minute-level freshness).
@@ -153,7 +154,9 @@ export async function getSessionUser(): Promise<SessionUser | null> {
       .catch(() => undefined);
   }
 
-  const tier = await resolveEffectiveTier(session.user.id, session.user.tier);
+  const tier = session.user.role === "member"
+    ? await resolveEffectiveTier(session.user.id, session.user.tier)
+    : "free"; // Staff tier is a neutral storage placeholder, not a subscription.
   return toSessionUser({ ...session.user, tier }, Boolean(session.user.profile?.onboardedAt));
 }
 
@@ -162,16 +165,17 @@ export async function getSessionUser(): Promise<SessionUser | null> {
  * subscription row keep their assigned tier. Expired paid subscriptions downgrade.
  */
 async function resolveEffectiveTier(userId: string, storedTier: string): Promise<string> {
-  if (storedTier === "free") return storedTier;
+  const safeTier = isMemberTier(storedTier) ? storedTier : "free";
+  if (safeTier === "free") return safeTier;
   const subs = await db.subscription.findMany({
     where: { userId },
     orderBy: { currentPeriodEndsAt: "desc" },
     select: { tier: true, status: true, currentPeriodEndsAt: true },
   });
-  if (subs.length === 0) return storedTier; // seeded / admin-assigned tier
+  if (subs.length === 0) return safeTier; // seeded / admin-assigned tier
   const now = new Date();
   const active = subs.find((s) => s.status === "active" && s.currentPeriodEndsAt >= now);
-  if (active) return active.tier;
+  if (active && isMemberTier(active.tier)) return active.tier;
   await db.user.update({ where: { id: userId }, data: { tier: "free" } }).catch(() => undefined);
   return "free";
 }
@@ -187,35 +191,27 @@ export async function requireUser(): Promise<SessionUser> {
 export type { Role, ROLE_LABELS } from "@/lib/auth/session-types";
 import type { Role } from "@/lib/auth/session-types";
 
-/**
- * Route-guard for privileged APIs. Admin may act anywhere; coach is limited to
- * coach scopes. Throws authentication (401) or authorization (403) AppError.
- * Admin is always a superset — a single guard covers both staff surfaces.
- */
-export async function requireRole(
-  ...allowed: Array<Role | "coach_or_admin">
-): Promise<SessionUser & { role: Role }> {
+/** Exact role authorization: admin does NOT implicitly become a coach/member. */
+export async function requireRole(...allowed: AccessScope[]): Promise<SessionUser & { role: Role }> {
   const user = await requireUser();
-  const role = user.role as Role;
-
-  // Admin is the supervisor role and passes every staff gate.
-  if (role === "admin") return { ...user, role };
-
-  if (allowed.includes("coach_or_admin")) {
-    if (role === "coach") return { ...user, role };
-    throw new AppError("authorization", { userMessage: "این بخش برای مربیان و مدیران است." });
+  if (!allowed.some((scope) => canAccessRole(user.role, scope))) {
+    throw new AppError("authorization", {
+      userMessage: "این عملیات برای نقش حساب شما مجاز نیست.",
+    });
   }
-  if (!allowed.includes(role)) {
-    throw new AppError("authorization", { userMessage: "شما به این بخش دسترسی ندارید." });
-  }
-  return { ...user, role };
+  return { ...user, role: user.role };
 }
 
-/** True when the session may access coach surfaces. */
+/** Every personal fitness API must be member-only, not just authenticated. */
+export async function requireMember(): Promise<SessionUser & { role: "member" }> {
+  const user = await requireRole("member");
+  return { ...user, role: "member" };
+}
+
+/** Only coach or admin may read supervisory information; writes use exact role. */
 export function isCoachLike(role: string): boolean {
-  return role === "coach" || role === "admin";
+  return canAccessRole(role, "coach_or_admin");
 }
-
 
 /** List active sessions for the current user (settings → devices). */
 export async function listSessions(userId: string) {

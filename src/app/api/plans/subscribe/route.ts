@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { appErrorResponse } from "@/lib/errors/respond";
+import { isMemberTier, MEMBER_TIERS } from "@/lib/auth/access-policy";
 
 /**
  * Subscription change (mock payment sandbox).
@@ -22,6 +23,9 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ ok: false, code: "authentication", message: "برای ارتقا حساب وارد شوید." }, { status: 401 });
     }
+    if (session.role !== "member") {
+      return NextResponse.json({ ok: false, code: "authorization", message: "اشتراک‌های VIP فقط برای ورزشکاران هستند." }, { status: 403 });
+    }
     if (!mockPaymentAllowed()) {
       return NextResponse.json(
         { ok: false, code: "provider", message: "پرداخت واقعی هنوز متصل نشده است. لطفاً بعداً تلاش کنید." },
@@ -30,7 +34,7 @@ export async function POST(req: NextRequest) {
     }
     const body = schema.parse(await req.json());
     const plan = await db.subscriptionPlan.findUnique({ where: { code: body.planCode } });
-    if (!plan || !plan.active) {
+    if (!plan || !plan.active || !isMemberTier(plan.tier)) {
       return NextResponse.json({ ok: false, code: "not_found", message: "پلن یافت نشد." }, { status: 404 });
     }
 
@@ -73,11 +77,11 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   try {
     const session = await getSessionUser();
-    const plans = await db.subscriptionPlan.findMany({ where: { active: true }, orderBy: { priceToman: "asc" } });
+    const plans = await db.subscriptionPlan.findMany({ where: { active: true, tier: { in: [...MEMBER_TIERS] } }, orderBy: { priceToman: "asc" } });
     return NextResponse.json({
       ok: true,
       plans: plans.map((p) => ({ ...p, featuresFa: JSON.parse(p.featuresFa) as string[] })),
-      currentTier: session?.tier ?? null,
+      currentTier: session?.role === "member" ? session.tier : null,
     });
   } catch (error) {
     return appErrorResponse(error);

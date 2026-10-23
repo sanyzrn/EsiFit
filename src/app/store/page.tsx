@@ -1,4 +1,5 @@
 import { getSessionUser } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 import { PublicPageShell } from "@/components/layout/public-page-shell";
 import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 import { StoreView } from "@/features/store/store-view";
@@ -12,6 +13,7 @@ export const metadata = { title: "فروشگاه" };
  */
 export default async function StorePage() {
   const session = await getSessionUser();
+  if (session && session.role !== "member") redirect(session.role === "admin" ? "/admin" : "/coach");
   return (
     <PublicPageShell
       session={session}

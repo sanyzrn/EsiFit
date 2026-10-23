@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth/session";
+import { requireMember } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { computeReadiness } from "@/lib/domain/body-math";
@@ -14,7 +14,7 @@ import { currentValueForGoal } from "@/lib/goal-values";
 
 export async function GET() {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const today = todayISO(session.timezone as string);
     const tz = session.timezone as string;
 

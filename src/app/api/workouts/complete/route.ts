@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth/session";
+import { requireMember } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { z } from "zod";
@@ -15,7 +15,7 @@ const schema = z.object({
 /** Complete a workout session: volume, PR detection, XP, badges. */
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireUser();
+    const user = await requireMember();
     const body = schema.parse(await req.json());
 
     const session = await db.workoutSession.findUnique({

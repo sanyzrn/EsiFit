@@ -10,7 +10,7 @@ export const metadata = { title: "دستاوردها" };
 export default async function AchievementsPage() {
   const session = await getSessionUser();
   if (!session) redirect("/auth/login");
-  if (session.role === "admin") redirect("/admin");
+  if (session.role !== "member") redirect(session.role === "admin" ? "/admin" : "/coach");
   return (
     <AppShell session={session} flags={resolveEnabledFlags()}>
       <AchievementsView />

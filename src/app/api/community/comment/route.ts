@@ -10,6 +10,7 @@ const commentSchema = z.object({ postId: z.string(), content: z.string().min(1).
 export async function POST(req: NextRequest) {
   try {
     const session = await getSessionUser();
+    if (session && session.role !== "member") return NextResponse.json({ ok: false, code: "authorization" }, { status: 403 });
     if (!session) {
       return NextResponse.json({ ok: false, code: "authentication", message: "برای نظر دادن وارد شوید." }, { status: 401 });
     }

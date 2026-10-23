@@ -15,7 +15,7 @@ const bodySchema = z.object({
 /** POST /api/coach/assign — assign a program template to a roster athlete. */
 export async function POST(req: Request) {
   try {
-    const session = await requireRole("coach_or_admin");
+    const session = await requireRole("coach");
     const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json({ ok: false, code: "validation" }, { status: 400 });
@@ -25,16 +25,15 @@ export async function POST(req: Request) {
     const link = await db.coachClient.findUnique({
       where: { coachId_athleteId: { coachId: session.id, athleteId } },
     });
-    const isSupervisor = session.role === "admin";
-    if (!link && !isSupervisor) {
+    if (!link || link.status !== "active") {
       return NextResponse.json(
         { ok: false, code: "authorization", message: "این ورزشکار در فهرست شما نیست." },
         { status: 403 },
       );
     }
 
-    const athlete = await db.user.findUnique({ where: { id: athleteId }, select: { id: true, status: true, timezone: true } });
-    if (!athlete || athlete.status !== "active") {
+    const athlete = await db.user.findUnique({ where: { id: athleteId }, select: { id: true, role: true, status: true, timezone: true } });
+    if (!athlete || athlete.status !== "active" || athlete.role !== "member") {
       return NextResponse.json({ ok: false, code: "not_found" }, { status: 404 });
     }
 
@@ -42,18 +41,12 @@ export async function POST(req: Request) {
     const startsOn = addDaysISO(todayISO(athlete.timezone), 1);
     const plan = await createPlanFromTemplate(athleteId, template, startsOn, undefined, athlete.timezone);
 
-    // Persist/refresh the coaching note — create the roster link when admin assigns.
+    // Only the assigned coach may update notes on an existing roster link.
     if (note != null && note !== "") {
       if (link) {
         if (note !== link.note) {
           await db.coachClient.update({ where: { id: link.id }, data: { note } });
         }
-      } else {
-        await db.coachClient.upsert({
-          where: { coachId_athleteId: { coachId: session.id, athleteId } },
-          create: { coachId: session.id, athleteId, note, status: "active" },
-          update: { note },
-        });
       }
     }
 

@@ -85,14 +85,4 @@ export const SUBSCRIPTION_PLANS = [
       "اولویت دسترسی به قابلیت‌های جدید",
     ]),
   },
-  {
-    code: "coach_monthly", tier: "coach", nameFa: "حساب مربی", billingPeriod: "monthly",
-    priceToman: 890000, currency: "IRT", active: true, highlight: false,
-    featuresFa: JSON.stringify([
-      "پنل مدیریت شاگردان و برنامه‌ریزی",
-      "انتشار برنامه در بازار مربیان",
-      "گزارش پیشرفت شاگردان",
-      "۱۰٪ تخفیف فروشگاه",
-    ]),
-  },
 ];

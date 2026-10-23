@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { ensureSeed, createUser, db } from "../helpers/db";
 import { clearCookies } from "../helpers/session-mock";
 import { nextReq } from "../helpers/next-request";
-import { createSession } from "@/lib/auth/session";
+import { createSession, requireRole, requireMember, getSessionUser } from "@/lib/auth/session";
+import { POST as subscribe } from "@/app/api/plans/subscribe/route";
 import { GET as roster } from "@/app/api/coach/roster/route";
 import { GET as athleteDetail } from "@/app/api/coach/athlete/[id]/route";
 import { POST as assign } from "@/app/api/coach/assign/route";
@@ -169,7 +170,79 @@ describe("admin console", () => {
     const res = await adminUsers(nextReq("/api/admin/users?q=&page=1"));
     const json = await res.json();
     expect(json.ok).toBe(true);
-    expect(json.total).toBeGreaterThanOrEqual(3);
+    expect(json.total).toBeGreaterThanOrEqual(2); // Only coach and member accounts; administrators are not listed.
     expect(json.users.length).toBeGreaterThan(0);
+  });
+});
+
+describe("role and membership are distinct", () => {
+  it("admin and coach cannot perform private member actions even with VIP storage values", async () => {
+    clearCookies();
+    await createSession(admin.id, "vitest");
+    await expect(requireMember()).rejects.toMatchObject({ code: "authorization" });
+    await expect(requireRole("coach")).rejects.toMatchObject({ code: "authorization" });
+    await expect(requireRole("coach_or_admin")).resolves.toMatchObject({ role: "admin" });
+    expect((await getSessionUser())?.tier).toBe("free");
+    const staffPurchase = await subscribe(post("/api/plans/subscribe", { planCode: "vip-monthly" }));
+    expect(staffPurchase.status).toBe(403);
+
+    clearCookies();
+    await createSession(coach.id, "vitest");
+    await expect(requireMember()).rejects.toMatchObject({ code: "authorization" });
+    await expect(requireRole("admin")).rejects.toMatchObject({ code: "authorization" });
+    expect((await getSessionUser())?.tier).toBe("free");
+    const coachPurchase = await subscribe(post("/api/plans/subscribe", { planCode: "vip-monthly" }));
+    expect(coachPurchase.status).toBe(403);
+  });
+
+  it("regular admin Users list never includes an admin account", async () => {
+    clearCookies();
+    await createSession(admin.id, "vitest");
+    const response = await adminUsers(nextReq("/api/admin/users?page=1"));
+    const result = await response.json();
+    expect(result.users.every((u: { role: string }) => u.role !== "admin")).toBe(true);
+    expect(result.users.some((u: { id: string }) => u.id === admin.id)).toBe(false);
+    expect(result.total).toBeGreaterThanOrEqual(2);
+  });
+
+  it("promoting a member to coach clears athlete tier and coach assignment", async () => {
+    await db.coachClient.create({ data: { coachId: coach.id, athleteId: member.id } });
+    clearCookies();
+    await createSession(admin.id, "vitest");
+    const response = await adminPatchUser(patch("/api/admin/users", { userId: member.id, role: "coach" }));
+    expect(response.status).toBe(200);
+    const updated = await db.user.findUniqueOrThrow({ where: { id: member.id } });
+    expect(updated.role).toBe("coach");
+    expect(updated.tier).toBe("free");
+    expect(await db.coachClient.count({ where: { athleteId: member.id } })).toBe(0);
+  });
+
+  it("cannot sell VIP to a coach or demote a coach with assigned athletes", async () => {
+    await db.coachClient.create({ data: { coachId: coach.id, athleteId: member.id } });
+    clearCookies();
+    await createSession(admin.id, "vitest");
+    const vipCoach = await adminPatchUser(patch("/api/admin/users", {
+      userId: coach.id, tier: "vip_plus",
+    }));
+    expect(vipCoach.status).toBe(400);
+    const coachDemotion = await adminPatchUser(patch("/api/admin/users", {
+      userId: coach.id, role: "member",
+    }));
+    expect(coachDemotion.status).toBe(409);
+    expect((await db.user.findUniqueOrThrow({ where: { id: coach.id } })).role).toBe("coach");
+  });
+
+  it("rejects editing or promoting admin in regular users management", async () => {
+    clearCookies();
+    await createSession(admin.id, "vitest");
+    const editAdmin = await adminPatchUser(patch("/api/admin/users", {
+      userId: admin.id, tier: "vip_plus",
+    }));
+    expect(editAdmin.status).toBe(409);
+    const promote = await adminPatchUser(patch("/api/admin/users", {
+      userId: member.id, role: "admin",
+    }));
+    expect(promote.status).toBe(400);
+    expect((await db.user.findUniqueOrThrow({ where: { id: member.id } })).role).toBe("member");
   });
 });

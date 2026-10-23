@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth/session";
+import { requireMember } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { z } from "zod";
@@ -14,7 +14,7 @@ const postSchema = z.object({
 /** Water logging — offline-safe with idempotent clientId. */
 export async function POST(req: NextRequest) {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const body = postSchema.parse(await req.json());
 
     const existing = await db.waterLog.findUnique({

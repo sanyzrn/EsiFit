@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth/session";
+import { requireMember } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { db } from "@/lib/db";
 import { todayISO } from "@/lib/dates/jalali";
@@ -13,7 +13,7 @@ const REGIONS = [
 /** GET /api/pain-reports — active pain/limitation reports (privacy-sensitive; own data only). */
 export async function GET() {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const reports = await db.painReport.findMany({
       where: { userId: session.id, status: "active" },
       orderBy: { reportedOn: "desc" },
@@ -38,7 +38,7 @@ const createSchema = z.object({
  */
 export async function POST(req: Request) {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const parsed = createSchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json({ ok: false, code: "validation", message: "گزارش درد کامل نیست." }, { status: 400 });
@@ -70,7 +70,7 @@ const patchSchema = z.object({
 /** PATCH /api/pain-reports — update own report status. */
 export async function PATCH(req: Request) {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const parsed = patchSchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json({ ok: false, code: "validation" }, { status: 400 });

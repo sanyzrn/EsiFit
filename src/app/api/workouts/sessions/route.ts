@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth/session";
+import { requireMember } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { z } from "zod";
@@ -79,7 +79,7 @@ async function shapeExercisesRaw(session: { id: string; planDayId: string | null
 /** Start (or resume) a workout session. */
 export async function POST(req: NextRequest) {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const body = startSchema.parse(await req.json().catch(() => ({})));
 
     // Explicit resume: honor ?session= navigation from dashboard/workouts.
@@ -186,7 +186,7 @@ export async function POST(req: NextRequest) {
 /** Get current active session. */
 export async function GET() {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const active = await db.workoutSession.findFirst({
       where: { userId: session.id, status: { in: ["active", "paused"] } },
       orderBy: { startedAt: "desc" },
@@ -207,7 +207,7 @@ export async function GET() {
 /** Cancel a never-started workout without recording an artificial zero-set workout or XP. */
 export async function DELETE(req: NextRequest) {
   try {
-    const user = await requireUser();
+    const user = await requireMember();
     const { sessionId } = z.object({ sessionId: z.string().min(1) }).parse(await req.json());
     const active = await db.workoutSession.findFirst({
       where: { id: sessionId, userId: user.id, status: { in: ["active", "paused"] } },

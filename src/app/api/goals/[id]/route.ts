@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth/session";
+import { requireMember } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { db } from "@/lib/db";
 
@@ -14,7 +14,7 @@ const patchSchema = z.object({
 /** PATCH /api/goals/[id] — update own goal (title/target/status). */
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const { id } = await params;
     const parsed = patchSchema.safeParse(await req.json());
     if (!parsed.success) {
@@ -44,7 +44,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 /** DELETE /api/goals/[id] — remove own goal. */
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const { id } = await params;
     const goal = await db.goal.findUnique({ where: { id } });
     if (!goal || goal.userId !== session.id) {

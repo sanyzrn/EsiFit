@@ -103,6 +103,7 @@ async function buildMetrics(userId: string, today: string, weekStart: string): P
 export async function GET() {
   try {
     const session = await getSessionUser();
+    if (session && session.role !== "member") return NextResponse.json({ ok: false, code: "authorization", message: "این بخش مخصوص ورزشکاران است." }, { status: 403 });
     if (!session) {
       return NextResponse.json({ ok: false, code: "authentication" }, { status: 401 });
     }
@@ -159,6 +160,7 @@ export async function GET() {
 export async function POST() {
   try {
     const session = await getSessionUser();
+    if (session && session.role !== "member") return NextResponse.json({ ok: false, code: "authorization", message: "این بخش مخصوص ورزشکاران است." }, { status: 403 });
     if (!session) {
       return NextResponse.json({ ok: false, code: "authentication" }, { status: 401 });
     }

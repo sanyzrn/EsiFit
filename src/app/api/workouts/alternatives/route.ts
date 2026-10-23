@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth/session";
+import { requireMember } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { db } from "@/lib/db";
 import { rankSwaps, type SwapCandidate } from "@/lib/domain/swap-engine";
@@ -12,7 +12,7 @@ import { getUserEquipmentSet } from "@/lib/workout/catalog";
  */
 export async function GET(req: Request) {
   try {
-    const user = await requireUser();
+    const user = await requireMember();
     const url = new URL(req.url);
     const exerciseId = url.searchParams.get("exerciseId");
     if (!exerciseId) {

@@ -529,14 +529,14 @@ async function main() {
   //   - consistent progresser, - a plateauing athlete, - a low-adherence athlete.
 
   const admin = await db.user.create({
-    data: { phone: "09140000000", displayName: "مدیر اسی‌فیت", role: "admin", tier: "vip_plus" },
+    data: { phone: "09140000000", displayName: "مدیر اسی‌فیت", role: "admin", tier: "free" },
   });
   await db.userProfile.create({
     data: { userId: admin.id, birthYear: 1365, sexAtBirth: "male", heightCm: 180, primaryGoal: "health", experienceLevel: "advanced", activityLevel: "moderate", onboardedAt: isoDaysAgo(200) },
   });
 
   const coach = await db.user.create({
-    data: { phone: "09130000000", displayName: "مربی نیما", role: "coach", tier: "coach" },
+    data: { phone: "09130000000", displayName: "مربی نیما", role: "coach", tier: "free" },
   });
   await db.userProfile.create({
     data: { userId: coach.id, birthYear: 1361, sexAtBirth: "male", heightCm: 183, primaryGoal: "build_muscle", experienceLevel: "advanced", activityLevel: "active", weeklyWorkoutTarget: 5, onboardedAt: isoDaysAgo(200) },

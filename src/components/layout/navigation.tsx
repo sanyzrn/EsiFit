@@ -41,6 +41,12 @@ export const MEMBER_NAV: NavItem[] = [
   { href: "/settings", label: "تنظیمات", icon: "Settings" },
 ];
 
+export const COACH_NAV: NavItem[] = [
+  { href: "/coach", label: "ورزشکاران من", icon: "ClipboardList", mobile: true },
+  { href: "/notifications", label: "اعلان‌ها", icon: "Bell", mobile: true },
+  { href: "/settings", label: "تنظیمات", icon: "Settings", mobile: true },
+];
+
 export const ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "مدیریت", icon: "Shield", mobile: true },
   { href: "/notifications", label: "اعلان‌ها", icon: "Bell", mobile: true },
@@ -48,9 +54,7 @@ export const ADMIN_NAV: NavItem[] = [
 ];
 
 export const STAFF_NAV: Record<"coach" | "admin", NavItem[]> = {
-  coach: [
-    { href: "/coach", label: "ورزشکاران من", icon: "ClipboardList" },
-  ],
+  coach: [],
   // Admin navigation is ADMIN_NAV. Staff coaching links belong to coaches.
   admin: [],
 };
@@ -58,7 +62,7 @@ export const STAFF_NAV: Record<"coach" | "admin", NavItem[]> = {
 export function useMemberNav(): NavItem[] {
   const flags = useFlags();
   const session = useSession();
-  const model = session?.role === "admin" ? ADMIN_NAV : MEMBER_NAV;
+  const model = session?.role === "admin" ? ADMIN_NAV : session?.role === "coach" ? COACH_NAV : MEMBER_NAV;
   return model.filter((item) => !item.flag || flags[item.flag]);
 }
 
@@ -147,9 +151,11 @@ export function AppSidebar({ className }: { className?: string }) {
           <div className="min-w-0">
             <p className="text-sm font-medium truncate">{session.displayName}</p>
             <div className="flex items-center gap-1.5">
+              {session.role === "member" && (
               <Badge variant="tier" className="text-[10px] px-1.5 py-0">
-                {TIER_LABELS[session.tier as UserTier] ?? "عضو"}
+                {TIER_LABELS[session.tier as UserTier] ?? "رایگان"}
               </Badge>
+              )}
               {(session.role === "coach" || session.role === "admin") && (
                 <Badge variant="neutral" className="text-[10px] px-1.5 py-0">
                   {ROLE_LABELS[session.role]}
@@ -169,10 +175,11 @@ export function MobileBottomNav() {
   const nav = useMemberNav().filter((i) => i.mobile);
   const staff = useStaffNav();
 
-  // Athlete essentials (4) + staff workspace (5) only when available.
+  // Each role gets its own destinations; there are no cross-role nav links.
   // The grid below uses the actual item count, without reserving an empty slot.
   const items = React.useMemo(() => {
-    const base = nav.slice(0, 4);
+    if (session?.role === "coach" || session?.role === "admin") return nav.filter((item) => item.mobile);
+    const base = nav.filter((item) => item.mobile).slice(0, 4);
     const extra = staff && session ? staff.items[0] : nav.find((i) => !base.includes(i));
     return extra ? [...base, extra] : base;
   }, [nav, staff, session]);

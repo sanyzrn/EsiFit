@@ -10,6 +10,7 @@ const likeSchema = z.object({ postId: z.string(), liked: z.boolean() });
 export async function POST(req: NextRequest) {
   try {
     const session = await getSessionUser();
+    if (session && session.role !== "member") return NextResponse.json({ ok: false, code: "authorization" }, { status: 403 });
     if (!session) {
       return NextResponse.json({ ok: false, code: "authentication", message: "برای پسندیدن وارد شوید." }, { status: 401 });
     }

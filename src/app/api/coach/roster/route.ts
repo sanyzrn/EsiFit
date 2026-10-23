@@ -5,7 +5,7 @@ import { getCoachRoster } from "@/lib/coach/data";
 
 export async function GET() {
   try {
-    const session = await requireRole("coach_or_admin");
+    const session = await requireRole("coach");
     const roster = await getCoachRoster(session.id);
     return NextResponse.json({ ok: true, roster });
   } catch (error) {
