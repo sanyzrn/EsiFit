@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth/session";
+import { requireMember } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { db } from "@/lib/db";
 
@@ -10,7 +10,7 @@ import { db } from "@/lib/db";
  */
 export async function GET(req: Request) {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const url = new URL(req.url);
     const slug = url.searchParams.get("slug");
 
