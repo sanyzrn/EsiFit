@@ -10,6 +10,7 @@ export const metadata = { title: "تحلیل پیشرفت" };
 export default async function AnalyticsPage() {
   const session = await getSessionUser();
   if (!session) redirect("/auth/login");
+  if (session.role === "admin") redirect("/admin");
   return (
     <AppShell session={session} flags={resolveEnabledFlags()}>
       <AnalyticsView />
