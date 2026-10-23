@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth/session";
+import { requireMember } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { todayISO, parseISODateOnly, isoDateOnly, addDaysISO } from "@/lib/dates/jalali";
@@ -18,7 +18,7 @@ import { getEntitlements, type UserTier } from "@/lib/entitlements/entitlements"
  */
 export async function GET(_req: NextRequest) {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const tz = session.timezone;
     const ent = getEntitlements(session.tier as UserTier);
 
