@@ -10,6 +10,9 @@ import { POST as assign } from "@/app/api/coach/assign/route";
 import { GET as adminOverview } from "@/app/api/admin/overview/route";
 import { GET as adminUsers, PATCH as adminPatchUser } from "@/app/api/admin/users/route";
 import { DELETE as moderate } from "@/app/api/admin/moderation/route";
+import { GET as adminCoachList, PUT as adminCoachAssign } from "@/app/api/admin/coach-assignments/route";
+import { POST as joinChallenge } from "@/app/api/community/challenges/route";
+import { AI_COACH_ID } from "@/lib/coach/ai-coach";
 
 const post = (url: string, body: unknown) =>
   nextReq(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -244,5 +247,81 @@ describe("role and membership are distinct", () => {
     }));
     expect(promote.status).toBe(400);
     expect((await db.user.findUniqueOrThrow({ where: { id: member.id } })).role).toBe("member");
+  });
+});
+
+describe("virtual AI coach infrastructure", () => {
+  it("only admins may see or change assignments and AI cannot log in", async () => {
+    clearCookies();
+    await createSession(member.id, "vitest");
+    expect((await adminCoachList()).status).toBe(403);
+    const denied = await adminCoachAssign(patch("/api/admin/coach-assignments", {
+      athleteId: member.id, coachId: AI_COACH_ID,
+    }));
+    expect(denied.status).toBe(403);
+
+    clearCookies();
+    await createSession(admin.id, "vitest");
+    const roster = await adminCoachList();
+    expect(roster.status).toBe(200);
+    const data = await roster.json();
+    expect(data.coaches.some((c: { id: string; type: string }) =>
+      c.id === AI_COACH_ID && c.type === "ai",
+    )).toBe(true);
+    expect(await db.user.findFirst({ where: { id: AI_COACH_ID } })).toBeNull();
+  });
+
+  it("switching human → AI → human → unassigned preserves member training data", async () => {
+    await db.coachClient.create({ data: { coachId: coach.id, athleteId: member.id } });
+    const plan = await db.workoutPlan.create({
+      data: { userId: member.id, name: "بدنسازی آزمایشی", status: "active" },
+    });
+    clearCookies();
+    await createSession(admin.id, "vitest");
+    const assignRequest = (coachId: string | null) => nextReq("/api/admin/coach-assignments", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ athleteId: member.id, coachId }),
+    });
+    const aiResponse = await adminCoachAssign(assignRequest(AI_COACH_ID));
+    expect(aiResponse.status).toBe(200);
+    expect((await db.aiCoachEnrollment.findUnique({ where: { athleteId: member.id } }))?.status).toBe("reserved");
+    expect(await db.coachClient.count({ where: { athleteId: member.id } })).toBe(0);
+    expect((await db.workoutPlan.findUnique({ where: { id: plan.id } }))?.id).toBe(plan.id);
+    const roster = await (await adminCoachList()).json();
+    expect(roster.athletes.find((a: { id: string }) => a.id === member.id).coachId).toBe(AI_COACH_ID);
+
+    const humanResponse = await adminCoachAssign(assignRequest(coach.id));
+    expect(humanResponse.status).toBe(200);
+    expect(await db.aiCoachEnrollment.count({ where: { athleteId: member.id } })).toBe(0);
+    expect(await db.coachClient.count({ where: { athleteId: member.id, coachId: coach.id } })).toBe(1);
+
+    expect((await adminCoachAssign(assignRequest(null))).status).toBe(200);
+    expect(await db.coachClient.count({ where: { athleteId: member.id } })).toBe(0);
+    expect((await db.workoutPlan.findUnique({ where: { id: plan.id } }))?.id).toBe(plan.id);
+  });
+
+  it("rejects invalid coach, admin or nonmember athlete IDs", async () => {
+    clearCookies();
+    await createSession(admin.id, "vitest");
+    const invalidCoach = nextReq("/api/admin/coach-assignments", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ athleteId: member.id, coachId: admin.id }),
+    });
+    expect((await adminCoachAssign(invalidCoach)).status).toBe(400);
+    const invalidAthlete = nextReq("/api/admin/coach-assignments", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ athleteId: coach.id, coachId: AI_COACH_ID }),
+    });
+    expect((await adminCoachAssign(invalidAthlete)).status).toBe(400);
+  });
+
+  it("staff cannot join personal training challenges", async () => {
+    clearCookies();
+    await createSession(admin.id, "vitest");
+    const response = await joinChallenge(post("/api/community/challenges", { challengeId: "any" }));
+    expect(response.status).toBe(403);
+    clearCookies();
+    await createSession(coach.id, "vitest");
+    expect((await joinChallenge(post("/api/community/challenges", { challengeId: "any" }))).status).toBe(403);
   });
 });
