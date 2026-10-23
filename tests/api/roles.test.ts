@@ -274,7 +274,7 @@ describe("virtual AI coach infrastructure", () => {
   it("switching human → AI → human → unassigned preserves member training data", async () => {
     await db.coachClient.create({ data: { coachId: coach.id, athleteId: member.id } });
     const plan = await db.workoutPlan.create({
-      data: { userId: member.id, name: "بدنسازی آزمایشی", status: "active" },
+      data: { userId: member.id, name: "بدنسازی آزمایشی", startsOn: "2026-10-23", status: "active" },
     });
     clearCookies();
     await createSession(admin.id, "vitest");
