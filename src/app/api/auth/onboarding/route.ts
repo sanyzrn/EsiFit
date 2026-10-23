@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth/session";
+import { requireMember } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { z } from "zod";
 import { todayISO } from "@/lib/dates/jalali";
@@ -24,7 +24,7 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const parsed = schema.parse(await req.json());
     const { displayName, unitSystem, weightKg, availableEquipment, ...profileFields } = parsed;
 
