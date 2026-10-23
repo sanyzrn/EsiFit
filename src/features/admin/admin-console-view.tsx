@@ -1,8 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { PageHeader } from "@/components/layout/app-shell";
 import { CoachAssignmentsTab } from "@/features/admin/coach-assignments-tab";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +13,6 @@ import { useToast } from "@/hooks/use-toast";
 import { api, errorMessage } from "@/lib/client/api";
 import { toPersianDigits } from "@/lib/formatting/numbers";
 import { formatRelative } from "@/lib/dates/jalali";
-import { cn } from "@/lib/utils";
 
 type Overview = {
   users: number;
