@@ -41,19 +41,25 @@ export const MEMBER_NAV: NavItem[] = [
   { href: "/settings", label: "تنظیمات", icon: "Settings" },
 ];
 
+export const ADMIN_NAV: NavItem[] = [
+  { href: "/admin", label: "مدیریت", icon: "Shield", mobile: true },
+  { href: "/notifications", label: "اعلان‌ها", icon: "Bell", mobile: true },
+  { href: "/settings", label: "تنظیمات", icon: "Settings", mobile: true },
+];
+
 export const STAFF_NAV: Record<"coach" | "admin", NavItem[]> = {
   coach: [
     { href: "/coach", label: "ورزشکاران من", icon: "ClipboardList" },
   ],
-  admin: [
-    { href: "/coach", label: "ورزشکاران من", icon: "ClipboardList" },
-    { href: "/admin", label: "کنسول مدیریت", icon: "Shield" },
-  ],
+  // Admin navigation is ADMIN_NAV. Staff coaching links belong to coaches.
+  admin: [],
 };
 
 export function useMemberNav(): NavItem[] {
   const flags = useFlags();
-  return MEMBER_NAV.filter((item) => !item.flag || flags[item.flag]);
+  const session = useSession();
+  const model = session?.role === "admin" ? ADMIN_NAV : MEMBER_NAV;
+  return model.filter((item) => !item.flag || flags[item.flag]);
 }
 
 /** Staff section for the current session role (admin sees both). */
