@@ -72,6 +72,17 @@ export function WorkoutsView({
   const [equipment, setEquipment] = React.useState<string>("all");
   const [selected, setSelected] = React.useState<LibraryExercise | null>(null);
   const [starting, setStarting] = React.useState(false);
+  const [activeSession, setActiveSession] = React.useState<{ id: string; name: string } | null>(null);
+  const [checkingSession, setCheckingSession] = React.useState(true);
+  // Starting an existing session should be "Continue", not a misleading new start.
+  React.useEffect(() => {
+    let canceled = false;
+    api<{ session: { id: string; name: string } | null }>("/api/workouts/sessions")
+      .then((data) => { if (!canceled) setActiveSession(data.session); })
+      .catch(() => { /* The regular start action still reports its own errors. */ })
+      .finally(() => { if (!canceled) setCheckingSession(false); });
+    return () => { canceled = true; };
+  }, []);
   const [anatomyOpen, setAnatomyOpen] = React.useState(false);
   const [selectedMuscles, setSelectedMuscles] = React.useState<Set<BodySlug>>(new Set());
   const [alternatives, setAlternatives] = React.useState<Alternative[] | null>(null);
@@ -135,6 +146,10 @@ export function WorkoutsView({
   );
 
   const startToday = async () => {
+    if (activeSession) {
+      router.push(`/workout/live?session=${encodeURIComponent(activeSession.id)}`);
+      return;
+    }
     setStarting(true);
     try {
       const data = await api<{ ok: boolean; session: { id: string } }>(
@@ -166,13 +181,25 @@ export function WorkoutsView({
             <Button variant="secondary" className="h-11" onClick={() => void regeneratePlan()} disabled={regenerating}>
               {regenerating ? "…" : "بازسازی برنامه"}
             </Button>
-            <Button className="h-11 esi-glow" onClick={() => void startToday()} disabled={starting}>
-              {starting ? "…" : "شروع سریع تمرین"}
+            <Button className="h-11 esi-glow" onClick={() => void startToday()} disabled={starting || checkingSession}>
+              {starting || checkingSession ? "…" : activeSession ? "ادامه تمرین" : "شروع تمرین"}
             </Button>
           </div>
         }
       />
 
+      {activeSession && (
+        <section className="mx-4 mb-5 rounded-3xl border border-primary/35 bg-primary/10 p-4 lg:mx-8" aria-label="جلسه فعال">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-primary">جلسه در حال انجام</p>
+              <p className="mt-1 truncate text-sm font-medium text-esi-text-primary">{activeSession.name}</p>
+              <p className="mt-1 text-[11px] text-esi-text-muted">ست‌های ثبت‌شده حفظ شدن؛ از همون‌جا ادامه بده.</p>
+            </div>
+            <Button className="h-11 shrink-0" onClick={() => void startToday()}>ادامه</Button>
+          </div>
+        </section>
+      )}
       {/* Today plan */}
       {planDay && (
         <section aria-label="برنامه امروز" className="px-4 lg:px-8 mb-8">
@@ -182,8 +209,8 @@ export function WorkoutsView({
                 <p className="text-xs font-semibold text-primary">برنامه امروز</p>
                 <h2 className="text-lg font-bold mt-1">{planDay.name}</h2>
               </div>
-              <Button onClick={() => void startToday()} disabled={starting} className="h-10">
-                شروع
+              <Button onClick={() => void startToday()} disabled={starting || checkingSession} className="h-10">
+                {activeSession ? "ادامه جلسه" : "شروع"}
               </Button>
             </div>
             <ol className="space-y-2">
