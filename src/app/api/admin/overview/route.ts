@@ -17,7 +17,7 @@ export async function GET() {
       await Promise.all([
         db.user.count(),
         db.user.groupBy({ by: ["role"], _count: { role: true } }),
-        db.user.groupBy({ by: ["tier"], _count: { tier: true } }),
+        db.user.groupBy({ by: ["tier"], where: { role: "member" }, _count: { tier: true } }),
         db.user.groupBy({ by: ["status"], _count: { status: true } }),
         db.workoutSession.count({ where: { status: "completed", startedAt: { gte: since7 } } }),
         db.user.count({ where: { createdAt: { gte: since30 } } }),
