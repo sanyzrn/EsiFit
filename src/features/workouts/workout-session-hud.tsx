@@ -61,6 +61,12 @@ const PAIN_REGION_FA: Record<string, string> = {
   ribs: "دنده", other: "سایر",
 };
 
+type RestPhase = {
+  exerciseId: string;
+  endsAt: number;
+  total: number;
+};
+
 export type CompleteSummary = {
   volume: number;
   durationMinutes: number;
@@ -83,7 +89,12 @@ export function WorkoutSessionHUD({
   const [weight, setWeight] = React.useState("");
   const [reps, setReps] = React.useState("");
   const [rpe, setRpe] = React.useState<number | null>(null);
-  const [rest, setRest] = React.useState<{ remaining: number; total: number } | null>(null);
+  const [rest, setRest] = React.useState<RestPhase | null>(null);
+  const [restClock, setRestClock] = React.useState(0);
+  const [confirmSkipRest, setConfirmSkipRest] = React.useState(false);
+  const [allowExtraSet, setAllowExtraSet] = React.useState(false);
+  const [savingSet, setSavingSet] = React.useState(false);
+  const loggingRef = React.useRef(false);
   const [completed, setCompleted] = React.useState(false);
   const [summary, setSummary] = React.useState<CompleteSummary | null>(null);
   const [busy, setBusy] = React.useState(false);
@@ -107,14 +118,46 @@ export function WorkoutSessionHUD({
     return () => clearInterval(t);
   }, [startedAt]);
 
-  // ---- rest timer ----
+  // Real wall-clock rest (survives tab sleep and page refresh).
+  const restKey = `esifit:workout-rest:${session.id}`;
   React.useEffect(() => {
-    if (!rest || rest.remaining <= 0) return;
-    const t = setTimeout(() => {
-      setRest((r) => (r ? { ...r, remaining: r.remaining - 1 } : r));
-    }, 1000);
-    return () => clearTimeout(t);
-  }, [rest]);
+    try {
+      const stored = localStorage.getItem(restKey);
+      if (!stored) return;
+      const value = JSON.parse(stored) as RestPhase;
+      if (Number.isFinite(value.endsAt) && Number.isFinite(value.total)
+        && value.endsAt > Date.now()
+        && session.exercises.some((e) => e.exerciseId === value.exerciseId)) {
+        setRest(value);
+        setRestClock(Date.now());
+      } else localStorage.removeItem(restKey);
+    } catch {
+      localStorage.removeItem(restKey);
+    }
+    // Only restore on session change; local changes are persisted when made.
+  }, [restKey]);
+
+  React.useEffect(() => {
+    if (!rest) return;
+    const tick = () => {
+      const now = Date.now();
+      setRestClock(now);
+      if (now >= rest.endsAt) {
+        setRest(null);
+        setConfirmSkipRest(false);
+        localStorage.removeItem(restKey);
+        navigator.vibrate?.([60, 40, 60]);
+      }
+    };
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [rest, restKey]);
+
+  React.useEffect(() => {
+    setAllowExtraSet(false);
+    setConfirmSkipRest(false);
+  }, [currentIdx]);
 
   const exercise = session.exercises[currentIdx];
   const loggedSets = React.useMemo(() => {
@@ -125,6 +168,15 @@ export function WorkoutSessionHUD({
     return [...map.values()].sort((a, b) => a.setNumber - b.setNumber);
   }, [session, exercise, loggedVersion]);
   const nextSetNumber = (loggedSets[loggedSets.length - 1]?.setNumber ?? 0) + 1;
+  const targetSets = Math.max(1, exercise?.targetSets ?? 1);
+  const targetComplete = loggedSets.length >= targetSets;
+  const restRemaining = rest ? Math.max(0, Math.ceil((rest.endsAt - restClock) / 1000)) : 0;
+  const isResting = Boolean(rest && exercise && rest.exerciseId === exercise.exerciseId && restRemaining > 0);
+  const totalPlannedSets = session.exercises.reduce((sum, ex) => sum + Math.max(1, ex.targetSets), 0);
+  const totalLoggedSets = session.exercises.reduce((sum, ex) => sum + (ex.sets?.length ?? 0), 0);
+  const workoutProgress = totalPlannedSets > 0
+    ? Math.min(100, Math.round(session.exercises.reduce((sum, ex) => sum + Math.min(ex.sets?.length ?? 0, Math.max(1, ex.targetSets)), 0) / totalPlannedSets * 100))
+    : 0;
   const isLastExercise = currentIdx === session.exercises.length - 1;
   // Free sessions (no plan day) can grow mid-workout via the library picker.
   const isFreeSession = !("planDayId" in initialSession) || initialSession.planDayId == null;
@@ -231,14 +283,39 @@ export function WorkoutSessionHUD({
   };
   const [plateOpen, setPlateOpen] = React.useState(false);
 
+  const saveRest = (next: RestPhase | null) => {
+    setRest(next);
+    setRestClock(Date.now());
+    setConfirmSkipRest(false);
+    try {
+      if (next) localStorage.setItem(restKey, JSON.stringify(next));
+      else localStorage.removeItem(restKey);
+    } catch {
+      // Private browsing may forbid storage; timer still works in memory.
+    }
+  };
+
   const logSet = async () => {
-    if (!exercise) return;
+    // Guard synchronously as well as in the UI; fast taps must not create
+    // multiple offline operations before React updates the button state.
+    if (!exercise || loggingRef.current || isResting || (targetComplete && !allowExtraSet)) return;
     const w = parseLocaleNumber(weight);
     const r = parseLocaleNumber(reps);
-    if (w == null && r == null) {
-      setError("وزن یا تکرار را وارد کنید.");
+    if (r == null || !Number.isInteger(r) || r < 1 || r > 200) {
+      setError("تکرار باید عددی صحیح بین ۱ تا ۲۰۰ باشد.");
       return;
     }
+    if (w != null && (w < 0 || w > 600)) {
+      setError("وزن را در محدوده معتبر وارد کنید.");
+      return;
+    }
+    if (nextSetNumber > 30) {
+      setError("سقف ثبت برای هر حرکت ۳۰ ست است.");
+      return;
+    }
+
+    loggingRef.current = true;
+    setSavingSet(true);
     setError(null);
     const clientId = newClientId("set");
     const payload = {
@@ -248,37 +325,40 @@ export function WorkoutSessionHUD({
       orderIndex: currentIdx,
       setNumber: nextSetNumber,
       weightKg: w,
-      reps: r != null ? Math.round(r) : null,
+      reps: r,
       rpe: rpe ?? undefined,
       completedAt: new Date().toISOString(),
     };
 
-    // 1) Local-first optimistic state
-    setSession((s) => ({
-      ...s,
-      exercises: s.exercises.map((ex, i) =>
-        i === currentIdx
-          ? {
-              ...ex,
-              sets: [...(ex.sets ?? []), { setNumber: nextSetNumber, weightKg: w, reps: r != null ? Math.round(r) : null, rpe }],
-            }
-          : ex,
-      ),
-    }));
+    try {
+      // Store first, then update the UI; if local storage fails, don't show
+      // a phantom set that the athlete believes was recorded.
+      await enqueueOperation({ clientId, kind: "workout_set", endpoint: "/api/workouts/sync", payload });
+      setSession((previous) => ({
+        ...previous,
+        exercises: previous.exercises.map((ex, i) =>
+          i === currentIdx
+            ? { ...ex, sets: [...(ex.sets ?? []), { setNumber: nextSetNumber, weightKg: w, reps: r, rpe }] }
+            : ex,
+        ),
+      }));
+      void syncQueue();
+      navigator.vibrate?.(35);
+      setAllowExtraSet(false);
 
-    // 2) Offline-safe queue BEFORE network
-    await enqueueOperation({ clientId, kind: "workout_set", endpoint: "/api/workouts/sync", payload });
-
-    // 3) Best-effort immediate sync (queue replays on reconnect anyway)
-    void syncQueue();
-
-    // Tiny reward for every logged set: a soft burst + a buzz where supported.
-    burstConfetti({ intensity: "soft", count: 18 });
-    navigator.vibrate?.(14);
-
-    // 4) Rest timer (planned restSeconds)
-    if (exercise.restSeconds > 0) {
-      setRest({ remaining: exercise.restSeconds, total: exercise.restSeconds });
+      // Only rest *between* programmed sets. A finished exercise leads to
+      // the next movement instead of hiding it behind a pointless timer.
+      if (nextSetNumber < targetSets && exercise.restSeconds > 0) {
+        const seconds = Math.max(30, exercise.restSeconds);
+        saveRest({ exerciseId: exercise.exerciseId, endsAt: Date.now() + seconds * 1000, total: seconds });
+      } else {
+        saveRest(null);
+      }
+    } catch {
+      setError("ست ذخیره نشد؛ فضای ذخیره‌سازی مرورگر را بررسی و دوباره تلاش کنید.");
+    } finally {
+      loggingRef.current = false;
+      setSavingSet(false);
     }
   };
 
