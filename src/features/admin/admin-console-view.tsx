@@ -227,108 +227,155 @@ export function AdminConsoleView({ adminName }: { adminName: string }) {
 
 function UsersTab() {
   const { toast } = useToast();
-  const [q, setQ] = React.useState("");
+  const [query, setQuery] = React.useState("");
   const [users, setUsers] = React.useState<AdminUser[] | null>(null);
   const [total, setTotal] = React.useState(0);
   const [page, setPage] = React.useState(1);
   const [savingId, setSavingId] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
 
-  const load = React.useCallback((query: string, p: number) => {
-    api<{ users: AdminUser[]; total: number }>(`/api/admin/users?q=${encodeURIComponent(query)}&page=${p}`)
-      .then((d) => {
-        setUsers(d.users);
-        setTotal(d.total);
-      })
-      .catch(() => setUsers([]));
+  const load = React.useCallback(async (q: string, p: number) => {
+    try {
+      setError(null);
+      const result = await api<{ users: AdminUser[]; total: number }>(
+        `/api/admin/users?q=${encodeURIComponent(q)}&page=${p}`
+      );
+      setUsers(result.users);
+      setTotal(result.total);
+    } catch (e) {
+      setError(errorMessage(e));
+    }
   }, []);
 
   React.useEffect(() => {
-    const t = setTimeout(() => {
-      load(q, page);
-    }, 250);
-    return () => clearTimeout(t);
-  }, [q, page, load]);
+    const timer = window.setTimeout(() => { void load(query, page); }, 250);
+    return () => window.clearTimeout(timer);
+  }, [query, page, load]);
 
   const update = async (userId: string, patch: Partial<Pick<AdminUser, "role" | "tier" | "status">>) => {
+    if (savingId) return;
     setSavingId(userId);
     try {
-      const result = await api<{ user: Pick<AdminUser, "id" | "role" | "tier" | "status"> }>("/api/admin/users", { method: "PATCH", body: JSON.stringify({ userId, ...patch }) });
-      toast({ title: "ذخیره شد", description: "تغییرات اعمال و کاربر مطلع شد." });
-      setUsers((prev) => prev?.map((u) => (u.id === userId ? { ...u, ...result.user } : u)) ?? null);
+      const result = await api<{ user: Pick<AdminUser, "id" | "role" | "tier" | "status"> }>(
+        "/api/admin/users", { method: "PATCH", json: { userId, ...patch } }
+      );
+      setUsers((prev) => prev?.map((u) => u.id === userId ? { ...u, ...result.user } : u) ?? null);
+      toast({ title: "تغییرات حساب ذخیره شد", description: "نقش و دسترسی از اشتراک جدا هستند." });
     } catch (e) {
-      toast({ title: "خطا", description: errorMessage(e), variant: "destructive" });
+      toast({ title: "تغییر اعمال نشد", description: errorMessage(e), variant: "destructive" });
     } finally {
       setSavingId(null);
     }
   };
 
   const pages = Math.max(1, Math.ceil(total / 12));
-
   return (
-    <div className="esi-card rounded-3xl p-5">
-      <div className="flex items-center gap-3 mb-4">
-        <Input value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="جست‌وجو بر اساس نام یا شماره…" className="max-w-xs" aria-label="جست‌وجوی کاربر" />
-        <span className="text-xs text-esi-text-muted tabular-nums">{toPersianDigits(total)} کاربر</span>
+    <section aria-label="حساب‌های مربیان و ورزشکاران" className="overflow-hidden rounded-2xl border border-border bg-surface-1">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
+        <div>
+          <h2 className="text-base font-bold">حساب‌های کاربری</h2>
+          <p className="mt-1 text-xs text-esi-text-muted">فقط ورزشکاران و مربیان؛ حساب مدیر در این فهرست نیست.</p>
+        </div>
+        <span className="rounded-xl bg-surface-2 px-3 py-2 text-xs tabular-nums text-esi-text-secondary">
+          {toPersianDigits(total)} حساب
+        </span>
+        <Input
+          aria-label="جستجوی کاربر"
+          value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }}
+          placeholder="نام یا شماره تلفن…"
+          className="h-11 w-full bg-surface-2 sm:max-w-sm"
+        />
       </div>
-
-      <div className="space-y-2">
-        {users === null && <div className="h-40 rounded-2xl bg-surface-2 animate-pulse" />}
-        <AnimatePresence initial={false}>
-          {users?.map((u) => (
-            <motion.div
-              key={u.id}
-              layout
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="grid gap-2 sm:grid-cols-[1.4fr_repeat(3,1fr)_auto] items-center rounded-2xl bg-surface-2 px-4 py-3"
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-semibold truncate">{u.displayName}</p>
-                <p className="text-[11px] text-esi-text-muted font-mono" dir="ltr">{toPersianDigits(u.phone)}</p>
-              </div>
-              <Select value={u.role} onValueChange={(v) => void update(u.id, { role: v })} disabled={savingId === u.id}>
-                <SelectTrigger className="h-9 text-xs" aria-label={`نقش ${u.displayName}`}><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(ROLE_FA).filter(([k]) => k !== "admin").map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              {u.role === "member" ? (
-                <Select value={u.tier === "coach" ? "free" : u.tier} onValueChange={(v) => void update(u.id, { tier: v })} disabled={savingId === u.id}>
-                  <SelectTrigger className="h-9 text-xs" aria-label={`اشتراک ${u.displayName}`}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(TIER_FA).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <span className="rounded-xl bg-surface-3 px-3 py-2 text-xs text-esi-text-secondary">
-                  دسترسی مربی از نقش حساب تعیین می‌شود
+      {error && (
+        <div role="alert" className="m-4 rounded-xl border border-destructive/40 p-4 text-sm text-destructive">
+          <p>{error}</p>
+          <Button variant="secondary" size="sm" className="mt-2" onClick={() => void load(query, page)}>
+            تلاش مجدد
+          </Button>
+        </div>
+      )}
+      {users === null ? (
+        <div className="space-y-3 p-4" role="status" aria-label="در حال دریافت کاربران">
+          {Array.from({ length: 3 }, (_, i) => <div key={i} className="h-32 animate-pulse rounded-xl bg-surface-2" />)}
+        </div>
+      ) : users.length === 0 ? (
+        <p className="p-8 text-center text-sm text-esi-text-muted">کاربری با این مشخصات پیدا نشد.</p>
+      ) : (
+        <ul className="divide-y divide-border">
+          {users.map((u) => (
+            <li key={u.id} className="p-4">
+              <div className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-sm font-bold">
+                  {u.displayName.trim().charAt(0) || "؟"}
                 </span>
-              )}
-              <Select value={u.status} onValueChange={(v) => void update(u.id, { status: v })} disabled={savingId === u.id}>
-                <SelectTrigger className={cn("h-9 text-xs", u.status === "suspended" && "text-destructive")} aria-label={`وضعیت ${u.displayName}`}><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(STATUS_FA).filter(([k]) => k !== "deleted").map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <span className="text-[11px] text-esi-text-muted tabular-nums text-start">
-                {toPersianDigits(u.sessions)} تمرین
-              </span>
-            </motion.div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold">{u.displayName}</p>
+                  <p className="mt-0.5 text-[11px] text-esi-text-muted" dir="ltr">{toPersianDigits(u.phone)}</p>
+                </div>
+                <Badge variant="neutral">{ROLE_FA[u.role] ?? u.role}</Badge>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
+                <label className="min-w-0">
+                  <span className="mb-1.5 block text-[11px] text-esi-text-muted">نقش حساب</span>
+                  <Select value={u.role} onValueChange={(value) => void update(u.id, { role: value })} disabled={savingId !== null}>
+                    <SelectTrigger className="h-10 w-full border-border bg-surface-2 text-xs" aria-label={`نقش ${u.displayName}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="member">ورزشکار</SelectItem>
+                      <SelectItem value="coach">مربی</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </label>
+                <label className="min-w-0">
+                  <span className="mb-1.5 block text-[11px] text-esi-text-muted">وضعیت</span>
+                  <Select value={u.status} onValueChange={(value) => void update(u.id, { status: value })} disabled={savingId !== null}>
+                    <SelectTrigger className="h-10 w-full border-border bg-surface-2 text-xs" aria-label={`وضعیت ${u.displayName}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">فعال</SelectItem>
+                      <SelectItem value="suspended">معلق</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </label>
+                {u.role === "member" ? (
+                  <label className="col-span-2 min-w-0 lg:col-span-1">
+                    <span className="mb-1.5 block text-[11px] text-esi-text-muted">اشتراک ورزشکار</span>
+                    <Select value={u.tier === "coach" ? "free" : u.tier} onValueChange={(value) => void update(u.id, { tier: value })} disabled={savingId !== null}>
+                      <SelectTrigger className="h-10 w-full border-border bg-surface-2 text-xs" aria-label={`اشتراک ${u.displayName}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(TIER_FA).map(([key, label]) => (
+                          <SelectItem key={key} value={key}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </label>
+                ) : (
+                  <div className="col-span-2 flex items-end lg:col-span-1">
+                    <p className="w-full rounded-xl bg-surface-2 px-3 py-2.5 text-[11px] text-esi-text-secondary">
+                      مربی اشتراک ورزشی ندارد.
+                    </p>
+                  </div>
+                )}
+              </div>
+              {savingId === u.id && <p className="mt-2 text-xs text-primary" role="status">در حال ذخیره تغییرات…</p>}
+            </li>
           ))}
-        </AnimatePresence>
-        {users?.length === 0 && (
-          <p className="py-10 text-center text-sm text-esi-text-muted">کاربری با این مشخصات پیدا نشد</p>
-        )}
-      </div>
-
+        </ul>
+      )}
       {pages > 1 && (
-        <div className="flex items-center justify-center gap-3 mt-4">
+        <div className="flex items-center justify-between gap-2 border-t border-border p-4">
           <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>قبلی</Button>
-          <span className="text-xs tabular-nums text-esi-text-muted">{toPersianDigits(page)} از {toPersianDigits(pages)}</span>
+          <span className="text-xs text-esi-text-muted tabular-nums">
+            صفحه {toPersianDigits(page)} از {toPersianDigits(pages)}
+          </span>
           <Button variant="outline" size="sm" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>بعدی</Button>
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
