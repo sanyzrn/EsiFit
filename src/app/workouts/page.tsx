@@ -46,6 +46,7 @@ export default async function WorkoutsPage() {
         activePlanName={activePlan?.name ?? null}
         exercises={exercises.map((ex) => ({
           id: ex.id,
+          slug: ex.slug,
           name: ex.nameFa,
           equipment: ex.equipment,
           pattern: ex.movementPattern,
