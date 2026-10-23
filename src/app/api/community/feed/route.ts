@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
   try {
     const { getSessionUser } = await import("@/lib/auth/session");
     const session = await getSessionUser();
+    if (session && session.role !== "member") return NextResponse.json({ ok: false, code: "authorization" }, { status: 403 });
     if (!session) {
       return NextResponse.json({ ok: false, code: "authentication", message: "برای انتشار پست وارد شوید." }, { status: 401 });
     }
