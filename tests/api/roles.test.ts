@@ -170,7 +170,7 @@ describe("admin console", () => {
     const res = await adminUsers(nextReq("/api/admin/users?q=&page=1"));
     const json = await res.json();
     expect(json.ok).toBe(true);
-    expect(json.total).toBeGreaterThanOrEqual(3);
+    expect(json.total).toBeGreaterThanOrEqual(2); // Only coach and member accounts; administrators are not listed.
     expect(json.users.length).toBeGreaterThan(0);
   });
 });
