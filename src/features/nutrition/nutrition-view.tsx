@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { PageHeader } from "@/components/layout/app-shell";
 import { MacroRingGroup } from "@/components/data-viz/macro-rings";
@@ -312,6 +313,33 @@ function FoodPicker({
   const [quantity, setQuantity] = React.useState("۱");
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [mounted, setMounted] = React.useState(false);
+  const [viewport, setViewport] = React.useState<{ top: number; height: number } | null>(null);
+
+  React.useEffect(() => {
+    setMounted(true);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    const syncViewport = () => {
+      const visual = window.visualViewport;
+      if (visual) setViewport({ top: visual.offsetTop, height: visual.height });
+    };
+    document.addEventListener("keydown", onKeyDown);
+    window.visualViewport?.addEventListener("resize", syncViewport);
+    window.visualViewport?.addEventListener("scroll", syncViewport);
+    syncViewport();
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+      window.visualViewport?.removeEventListener("resize", syncViewport);
+      window.visualViewport?.removeEventListener("scroll", syncViewport);
+    };
+  }, [onClose]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -350,12 +378,17 @@ function FoodPicker({
     }
   };
 
-  return (
+  // Portal avoids the animated page wrapper becoming the containing block
+  // for "position: fixed". VisualViewport keeps the sheet above mobile keyboards.
+  if (!mounted) return null;
+
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60"
+      className="fixed inset-x-0 top-0 z-[100] flex h-dvh items-end justify-center bg-black/75 sm:items-center sm:p-4"
+      style={viewport ? { top: viewport.top, height: viewport.height } : undefined}
       role="dialog"
       aria-modal="true"
       aria-label="افزودن غذا"
@@ -366,7 +399,7 @@ function FoodPicker({
         animate={{ y: 0 }}
         exit={{ y: 80 }}
         transition={{ type: "spring", stiffness: 380, damping: 30 }}
-        className="w-full sm:max-w-lg max-h-[85dvh] flex flex-col rounded-t-3xl sm:esi-card rounded-3xl"
+        className="flex w-full max-h-[85%] flex-col overflow-hidden rounded-t-3xl border border-border bg-surface-1 text-esi-text-primary shadow-[var(--shadow-float)] sm:max-w-lg sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-5 border-b border-border flex items-center justify-between shrink-0">
@@ -381,13 +414,12 @@ function FoodPicker({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="جستجو: چلوکباب، مرغ، برنج…"
-            className="h-11"
-            autoFocus
+            className="h-11 bg-surface-2 dark:bg-surface-2 text-esi-text-primary placeholder:text-esi-text-muted"
             aria-label="جستجوی غذا"
           />
         </div>
 
-        <div className="flex-1 overflow-y-auto p-3 max-h-72" role="listbox" aria-label="نتایج غذا">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3" role="listbox" aria-label="نتایج غذا">
           {loading ? (
             <div className="space-y-2 p-1">
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 rounded-xl" />)}
@@ -403,8 +435,10 @@ function FoodPicker({
                 aria-selected={selected?.id === f.id}
                 onClick={() => setSelected(f)}
                 className={cn(
-                  "w-full flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-start transition-colors",
-                  selected?.id === f.id ? "bg-primary/10" : "hover:bg-surface-2",
+                  "w-full flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-start transition-colors",
+                  selected?.id === f.id
+                    ? "border-primary/70 bg-surface-2"
+                    : "border-border/60 bg-surface-2 hover:border-primary/40",
                 )}
               >
                 <div className="min-w-0">
@@ -438,6 +472,7 @@ function FoodPicker({
           </div>
         )}
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 }
