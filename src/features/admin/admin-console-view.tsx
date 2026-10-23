@@ -51,7 +51,7 @@ type Moderation = {
 };
 
 const ROLE_FA: Record<string, string> = { member: "ورزشکار", coach: "مربی", admin: "مدیر" };
-const TIER_FA: Record<string, string> = { free: "رایگان", vip: "وی‌آی‌پی", vip_plus: "وی‌آی‌پی پلاس", coach: "مربی" };
+const TIER_FA: Record<string, string> = { free: "رایگان", vip: "وی‌آی‌پی", vip_plus: "وی‌آی‌پی پلاس" };
 const STATUS_FA: Record<string, string> = { active: "فعال", suspended: "معلق", deleted: "حذف‌شده" };
 
 export function AdminConsoleView({ adminName }: { adminName: string }) {
@@ -230,9 +230,9 @@ function UsersTab() {
   const update = async (userId: string, patch: Partial<Pick<AdminUser, "role" | "tier" | "status">>) => {
     setSavingId(userId);
     try {
-      await api("/api/admin/users", { method: "PATCH", body: JSON.stringify({ userId, ...patch }) });
+      const result = await api<{ user: Pick<AdminUser, "id" | "role" | "tier" | "status"> }>("/api/admin/users", { method: "PATCH", body: JSON.stringify({ userId, ...patch }) });
       toast({ title: "ذخیره شد", description: "تغییرات اعمال و کاربر مطلع شد." });
-      setUsers((prev) => prev?.map((u) => (u.id === userId ? { ...u, ...patch } : u)) ?? null);
+      setUsers((prev) => prev?.map((u) => (u.id === userId ? { ...u, ...result.user } : u)) ?? null);
     } catch (e) {
       toast({ title: "خطا", description: errorMessage(e), variant: "destructive" });
     } finally {
@@ -267,15 +267,21 @@ function UsersTab() {
               <Select value={u.role} onValueChange={(v) => void update(u.id, { role: v })} disabled={savingId === u.id}>
                 <SelectTrigger className="h-9 text-xs" aria-label={`نقش ${u.displayName}`}><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(ROLE_FA).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                  {Object.entries(ROLE_FA).filter(([k]) => k !== "admin").map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={u.tier} onValueChange={(v) => void update(u.id, { tier: v })} disabled={savingId === u.id}>
-                <SelectTrigger className="h-9 text-xs" aria-label={`اشتراک ${u.displayName}`}><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(TIER_FA).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              {u.role === "member" ? (
+                <Select value={u.tier === "coach" ? "free" : u.tier} onValueChange={(v) => void update(u.id, { tier: v })} disabled={savingId === u.id}>
+                  <SelectTrigger className="h-9 text-xs" aria-label={`اشتراک ${u.displayName}`}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(TIER_FA).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <span className="rounded-xl bg-surface-3 px-3 py-2 text-xs text-esi-text-secondary">
+                  دسترسی مربی از نقش حساب تعیین می‌شود
+                </span>
+              )>
               <Select value={u.status} onValueChange={(v) => void update(u.id, { status: v })} disabled={savingId === u.id}>
                 <SelectTrigger className={cn("h-9 text-xs", u.status === "suspended" && "text-destructive")} aria-label={`وضعیت ${u.displayName}`}><SelectValue /></SelectTrigger>
                 <SelectContent>
