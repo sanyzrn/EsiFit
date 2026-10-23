@@ -4,6 +4,7 @@ import * as React from "react";
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { Label } from "@/components/ui/label";
 import { Icon } from "@/components/ui/icon";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -157,13 +158,13 @@ export function GoalsSection({ goals, onChanged }: { goals: GoalCard[]; onChange
               </div>
               <div>
                 <Label htmlFor="goal-date">تاریخ هدف</Label>
-                <Input
+                <JalaliDatePicker
                   id="goal-date"
-                  type="date"
                   value={targetDate}
-                  onChange={(e) => setTargetDate(e.target.value)}
-                  className="h-11 mt-1.5"
-                  dir="ltr"
+                  onChange={setTargetDate}
+                  min={addDaysISO(todayISO(), 1)}
+                  label="انتخاب تاریخ هدف (شمسی)"
+                  className="mt-1.5"
                 />
               </div>
               <div>
