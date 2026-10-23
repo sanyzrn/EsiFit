@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ ok: false, code: "authentication", message: "برای عضویت در چالش وارد شوید." }, { status: 401 });
     }
+    if (session.role !== "member") return NextResponse.json({ ok: false, code: "authorization", message: "چالش‌های ورزشی مخصوص ورزشکاران هستند." }, { status: 403 });
     const body = joinSchema.parse(await req.json());
     const challenge = await db.challenge.findUnique({ where: { id: body.challengeId } });
     if (!challenge || challenge.status !== "active") {
