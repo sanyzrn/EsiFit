@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth/session";
+import { requireMember } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { getXpTotal } from "@/lib/domain/gamification-engine";
@@ -8,7 +8,7 @@ import { todayISO } from "@/lib/dates/jalali";
 
 export async function GET() {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const [xp, badges, earned, missions, progress] = await Promise.all([
       getXpTotal(session.id),
       db.badge.findMany({ orderBy: [{ tier: "asc" }, { criteriaValue: "asc" }] }),
