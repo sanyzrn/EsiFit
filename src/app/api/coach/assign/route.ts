@@ -32,8 +32,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const athlete = await db.user.findUnique({ where: { id: athleteId }, select: { id: true, status: true, timezone: true } });
-    if (!athlete || athlete.status !== "active" || (await db.user.findUnique({ where: { id: athleteId }, select: { role: true } }))?.role !== "member") {
+    const athlete = await db.user.findUnique({ where: { id: athleteId }, select: { id: true, role: true, status: true, timezone: true } });
+    if (!athlete || athlete.status !== "active" || athlete.role !== "member") {
       return NextResponse.json({ ok: false, code: "not_found" }, { status: 404 });
     }
 
