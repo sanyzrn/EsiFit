@@ -79,7 +79,7 @@ export function AdminConsoleView({ adminName }: { adminName: string }) {
   const humanNav = [
     { value: "overview", label: "نمای کلی", icon: "LayoutDashboard" },
     { value: "coaches", label: "مربی‌ها و ورزشکاران", icon: "Users" },
-    { value: "users", label: "مدیریت حساب‌ها", icon: "UserRoundCog" },
+    { value: "users", label: "مدیریت حساب‌ها", icon: "UserPlus" },
     { value: "moderation", label: "محتوا", icon: "ShieldCheck" },
   ];
   const metrics = [
