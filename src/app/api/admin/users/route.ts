@@ -132,6 +132,7 @@ export async function PATCH(req: Request) {
       // relationship. No member can appear as both a coach and an athlete.
       if (roleChange && target.role === "member" && nextRole !== "member") {
         await tx.coachClient.deleteMany({ where: { athleteId: userId } });
+        await tx.aiCoachEnrollment.deleteMany({ where: { athleteId: userId } });
       }
       const result = await tx.user.update({
         where: { id: userId },
