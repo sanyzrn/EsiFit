@@ -281,7 +281,7 @@ function UsersTab() {
                 <span className="rounded-xl bg-surface-3 px-3 py-2 text-xs text-esi-text-secondary">
                   دسترسی مربی از نقش حساب تعیین می‌شود
                 </span>
-              )>
+              )}
               <Select value={u.status} onValueChange={(v) => void update(u.id, { status: v })} disabled={savingId === u.id}>
                 <SelectTrigger className={cn("h-9 text-xs", u.status === "suspended" && "text-destructive")} aria-label={`وضعیت ${u.displayName}`}><SelectValue /></SelectTrigger>
                 <SelectContent>
