@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth/session";
+import { requireMember } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { db } from "@/lib/db";
 import { computeGoalProgress, GOAL_TYPES, unitForGoalType } from "@/lib/domain/goals";
@@ -11,7 +11,7 @@ import { rateLimit } from "@/lib/http/rate-limit";
 /** GET /api/goals — all goals with live progress. */
 export async function GET() {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const today = todayISO(session.timezone);
     const goals = await db.goal.findMany({
       where: { userId: session.id },
@@ -62,7 +62,7 @@ const createSchema = z.object({
 /** POST /api/goals — create a goal; startValue anchors to the live current value. */
 export async function POST(req: Request) {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const rl = rateLimit(`goals:create:${session.id}`, 20, 60 * 60 * 1000);
     if (!rl.ok) {
       return NextResponse.json(
