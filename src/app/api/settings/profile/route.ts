@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth/session";
+import { requireMember } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { db } from "@/lib/db";
 import { EQUIPMENT_KEYS, parseAvailableEquipment, serializeAvailableEquipment } from "@/lib/workout/equipment";
@@ -12,7 +12,7 @@ const patchSchema = z.object({
 /** GET /api/settings/profile — current equipment availability for the signed-in user. */
 export async function GET() {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const profile = await db.userProfile.findUnique({
       where: { userId: session.id },
       select: { availableEquipment: true },
@@ -31,7 +31,7 @@ export async function GET() {
 /** PATCH /api/settings/profile — update equipment; plans can be regenerated from Workouts. */
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const parsed = patchSchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json({ ok: false, code: "validation", message: "فهرست وسایل نامعتبر است." }, { status: 400 });
