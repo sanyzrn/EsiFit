@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { BrandMark } from "@/components/layout/navigation";
@@ -25,6 +26,20 @@ export function PublicNavbar() {
   const reduce = useReducedMotion();
 
   React.useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onEscape);
+    };
+  }, [open]);
+
+  React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -35,7 +50,7 @@ export function PublicNavbar() {
     <header
       className={cn(
         "fixed top-0 inset-x-0 z-40 transition-all duration-300 safe-top",
-        scrolled ? "esi-glass border-b border-border" : "bg-transparent",
+        scrolled || open ? "bg-surface-1 border-b border-border" : "bg-transparent",
       )}
     >
       <div className="mx-auto max-w-6xl px-4 lg:px-8">
@@ -69,6 +84,7 @@ export function PublicNavbar() {
               className="md:hidden inline-flex h-11 w-11 items-center justify-center rounded-full text-esi-text-secondary transition-transform active:scale-95"
               aria-label={open ? "بستن منو" : "باز کردن منو"}
               aria-expanded={open}
+              aria-controls="public-mobile-menu"
               onClick={() => setOpen((v) => !v)}
             >
               <motion.span
@@ -85,11 +101,12 @@ export function PublicNavbar() {
         {open && (
           <motion.nav
             key="public-mobile-menu"
+            id="public-mobile-menu"
             initial={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
             animate={reduce ? { opacity: 1 } : { opacity: 1, height: "auto" }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
             transition={{ duration: reduce ? 0.01 : MOTION.duration.smooth, ease: MOTION.ease }}
-            className="md:hidden border-t border-border esi-glass overflow-hidden"
+            className="md:hidden border-t border-border bg-surface-1 shadow-[var(--shadow-float)] overflow-hidden"
             aria-label="ناوبری موبایل"
           >
             <div className="px-4 py-3 space-y-1">
@@ -116,6 +133,16 @@ export function PublicNavbar() {
           </motion.nav>
         )}
       </AnimatePresence>
+      {open && createPortal(
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label="بستن منو"
+          className="fixed inset-0 z-30 cursor-default bg-black/65 md:hidden"
+          onClick={() => setOpen(false)}
+        />,
+        document.body,
+      )}
     </header>
   );
 }
