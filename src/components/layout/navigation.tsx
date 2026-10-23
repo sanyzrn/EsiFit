@@ -54,9 +54,7 @@ export const ADMIN_NAV: NavItem[] = [
 ];
 
 export const STAFF_NAV: Record<"coach" | "admin", NavItem[]> = {
-  coach: [
-    { href: "/coach", label: "ورزشکاران من", icon: "ClipboardList" },
-  ],
+  coach: [],
   // Admin navigation is ADMIN_NAV. Staff coaching links belong to coaches.
   admin: [],
 };
