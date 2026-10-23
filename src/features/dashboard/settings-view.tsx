@@ -22,13 +22,14 @@ export function SettingsView({
   session,
   devices,
 }: {
-  session: { id: string; displayName: string; phone: string; tier: string };
+  session: { id: string; displayName: string; phone: string; tier: string; role: "admin" | "coach" | "member" };
   devices: Device[];
 }) {
   const router = useRouter();
   const { toast } = useToast();
   const [reducedMotion, setReducedMotion] = React.useState(false);
   const [confirmingDelete, setConfirmingDelete] = React.useState(false);
+  const memberAccount = session.role === "member";
   const ent = getEntitlements(session.tier as UserTier);
 
   React.useEffect(() => {
@@ -100,7 +101,7 @@ export function SettingsView({
 
   return (
     <div className="max-w-2xl mx-auto w-full pb-6 space-y-5">
-      <PageHeader title="تنظیمات" description="حساب، ترجیحات و حریم خصوصی" backHref="/dashboard" />
+      <PageHeader title="تنظیمات" description="حساب، ترجیحات و حریم خصوصی" backHref={session.role === "admin" ? "/admin" : session.role === "coach" ? "/coach" : "/dashboard"} />
 
       <div className="px-4 lg:px-8 space-y-4">
         {/* profile */}
@@ -114,7 +115,7 @@ export function SettingsView({
               <p className="text-xs text-esi-text-muted tabular-nums" dir="ltr">{toPersianDigits(session.phone)}</p>
             </div>
             <span className="ms-auto rounded-full bg-primary/10 px-3.5 py-1.5 text-xs font-bold text-primary">
-              {TIER_LABELS[session.tier as UserTier]}
+              {memberAccount ? TIER_LABELS[session.tier as UserTier] : session.role === "admin" ? "مدیر سایت" : "مربی"}
             </span>
           </div>
         </section>
@@ -129,16 +130,16 @@ export function SettingsView({
             </div>
             <Switch checked={reducedMotion} onCheckedChange={toggleReducedMotion} aria-label="کاهش حرکت" />
           </div>
-          <div className="flex items-center justify-between gap-4">
+          {memberAccount && <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium">واحد اندازه‌گیری</p>
               <p className="text-xs text-esi-text-muted mt-0.5">همه داده‌ها به کیلوگرم/سانتی‌متر ذخیره می‌شوند</p>
             </div>
             <span className="text-xs font-bold text-esi-text-secondary">متریک</span>
-          </div>
+          </div>}
         </section>
 
-        <EquipmentSection />
+        {memberAccount && <EquipmentSection />}
 
         {/* devices */}
         <section aria-label="دستگاه‌ها" className="esi-card rounded-3xl p-6">
@@ -155,20 +156,21 @@ export function SettingsView({
         </section>
 
         {/* pain & limitations */}
-        <PainSection />
+        {memberAccount && <PainSection />}
 
         {/* privacy */}
         <section aria-label="حریم خصوصی" className="esi-card rounded-3xl p-6 space-y-4">
           <h2 className="font-bold">حریم خصوصی و داده</h2>
           <p className="text-xs leading-6 text-esi-text-secondary">
-            داده‌های سلامت شما (وزن، اندازه‌ها، عکس‌ها) خصوصی هستند و فقط با اجازه شما پردازش می‌شوند.
-            خروجی و حذف کامل همیشه در دسترس شماست.
+            {memberAccount
+              ? "داده‌های ورزشی و شخصی شما خصوصی هستند. مدیریت دسترسی و خروجی اطلاعات از این قسمت انجام می‌شود."
+              : "حساب مدیریتی فقط برای دسترسی به ابزارهای کاری استفاده می‌شود. داده‌های ورزشکاران در بخش مربوط به نقش شما مدیریت می‌شوند."}
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" size="sm" className="h-9" onClick={exportData}>
+            {memberAccount && <Button variant="secondary" size="sm" className="h-9" onClick={exportData}>
               <Icon name="Download" size={15} />
               خروجی داده‌ها
-            </Button>
+            </Button>}
             {!confirmingDelete ? (
               <Button variant="ghost" size="sm" className="h-9 text-destructive" onClick={() => setConfirmingDelete(true)}>
                 حذف حساب
