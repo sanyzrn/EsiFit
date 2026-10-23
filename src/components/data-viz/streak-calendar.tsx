@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { parseISODateOnly, isoDateOnly, todayISO, persianWeekdayIndex, jalaliMonthName, toJalali } from "@/lib/dates/jalali";
+import { parseISODateOnly, isoDateOnly, todayISO, persianWeekdayIndex, jalaliMonthName, toJalali, formatJalaliLong } from "@/lib/dates/jalali";
 import { toPersianDigits } from "@/lib/formatting/numbers";
 
 /**
@@ -45,7 +45,6 @@ export function StreakCalendar({
 
   // Build grid: ends with the current week (Persian week starts Saturday)
   const todayIdx = persianWeekdayIndex(today);
-  const weekEnd = today;
   const startOffset = (weeks - 1) * 7 + todayIdx;
   const start = isoDateOnly(new Date(parseISODateOnly(today).getTime() - startOffset * 86400000));
 
@@ -53,7 +52,6 @@ export function StreakCalendar({
   for (let w = 0; w < weeks; w++) {
     const col: Array<{ iso: string; value: number; future: boolean }> = [];
     for (let d = 0; d < 7; d++) {
-      const daysOut = w * 7 + d - startOffset;
       const iso = isoDateOnly(new Date(parseISODateOnly(start).getTime() + (w * 7 + d) * 86400000));
       col.push({ iso, value: activity[iso] ?? 0, future: iso > today });
     }
@@ -99,9 +97,9 @@ export function StreakCalendar({
                   "h-3 w-3 rounded-[3px] streak-cell",
                   cell.future ? "opacity-0" : LEVEL_STYLES[levelFor(cell.value)],
                 )}
-                title={`${toPersianDigits(cell.iso)} — ${cell.value > 0 ? `فعالیت سطح ${toPersianDigits(levelFor(cell.value))}` : "بدون فعالیت"}`}
+                title={`${formatJalaliLong(cell.iso)} — ${cell.value > 0 ? `فعالیت سطح ${toPersianDigits(levelFor(cell.value))}` : "بدون فعالیت"}`}
                 role="img"
-                aria-label={`${cell.iso}: ${cell.value > 0 ? `فعالیت سطح ${levelFor(cell.value)}` : "بدون فعالیت"}`}
+                aria-label={`${formatJalaliLong(cell.iso)}: ${cell.value > 0 ? `فعالیت سطح ${toPersianDigits(levelFor(cell.value))}` : "بدون فعالیت"}`}
               />
             ))}
           </div>

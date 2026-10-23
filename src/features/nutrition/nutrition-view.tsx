@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { api, errorMessage, isApiError } from "@/lib/client/api";
 import { enqueueOperation, newClientId } from "@/lib/offline/adapter";
 import { useFeatureFlag } from "@/lib/feature-flags/flag-provider";
@@ -122,23 +123,31 @@ export function NutritionView() {
     <div className="max-w-4xl mx-auto w-full pb-6">
       <PageHeader
         title="تغذیه"
-        description={formatJalaliLong(new Date())}
+        description={formatJalaliLong(date)}
         backHref="/dashboard"
         action={
-          <div className="flex gap-1.5">
+          <div className="flex items-center gap-1.5">
             <Button
               variant="secondary"
               size="icon"
-              className="h-10 w-10"
+              className="h-10 w-9 shrink-0"
               aria-label="روز قبل"
               onClick={() => setDate(addDaysISO(date, -1))}
             >
               <Icon name="ChevronRight" size={18} />
             </Button>
+            <JalaliDatePicker
+              value={date}
+              onChange={setDate}
+              max={today}
+              label="انتخاب روز تغذیه (شمسی)"
+              compact
+              className="w-[140px] sm:w-[180px]"
+            />
             <Button
               variant="secondary"
               size="icon"
-              className="h-10 w-10"
+              className="h-10 w-9 shrink-0"
               aria-label="روز بعد"
               disabled={date >= today}
               onClick={() => setDate(addDaysISO(date, 1))}

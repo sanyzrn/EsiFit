@@ -1,213 +1,235 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
+import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import {
-  ChevronDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-} from "lucide-react"
-import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
+  formatJalaliLong,
+  jalaliMonthLength,
+  jalaliMonthName,
+  jalaliToISO,
+  parseISODateOnly,
+  persianWeekdayIndex,
+  todayISO,
+  toJalali,
+} from "@/lib/dates/jalali";
+import { toPersianDigits } from "@/lib/formatting/numbers";
+import { cn } from "@/lib/utils";
 
-import { cn } from "@/lib/utils"
-import { Button, buttonVariants } from "@/components/ui/button"
+/**
+ * EsiFit's only calendar implementation: Solar Hijri, Saturday-first.
+ * Public values are Gregorian ISO date-only strings, matching our APIs.
+ * Year, month, weekday labels and the entire visible calendar are Jalali.
+ */
+export type JalaliCalendarProps = {
+  value: string;
+  onChange: (iso: string) => void;
+  min?: string;
+  max?: string;
+  className?: string;
+};
 
-function Calendar({
-  className,
-  classNames,
-  showOutsideDays = true,
-  captionLayout = "label",
-  buttonVariant = "ghost",
-  formatters,
-  components,
-  ...props
-}: React.ComponentProps<typeof DayPicker> & {
-  buttonVariant?: React.ComponentProps<typeof Button>["variant"]
-}) {
-  const defaultClassNames = getDefaultClassNames()
+const WEEKDAYS = [
+  { short: "ش", full: "شنبه" },
+  { short: "ی", full: "یکشنبه" },
+  { short: "د", full: "دوشنبه" },
+  { short: "س", full: "سه‌شنبه" },
+  { short: "چ", full: "چهارشنبه" },
+  { short: "پ", full: "پنجشنبه" },
+  { short: "ج", full: "جمعه" },
+];
 
-  return (
-    <DayPicker
-      showOutsideDays={showOutsideDays}
-      className={cn(
-        "bg-background group/calendar p-3 [--cell-size:--spacing(8)] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
-        String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
-        String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
-        className
-      )}
-      captionLayout={captionLayout}
-      formatters={{
-        formatMonthDropdown: (date) =>
-          date.toLocaleString("default", { month: "short" }),
-        ...formatters,
-      }}
-      classNames={{
-        root: cn("w-fit", defaultClassNames.root),
-        months: cn(
-          "flex gap-4 flex-col md:flex-row relative",
-          defaultClassNames.months
-        ),
-        month: cn("flex flex-col w-full gap-4", defaultClassNames.month),
-        nav: cn(
-          "flex items-center gap-1 w-full absolute top-0 inset-x-0 justify-between",
-          defaultClassNames.nav
-        ),
-        button_previous: cn(
-          buttonVariants({ variant: buttonVariant }),
-          "size-(--cell-size) aria-disabled:opacity-50 p-0 select-none",
-          defaultClassNames.button_previous
-        ),
-        button_next: cn(
-          buttonVariants({ variant: buttonVariant }),
-          "size-(--cell-size) aria-disabled:opacity-50 p-0 select-none",
-          defaultClassNames.button_next
-        ),
-        month_caption: cn(
-          "flex items-center justify-center h-(--cell-size) w-full px-(--cell-size)",
-          defaultClassNames.month_caption
-        ),
-        dropdowns: cn(
-          "w-full flex items-center text-sm font-medium justify-center h-(--cell-size) gap-1.5",
-          defaultClassNames.dropdowns
-        ),
-        dropdown_root: cn(
-          "relative has-focus:border-ring border border-input shadow-xs has-focus:ring-ring/50 has-focus:ring-[3px] rounded-md",
-          defaultClassNames.dropdown_root
-        ),
-        dropdown: cn(
-          "absolute bg-popover inset-0 opacity-0",
-          defaultClassNames.dropdown
-        ),
-        caption_label: cn(
-          "select-none font-medium",
-          captionLayout === "label"
-            ? "text-sm"
-            : "rounded-md pl-2 pr-1 flex items-center gap-1 text-sm h-8 [&>svg]:text-muted-foreground [&>svg]:size-3.5",
-          defaultClassNames.caption_label
-        ),
-        table: "w-full border-collapse",
-        weekdays: cn("flex", defaultClassNames.weekdays),
-        weekday: cn(
-          "text-muted-foreground rounded-md flex-1 font-normal text-[0.8rem] select-none",
-          defaultClassNames.weekday
-        ),
-        week: cn("flex w-full mt-2", defaultClassNames.week),
-        week_number_header: cn(
-          "select-none w-(--cell-size)",
-          defaultClassNames.week_number_header
-        ),
-        week_number: cn(
-          "text-[0.8rem] select-none text-muted-foreground",
-          defaultClassNames.week_number
-        ),
-        day: cn(
-          "relative w-full h-full p-0 text-center [&:first-child[data-selected=true]_button]:rounded-l-md [&:last-child[data-selected=true]_button]:rounded-r-md group/day aspect-square select-none",
-          defaultClassNames.day
-        ),
-        range_start: cn(
-          "rounded-l-md bg-accent",
-          defaultClassNames.range_start
-        ),
-        range_middle: cn("rounded-none", defaultClassNames.range_middle),
-        range_end: cn("rounded-r-md bg-accent", defaultClassNames.range_end),
-        today: cn(
-          "bg-accent text-accent-foreground rounded-md data-[selected=true]:rounded-none",
-          defaultClassNames.today
-        ),
-        outside: cn(
-          "text-muted-foreground aria-selected:text-muted-foreground",
-          defaultClassNames.outside
-        ),
-        disabled: cn(
-          "text-muted-foreground opacity-50",
-          defaultClassNames.disabled
-        ),
-        hidden: cn("invisible", defaultClassNames.hidden),
-        ...classNames,
-      }}
-      components={{
-        Root: ({ className, rootRef, ...props }) => {
-          return (
-            <div
-              data-slot="calendar"
-              ref={rootRef}
-              className={cn(className)}
-              {...props}
-            />
-          )
-        },
-        Chevron: ({ className, orientation, ...props }) => {
-          if (orientation === "left") {
-            return (
-              <ChevronLeftIcon className={cn("size-4", className)} {...props} />
-            )
-          }
-
-          if (orientation === "right") {
-            return (
-              <ChevronRightIcon
-                className={cn("size-4", className)}
-                {...props}
-              />
-            )
-          }
-
-          return (
-            <ChevronDownIcon className={cn("size-4", className)} {...props} />
-          )
-        },
-        DayButton: CalendarDayButton,
-        WeekNumber: ({ children, ...props }) => {
-          return (
-            <td {...props}>
-              <div className="flex size-(--cell-size) items-center justify-center text-center">
-                {children}
-              </div>
-            </td>
-          )
-        },
-        ...components,
-      }}
-      {...props}
-    />
-  )
+function monthIndex(jy: number, jm: number): number {
+  return jy * 12 + jm - 1;
 }
 
-function CalendarDayButton({
-  className,
-  day,
-  modifiers,
-  ...props
-}: React.ComponentProps<typeof DayButton>) {
-  const defaultClassNames = getDefaultClassNames()
+function monthFromIndex(index: number) {
+  return { jy: Math.floor(index / 12), jm: index % 12 + 1 };
+}
 
-  const ref = React.useRef<HTMLButtonElement>(null)
+function dateParts(iso: string) {
+  return toJalali(parseISODateOnly(iso));
+}
+
+export function Calendar({ value, onChange, min, max, className }: JalaliCalendarProps) {
+  const selected = /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : todayISO();
+  const initial = dateParts(selected);
+  const [visibleMonth, setVisibleMonth] = React.useState(() => monthIndex(initial.jy, initial.jm));
+  const [focusedISO, setFocusedISO] = React.useState<string | null>(null);
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  const { jy, jm } = monthFromIndex(visibleMonth);
+  const today = todayISO();
+
   React.useEffect(() => {
-    if (modifiers.focused) ref.current?.focus()
-  }, [modifiers.focused])
+    const date = dateParts(selected);
+    setVisibleMonth(monthIndex(date.jy, date.jm));
+  }, [selected]);
+
+  React.useEffect(() => {
+    if (!focusedISO) return;
+    rootRef.current?.querySelector<HTMLButtonElement>(`[data-iso="${focusedISO}"]`)?.focus();
+  }, [focusedISO, visibleMonth]);
+
+  const firstWeekday = persianWeekdayIndex(jalaliToISO({ jy, jm, jd: 1 }));
+  const dayCount = jalaliMonthLength(jy, jm);
+  const emptyEnd = (7 - ((firstWeekday + dayCount) % 7)) % 7;
+  const cells: Array<number | null> = [
+    ...Array<null>(firstWeekday).fill(null),
+    ...Array.from({ length: dayCount }, (_, i) => i + 1),
+    ...Array<null>(emptyEnd).fill(null),
+  ];
+  const minMonth = min ? dateParts(min) : null;
+  const maxMonth = max ? dateParts(max) : null;
+  const firstAllowedMonth = minMonth ? monthIndex(minMonth.jy, minMonth.jm) : monthIndex(1200, 1);
+  const lastAllowedMonth = maxMonth ? monthIndex(maxMonth.jy, maxMonth.jm) : monthIndex(1500, 12);
+  const startYear = minMonth ? Math.max(1200, minMonth.jy) : Math.max(1200, jy - 90);
+  const endYear = maxMonth ? Math.min(1500, maxMonth.jy) : Math.min(1500, jy + 30);
+  const canChooseToday = (!min || today >= min) && (!max || today <= max);
+
+  const navigate = (delta: number) => {
+    const next = visibleMonth + delta;
+    if (next >= firstAllowedMonth && next <= lastAllowedMonth) setVisibleMonth(next);
+  };
+
+  const navigateFocus = (event: React.KeyboardEvent<HTMLButtonElement>, iso: string) => {
+    const deltas: Record<string, number> = {
+      ArrowLeft: 1,
+      ArrowRight: -1,
+      ArrowDown: 7,
+      ArrowUp: -7,
+    };
+    let next: string | undefined;
+    if (event.key in deltas) {
+      const current = parseISODateOnly(iso);
+      current.setUTCDate(current.getUTCDate() + deltas[event.key]);
+      next = current.toISOString().slice(0, 10);
+    } else if (event.key === "Home" || event.key === "End") {
+      const current = parseISODateOnly(iso);
+      const step = event.key === "Home" ? -persianWeekdayIndex(iso) : 6 - persianWeekdayIndex(iso);
+      current.setUTCDate(current.getUTCDate() + step);
+      next = current.toISOString().slice(0, 10);
+    } else if (event.key === "PageUp" || event.key === "PageDown") {
+      const amount = event.key === "PageUp" ? -1 : 1;
+      const nextMonth = monthFromIndex(visibleMonth + amount);
+      if (monthIndex(nextMonth.jy, nextMonth.jm) < firstAllowedMonth ||
+          monthIndex(nextMonth.jy, nextMonth.jm) > lastAllowedMonth) return;
+      next = jalaliToISO({ ...nextMonth, jd: Math.min(dateParts(iso).jd, jalaliMonthLength(nextMonth.jy, nextMonth.jm)) });
+    }
+    if (!next || (min && next < min) || (max && next > max)) return;
+    event.preventDefault();
+    const p = dateParts(next);
+    setVisibleMonth(monthIndex(p.jy, p.jm));
+    setFocusedISO(next);
+  };
 
   return (
-    <Button
-      ref={ref}
-      variant="ghost"
-      size="icon"
-      data-day={day.date.toLocaleDateString()}
-      data-selected-single={
-        modifiers.selected &&
-        !modifiers.range_start &&
-        !modifiers.range_end &&
-        !modifiers.range_middle
-      }
-      data-range-start={modifiers.range_start}
-      data-range-end={modifiers.range_end}
-      data-range-middle={modifiers.range_middle}
-      className={cn(
-        "data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground data-[range-middle=true]:bg-accent data-[range-middle=true]:text-accent-foreground data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-ring/50 dark:hover:text-accent-foreground flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] data-[range-end=true]:rounded-md data-[range-end=true]:rounded-r-md data-[range-middle=true]:rounded-none data-[range-start=true]:rounded-md data-[range-start=true]:rounded-l-md [&>span]:text-xs [&>span]:opacity-70",
-        defaultClassNames.day,
-        className
-      )}
-      {...props}
-    />
-  )
-}
+    <div ref={rootRef} dir="rtl" className={cn("w-full select-none text-esi-text-primary", className)} data-slot="jalali-calendar">
+      <div className="flex items-center justify-between gap-2 pb-4">
+        <button
+          type="button"
+          aria-label="ماه قبل"
+          onClick={() => navigate(-1)}
+          disabled={visibleMonth <= firstAllowedMonth}
+          className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-2 hover:border-primary/50 disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-primary"
+        >
+          <ChevronRight className="size-4" />
+        </button>
+        <div className="flex min-w-0 items-center gap-2">
+          <label className="sr-only" htmlFor="jalali-calendar-month">ماه شمسی</label>
+          <select
+            id="jalali-calendar-month"
+            value={jm}
+            onChange={(event) => setVisibleMonth(monthIndex(jy, Number(event.target.value)))}
+            className="h-10 min-w-0 rounded-xl border border-border bg-surface-2 px-2 text-sm font-bold text-esi-text-primary outline-none focus-visible:border-primary"
+          >
+            {Array.from({ length: 12 }, (_, index) => {
+              const month = index + 1;
+              const enabled = monthIndex(jy, month) >= firstAllowedMonth && monthIndex(jy, month) <= lastAllowedMonth;
+              return <option key={month} value={month} disabled={!enabled}>{jalaliMonthName(month)}</option>;
+            })}
+          </select>
+          <label className="sr-only" htmlFor="jalali-calendar-year">سال شمسی</label>
+          <select
+            id="jalali-calendar-year"
+            value={jy}
+            onChange={(event) => {
+              const targetYear = Number(event.target.value);
+              setVisibleMonth(Math.max(firstAllowedMonth, Math.min(lastAllowedMonth, monthIndex(targetYear, jm))));
+            }}
+            className="h-10 rounded-xl border border-border bg-surface-2 px-2 text-sm font-bold tabular-nums text-esi-text-primary outline-none focus-visible:border-primary"
+          >
+            {Array.from({ length: Math.max(0, endYear - startYear + 1) }, (_, index) => {
+              const year = startYear + index;
+              return <option key={year} value={year}>{toPersianDigits(year)}</option>;
+            })}
+          </select>
+        </div>
+        <button
+          type="button"
+          aria-label="ماه بعد"
+          onClick={() => navigate(1)}
+          disabled={visibleMonth >= lastAllowedMonth}
+          className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-2 hover:border-primary/50 disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-primary"
+        >
+          <ChevronLeft className="size-4" />
+        </button>
+      </div>
 
-export { Calendar, CalendarDayButton }
+      <div className="grid grid-cols-7 gap-1" role="grid" aria-label={`تقویم شمسی ${jalaliMonthName(jm)} ${toPersianDigits(jy)}`}>
+        {WEEKDAYS.map(({ short, full }) => (
+          <div key={short} role="columnheader" title={full} className="flex h-9 items-center justify-center text-xs font-semibold text-esi-text-muted">
+            {short}
+          </div>
+        ))}
+        {cells.map((day, index) => {
+          if (day === null) return <div role="gridcell" aria-disabled key={`blank-${index}`} className="h-10" />;
+          const iso = jalaliToISO({ jy, jm, jd: day });
+          const disabled = Boolean((min && iso < min) || (max && iso > max));
+          const isSelected = selected === iso;
+          const isToday = today === iso;
+          return (
+            <div key={iso} role="gridcell" aria-selected={isSelected} className="min-w-0">
+              <button
+                type="button"
+                data-iso={iso}
+                onClick={() => onChange(iso)}
+                onKeyDown={(event) => navigateFocus(event, iso)}
+                disabled={disabled}
+                title={formatJalaliLong(iso)}
+                aria-label={`${formatJalaliLong(iso)}${isToday ? "، امروز" : ""}`}
+                aria-pressed={isSelected}
+                className={cn(
+                  "relative flex h-10 w-full items-center justify-center rounded-xl text-sm tabular-nums transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
+                  isSelected ? "bg-primary font-extrabold text-primary-foreground shadow-sm"
+                    : "hover:bg-surface-3 text-esi-text-primary",
+                  isToday && !isSelected && "border border-primary/60 text-primary font-bold",
+                  disabled && "opacity-25 cursor-not-allowed hover:bg-transparent",
+                )}
+              >
+                {toPersianDigits(day)}
+                {isToday && !isSelected && <span aria-hidden className="absolute bottom-1 size-1 rounded-full bg-primary" />}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-3">
+        <span className="inline-flex items-center gap-1.5 text-xs text-esi-text-muted">
+          <CalendarDays className="size-4" />
+          {formatJalaliLong(selected)}
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            const p = dateParts(today);
+            setVisibleMonth(monthIndex(p.jy, p.jm));
+            onChange(today);
+          }}
+          disabled={!canChooseToday}
+          className="min-h-9 shrink-0 rounded-xl bg-surface-2 px-3 text-xs font-bold text-primary hover:bg-surface-3 disabled:opacity-35"
+        >
+          امروز
+        </button>
+      </div>
+    </div>
+  );
+}
