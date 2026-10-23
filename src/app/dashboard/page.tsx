@@ -10,6 +10,9 @@ export const metadata = { title: "داشبورد" };
 export default async function DashboardPage() {
   const session = await getSessionUser();
   if (!session) redirect("/auth/login");
+  // Admin accounts supervise coaches/athletes instead of tracking personal
+  // workouts, hydration or nutrition; /admin is their canonical dashboard.
+  if (session.role === "admin") redirect("/admin");
   if (!session.onboarded) redirect("/auth/onboarding");
 
   return (

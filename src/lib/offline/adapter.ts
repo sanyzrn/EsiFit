@@ -78,6 +78,29 @@ export function newClientId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${rand}`;
 }
 
+/**
+ * New onboarding is a fresh account state (including after resetting demo data).
+ * Old pending ops must never recreate old workouts/water entries after onboarding.
+ * IndexedDB is device-local and cannot be deleted from the server.
+ */
+export async function clearLocalOnboardingState(): Promise<void> {
+  try {
+    await tx<undefined>(STORE_OPS, "readwrite", (s) => s.clear() as IDBRequest<undefined>);
+    await tx<undefined>(STORE_CACHE, "readwrite", (s) => s.clear() as IDBRequest<undefined>);
+  } catch {
+    // A browser without IndexedDB still allows online onboarding.
+  }
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key?.startsWith("esifit:workout-rest:")) localStorage.removeItem(key);
+    }
+  } catch {
+    // Storage may be unavailable in private browsing.
+  }
+  window.dispatchEvent(new CustomEvent("esifit:queue-changed"));
+}
+
 // ---------------- Queue operations ----------------
 
 export async function enqueueOperation(

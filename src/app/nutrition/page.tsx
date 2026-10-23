@@ -10,6 +10,7 @@ export const metadata = { title: "تغذیه" };
 export default async function NutritionPage() {
   const session = await getSessionUser();
   if (!session) redirect("/auth/login");
+  if (session.role === "admin") redirect("/admin");
   return (
     <AppShell session={session} flags={resolveEnabledFlags()}>
       <NutritionView />

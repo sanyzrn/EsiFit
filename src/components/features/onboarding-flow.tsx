@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { api, errorMessage } from "@/lib/client/api";
+import { clearLocalOnboardingState } from "@/lib/offline/adapter";
 import { parseLocaleNumber, toPersianDigits } from "@/lib/formatting/numbers";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +50,12 @@ const EQUIPMENT_OPTIONS = [
 
 export function OnboardingFlow({ displayName }: { displayName: string }) {
   const router = useRouter();
+  const cleanupPromise = React.useRef<Promise<void> | null>(null);
+  const ensureFreshOfflineState = React.useCallback(() => {
+    if (!cleanupPromise.current) cleanupPromise.current = clearLocalOnboardingState();
+    return cleanupPromise.current;
+  }, []);
+  React.useEffect(() => { void ensureFreshOfflineState(); }, [ensureFreshOfflineState]);
   const [step, setStep] = React.useState(0);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -89,6 +96,7 @@ export function OnboardingFlow({ displayName }: { displayName: string }) {
     setLoading(true);
     setError(null);
     try {
+      await ensureFreshOfflineState();
       await api("/api/auth/onboarding", {
         method: "POST",
         json: {
