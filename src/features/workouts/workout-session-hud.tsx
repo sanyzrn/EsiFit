@@ -85,7 +85,11 @@ export function WorkoutSessionHUD({
   const voiceFlag = useFeatureFlag("VOICE_LOGGING");
   const swapFlag = useFeatureFlag("EXERCISE_SWAP");
   const [session, setSession] = React.useState<LiveSession>(() => hydrateSets(initialSession));
-  const [currentIdx, setCurrentIdx] = React.useState(0);
+  const [currentIdx, setCurrentIdx] = React.useState(() => {
+    const exercises = hydrateSets(initialSession).exercises;
+    const firstIncomplete = exercises.findIndex((ex) => (ex.sets?.length ?? 0) < Math.max(1, ex.targetSets));
+    return firstIncomplete === -1 ? Math.max(0, exercises.length - 1) : firstIncomplete;
+  });
   const [weight, setWeight] = React.useState("");
   const [reps, setReps] = React.useState("");
   const [rpe, setRpe] = React.useState<number | null>(null);
@@ -465,6 +469,13 @@ export function WorkoutSessionHUD({
             <Icon name="Timer" size={16} />
             {formatClock(elapsed)}
           </span>
+          <a
+            href="/workouts"
+            className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-esi-text-secondary"
+            aria-label="خروج از صفحه بدون پایان دادن؛ جلسه حفظ می‌شود"
+          >
+            خروج
+          </a>
           <button
             type="button"
             onClick={() => setFinishConfirm(true)}
@@ -780,8 +791,7 @@ export function WorkoutSessionHUD({
                   onClick={() => saveRest(adjustWorkoutRest(rest, -15, Date.now()))}
                   className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-2 text-xs font-bold disabled:opacity-30"
                 >
-                  <Icon name="Minus" size={16} />
-                  <span className="sr-only">۱۵ ثانیه کمتر</span>
+                  <span aria-hidden className="tabular-nums text-xs font-bold">−۱۵</span>
                 </button>
                 <button
                   type="button"
@@ -789,8 +799,7 @@ export function WorkoutSessionHUD({
                   onClick={() => saveRest(restReady ? startWorkoutRest(rest.exerciseId, 15, Date.now()) : adjustWorkoutRest(rest, 15, Date.now()))}
                   className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-2"
                 >
-                  <Icon name="Plus" size={16} />
-                  <span className="sr-only">۱۵ ثانیه بیشتر</span>
+                  <span aria-hidden className="tabular-nums text-xs font-bold">+۱۵</span>
                 </button>
                 <button
                   type="button"
