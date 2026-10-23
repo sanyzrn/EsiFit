@@ -203,3 +203,34 @@ export async function GET() {
     return appErrorResponse(error);
   }
 }
+
+/** Cancel a never-started workout without recording an artificial zero-set workout or XP. */
+export async function DELETE(req: NextRequest) {
+  try {
+    const user = await requireUser();
+    const { sessionId } = z.object({ sessionId: z.string().min(1) }).parse(await req.json());
+    const active = await db.workoutSession.findFirst({
+      where: { id: sessionId, userId: user.id, status: { in: ["active", "paused"] } },
+      select: {
+        id: true,
+        exerciseLogs: { select: { _count: { select: { sets: true } } } },
+      },
+    });
+    if (!active) {
+      return NextResponse.json({ ok: false, code: "not_found", message: "جلسه فعال پیدا نشد." }, { status: 404 });
+    }
+    if (active.exerciseLogs.some((log) => log._count.sets > 0)) {
+      return NextResponse.json({
+        ok: false, code: "session_has_sets",
+        message: "این جلسه ست ثبت‌شده دارد؛ برای حفظ رکوردها، آن را از بخش پایان تمرین تمام کنید.",
+      }, { status: 409 });
+    }
+    await db.workoutSession.update({
+      where: { id: active.id },
+      data: { status: "abandoned", endedAt: new Date() },
+    });
+    return NextResponse.json({ ok: true, canceled: true });
+  } catch (error) {
+    return appErrorResponse(error);
+  }
+}

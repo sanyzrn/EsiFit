@@ -370,6 +370,20 @@ export function WorkoutSessionHUD({
     }
   };
 
+  const abandonEmpty = async () => {
+    if (busy || totalLoggedSets !== 0) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api("/api/workouts/sessions", { method: "DELETE", json: { sessionId: session.id } });
+      saveRest(null);
+      window.location.assign("/workouts");
+    } catch (e) {
+      setError(errorMessage(e));
+      setBusy(false);
+    }
+  };
+
   const finish = async () => {
     setBusy(true);
     setError(null);
@@ -874,9 +888,14 @@ export function WorkoutSessionHUD({
                   ادامه تمرین
                 </Button>
                 {totalLoggedSets === 0 && (
-                  <a className="py-2 text-center text-xs text-esi-text-secondary underline" href="/workouts">
-                    برگشت به کتابخانه (جلسه برای ادامه محفوظ می‌ماند)
-                  </a>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="min-h-11 rounded-xl border border-border bg-surface-2 text-xs font-bold text-esi-text-secondary disabled:opacity-50"
+                    onClick={() => void abandonEmpty()}
+                  >
+                    لغو جلسه خالی و برگشت به کتابخانه
+                  </button>
                 )}
               </div>
               {error && <p role="alert" className="mt-3 text-xs text-destructive">{error}</p>}
