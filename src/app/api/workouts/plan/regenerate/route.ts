@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth/session";
+import { requireMember } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { createPlanFromTemplate } from "@/features/workouts/data/plan-templates";
 import { getUserEquipmentSet } from "@/lib/workout/catalog";
@@ -13,7 +13,7 @@ const schema = z.object({
 /** POST /api/workouts/plan/regenerate — rebuild the 4-week plan from profile equipment. */
 export async function POST(req: Request) {
   try {
-    const session = await requireUser();
+    const session = await requireMember();
     const body = schema.parse(await req.json().catch(() => ({})));
     const equipment = await getUserEquipmentSet(session.id);
     const plan = await createPlanFromTemplate(session.id, body.template, undefined, equipment, session.timezone);
