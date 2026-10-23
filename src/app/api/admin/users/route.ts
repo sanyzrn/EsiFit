@@ -3,9 +3,9 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { db } from "@/lib/db";
+import { MEMBER_TIERS, storedTierForRole } from "@/lib/auth/access-policy";
 
-const ROLES = ["member", "coach", "admin"] as const;
-const TIERS = ["free", "vip", "vip_plus", "coach"] as const;
+const MANAGEABLE_ROLES = ["member", "coach"] as const;
 const STATUSES = ["active", "suspended"] as const;
 
 /** GET /api/admin/users?q=&page= — searchable user list (admin-only). */
@@ -17,14 +17,11 @@ export async function GET(req: Request) {
     const page = Math.max(1, Number(url.searchParams.get("page") ?? "1") || 1);
     const pageSize = 12;
 
-    const where = q
-      ? {
-          OR: [
-            { displayName: { contains: q } },
-            { phone: { contains: q } },
-          ],
-        }
-      : {};
+    // The manager list never contains administrator accounts.
+    const where = {
+      role: { in: ["member", "coach"] },
+      ...(q ? { OR: [{ displayName: { contains: q } }, { phone: { contains: q } }] } : {}),
+    };
 
     const [total, users] = await Promise.all([
       db.user.count({ where }),
@@ -60,10 +57,10 @@ export async function GET(req: Request) {
 
 const patchSchema = z.object({
   userId: z.string().min(1),
-  role: z.enum(ROLES).optional(),
-  tier: z.enum(TIERS).optional(),
+  role: z.enum(MANAGEABLE_ROLES).optional(),
+  tier: z.enum(MEMBER_TIERS).optional(),
   status: z.enum(STATUSES).optional(),
-});
+}).strict().refine((data) => data.role != null || data.tier != null || data.status != null);
 
 /** PATCH /api/admin/users — change role/tier/status with guardrails (admin-only). */
 export async function PATCH(req: Request) {
@@ -80,41 +77,76 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ ok: false, code: "not_found" }, { status: 404 });
     }
 
-    // Guardrail 1: never touch your own account.
-    if (target.id === session.id) {
-      return NextResponse.json(
-        { ok: false, code: "conflict", message: "نمی‌توانید نقش یا وضعیت حساب خودتان را از اینجا تغییر دهید." },
-        { status: 409 },
-      );
+    // Role and subscription are separate, and every staff account remains
+    // outside member benefits. Admin identities are never edited in this UI.
+    if (target.role === "admin" || target.id === session.id) {
+      return NextResponse.json({
+        ok: false, code: "conflict", message: "حساب مدیر فقط در بخش جداگانه مدیریت مدیران قابل ویرایش است.",
+      }, { status: 409 });
     }
 
-    // Guardrail 2: don't remove the last *active* admin. A target that is
-    // already suspended is not one of them, so changing it can never lock us out.
-    const demotingAdmin = role != null && target.role === "admin" && role !== "admin";
-    const losesAdminAccess =
-      target.role === "admin" &&
-      target.status === "active" &&
-      (demotingAdmin || status === "suspended");
-    if (losesAdminAccess) {
-      const adminCount = await db.user.count({ where: { role: "admin", status: "active" } });
-      if (adminCount <= 1) {
-        return NextResponse.json(
-          { ok: false, code: "conflict", message: "حداقل یک مدیر فعال باید باقی بماند." },
-          { status: 409 },
-        );
+    const nextRole = role ?? target.role;
+    const nextTier = storedTierForRole(nextRole as "member" | "coach", tier ?? (
+      target.role === "member" && ["free", "vip", "vip_plus"].includes(target.tier)
+        ? target.tier as "free" | "vip" | "vip_plus"
+        : "free"
+    ));
+
+    // Staff accounts can't buy/select athlete tiers. A promotion resets the
+    // neutral storage value but never silently cancels a paid subscription.
+    if (nextRole !== "member" && tier != null && tier !== "free") {
+      return NextResponse.json({
+        ok: false, code: "validation", message: "اشتراک VIP فقط برای ورزشکار است.",
+      }, { status: 400 });
+    }
+
+    const roleChange = nextRole !== target.role;
+    const tierChange = nextTier !== target.tier;
+    if (roleChange || tierChange) {
+      const liveSubscription = await db.subscription.findFirst({
+        where: {
+          userId, status: "active", currentPeriodEndsAt: { gt: new Date() },
+        },
+        select: { id: true },
+      });
+      if (liveSubscription) {
+        return NextResponse.json({
+          ok: false, code: "conflict",
+          message: "کاربر اشتراک فعال دارد؛ قبل از تغییر نقش یا سطح، وضعیت اشتراک او را جداگانه بررسی کنید.",
+        }, { status: 409 });
       }
     }
 
-    const updated = await db.user.update({
-      where: { id: userId },
-      data: { ...(role != null ? { role } : {}), ...(tier != null ? { tier } : {}), ...(status != null ? { status } : {}) },
-      select: { id: true, role: true, tier: true, status: true },
-    });
-
-    // Suspend revokes all sessions immediately.
-    if (status === "suspended") {
-      await db.session.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } });
+    if (target.role === "coach" && nextRole !== "coach") {
+      const assigned = await db.coachClient.count({ where: { coachId: userId, status: "active" } });
+      if (assigned > 0) {
+        return NextResponse.json({
+          ok: false, code: "conflict",
+          message: "اول ورزشکاران این مربی را از بخش «مربی‌ها و ورزشکاران» منتقل کنید.",
+        }, { status: 409 });
+      }
     }
+
+    const updated = await db.$transaction(async (tx) => {
+      // Promoting an athlete to staff must also remove their prior coach
+      // relationship. No member can appear as both a coach and an athlete.
+      if (roleChange && target.role === "member" && nextRole !== "member") {
+        await tx.coachClient.deleteMany({ where: { athleteId: userId } });
+      }
+      const result = await tx.user.update({
+        where: { id: userId },
+        data: {
+          ...(role != null ? { role: nextRole } : {}),
+          ...(roleChange || tier != null || tierChange ? { tier: nextTier } : {}),
+          ...(status != null ? { status } : {}),
+        },
+        select: { id: true, role: true, tier: true, status: true },
+      });
+      if (status === "suspended") {
+        await tx.session.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } });
+      }
+      return result;
+    });
 
     // Notify the user about meaningful changes.
     const messages: string[] = [];
@@ -122,9 +154,9 @@ export async function PATCH(req: Request) {
       const roleFa: Record<string, string> = { member: "ورزشکار", coach: "مربی", admin: "مدیر" };
       messages.push(`نقش حساب شما به «${roleFa[role]}» تغییر کرد.`);
     }
-    if (tier != null && tier !== target.tier) {
-      const tierFa: Record<string, string> = { free: "رایگان", vip: "وی‌آی‌پی", vip_plus: "وی‌آی‌پی پلاس", coach: "مربی" };
-      messages.push(`اشتراک شما به «${tierFa[tier]}» تغییر کرد.`);
+    if (tierChange) {
+      const tierFa: Record<string, string> = { free: "رایگان", vip: "وی‌آی‌پی", vip_plus: "وی‌آی‌پی پلاس" };
+      messages.push(roleChange && nextRole !== "member" ? "اشتراک ورزشکاری هنگام تغییر نقش از حساب شما برداشته شد." : `اشتراک شما به «${tierFa[nextTier]}» تغییر کرد.`);
     }
     if (status === "suspended") messages.push("دسترسی حساب شما موقتاً محدود شده است.");
     if (status === "active" && target.status === "suspended") messages.push("دسترسی حساب شما بازگردانده شد.");
