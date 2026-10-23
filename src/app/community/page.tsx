@@ -10,6 +10,7 @@ export const metadata = { title: "انجمن" };
 export default async function CommunityPage() {
   const session = await getSessionUser();
   if (!session) redirect("/auth/login");
+  if (session.role !== "member") redirect(session.role === "admin" ? "/admin" : "/coach");
   return (
     <AppShell session={session} flags={resolveEnabledFlags()}>
       <CommunityView signedIn />
