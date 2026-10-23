@@ -12,6 +12,7 @@ export const metadata = { title: "تمرین" };
 export default async function WorkoutsPage() {
   const session = await getSessionUser();
   if (!session) redirect("/auth/login");
+  if (session.role === "admin") redirect("/admin");
 
   const [planDay, exercises, activePlan] = await Promise.all([
     getTodayPlanDay(session.id, session.timezone),
