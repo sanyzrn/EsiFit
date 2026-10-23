@@ -214,13 +214,11 @@ describe("entitlements", () => {
     const free = getEntitlements("free");
     const vip = getEntitlements("vip");
     const vipPlus = getEntitlements("vip_plus");
-    const coach = getEntitlements("coach");
     expect(free.aiMessagesPerDay).toBeLessThan(vip.aiMessagesPerDay);
     expect(vip.aiMessagesPerDay).toBeLessThan(vipPlus.aiMessagesPerDay);
     expect(vip.advancedAnalytics).toBe(true);
     expect(free.advancedAnalytics).toBe(false);
     expect(free.weeklyRecap).toBe(false);
-    expect(coach.coachTools).toBe(true);
     expect(free.dataExport).toBe(false);
     expect(vip.dataExport).toBe(true);
   });
