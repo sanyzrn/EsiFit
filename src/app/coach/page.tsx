@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "ورزشکاران من — مربی" };
 
 export default async function CoachPage() {
-  const session = await requireRolePage("coach_or_admin");
+  const session = await requireRolePage("coach");
 
   // Admins supervise every linked roster (read-only console entry point).
   const roster = await getCoachRoster(session.id);
