@@ -39,21 +39,40 @@ roles, dashboards, training logic, API or database. Design reference 2026-10-24.
 The legacy semantic color names remain for compatibility; they now map onto the
 new active palette, while data-chart colors keep distinct hues.
 
-## Replaceable hero photo
+## Athlete cutout and responsive composition — 2026-10-24
 
-Hero portrait URL constant: `HERO_IMAGE` inside
-`src/components/landing/hero.tsx`.
-This points to an existing Unsplash free gallery image of a person lifting
-a barbell (photo ID `1517836357463-d25dfeac3438`), used as a **temporary
-licensed placeholder**. Color grading/shape are non-destructive CSS; the
-original image is not edited and can be replaced later with owned brand
-photography without changing hero layout.
+The user-supplied orange-shirt portrait replaces the placeholder photo. The
+background is extracted with ImageGen; skin, clothing, pose, phone, watch and
+warm rim lighting are retained. The production asset lives at
+`public/media/esifit-athlete.webp`, with real alpha and no baked-in backdrop.
+Next Image serves responsive sizes and preloads the local hero asset.
 
-Recommended for replacement: original portrait of an adult athlete in a
-dark studio, with visible exercise equipment, strong side light, 4:5 crop,
-and rights cleared for digital marketing use. Prefer local AVIF/WebP in
-`public/media/` or a properly optimized project-owned image CDN rather
-than external hotlinking before production scale.
+`LandingHero({ signedIn: boolean })` keeps its existing API and reuses `Button`.
+No new component, flag, entity, dependency or backend behavior is introduced.
+
+### Composition tokens (scoped to `.esi-campaign-hero`)
+
+| Token | Value / purpose |
+| --- | --- |
+| `--hero-section-height` | `clamp(720px, 100svh, 900px)` desktop canvas |
+| `--hero-art-height` | `400px` phone, `520px` tablet; desktop fills canvas |
+| `--hero-display-size` | `clamp(3.25rem, 13.3vw, 4rem)` phone; `clamp(4.5rem, 11vw, 6.4rem)` tablet; `clamp(5.75rem, 8.2vw, 7.75rem)` desktop |
+| `--hero-art-width` | `400px` phone, `440px` tablet; desktop uses left grid column |
+| `--hero-cta` / `--hero-cta-hover` | `#f97316` / `#ff9b4a` |
+| `--hero-alert` | `#f04e57` title punctuation |
+| `--hero-art-wash` | subtle warm background behind portrait, not a photo frame |
+
+Desktop: copy in the right column, large unframed athlete bottom-aligned in the
+left column, with breathing room below the fixed navbar. Mobile: centered copy,
+a two-line headline, two side-by-side pill actions (stack below 360px), then a
+waist-up portrait with a subtle bottom fade into the shared feature rail. At
+640–1023px the portrait is taller and the title uses three lines. Text never
+overlays the athlete. At 1024px and above the headline returns to three lines.
+Feature benefits reuse the existing three items, arranged in three equal columns.
+The photograph is intentionally static; only a restrained CSS entry animation uses
+the existing smooth duration/easing tokens. Hero content is server rendered and
+stays visible even when JavaScript is unavailable; no Framer Motion hydration
+is needed for this section.
 
 ## Accessibility / responsive
 - Exactly one page H1 and short native Persian CTA copy.
@@ -61,8 +80,8 @@ than external hotlinking before production scale.
   secondary → `/calculators`.
 - High-contrast orange primary button, distinct secondary outline, focus-visible
   3px outline, >=52px CTA target, no hover-only actions.
-- Scroll-safe mobile layout; photo follows primary content on small viewports.
-- `prefers-reduced-motion`: removes hero Framer Motion entrance animation;
+- Scroll-safe mobile layout; cutout follows primary content on small viewports.
+- `prefers-reduced-motion`: removes hero CSS entrance animation;
   photography/color remain intact.
 - Existing other homepage sections are reused unchanged; no new dependencies.
 - No unrealistic claims (e.g. fake customer satisfaction, calorie burned, or
@@ -73,8 +92,14 @@ than external hotlinking before production scale.
 - `globals.css`: dark/light shared design tokens and `esi-campaign-*` hero art direction.
 - `layout.tsx`: mobile browser theme colors updated.
 
-## QA
-- GitHub essential tests + Next.js production build.
-- Manually verify 360px/390px mobile and 1280px desktop, both themes,
-  low-data/image-unavailable fallback, tab keyboard focus, and reduced motion.
-- Deliberately no automatic Vercel deploy; queued for one manual release.
+## QA — athlete revision
+
+- `npm run build` passed, including strict TypeScript and standalone packaging.
+- Browser inspected at 1363px desktop and in 320px, 390px and 768px frames.
+- Local optimized image loaded successfully; source WebP is ~169 KiB and has alpha.
+- Hero itself has no horizontal overflow at 320px; 390px document has none.
+- Mobile hero links remain `/auth/login` and `/calculators`, both 52px tall.
+- Hero content is visible in server HTML without waiting for client hydration.
+- Reduced-motion CSS disables the entry animation. Lighthouse score was not measured.
+- Database/API tests are not relevant to this presentation-only change and were not run.
+- Deliberately no Vercel deploy: retain the existing manual release workflow.
