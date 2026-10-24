@@ -10,6 +10,7 @@ import type { FeatureFlag } from "@/lib/feature-flags/registry";
 import { TIER_LABELS, type UserTier } from "@/lib/entitlements/entitlements";
 import { ROLE_LABELS, type Role } from "@/lib/auth/session-types";
 import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { KhatamMark } from "@/components/motion/khatam";
 
 /** One source of navigation truth. Role gates are enforced at the API as well. */
@@ -25,13 +26,13 @@ export const MEMBER_NAV: NavItem[] = [
   { href: "/dashboard", label: "خانه", icon: "LayoutDashboard", flag: "DASHBOARD", mobile: true },
   { href: "/workouts", label: "تمرین", icon: "Dumbbell", flag: "WORKOUTS", mobile: true },
   { href: "/nutrition", label: "تغذیه", icon: "Apple", flag: "NUTRITION", mobile: true },
-  { href: "/analytics", label: "پیشرفت", icon: "ChartLine", flag: "ANALYTICS", mobile: true },
+  { href: "/analytics", label: "پیشرفت", icon: "ChartLine", flag: "ANALYTICS" },
   { href: "/achievements", label: "دستاوردها", icon: "Trophy", flag: "GAMIFICATION" },
-  { href: "/community", label: "انجمن", icon: "Users", flag: "COMMUNITY" },
+  { href: "/community", label: "انجمن", icon: "Users", flag: "COMMUNITY", mobile: true },
   { href: "/store", label: "فروشگاه", icon: "ShoppingBag", flag: "SHOP" },
   { href: "/ai", label: "دستیار هوشمند", icon: "Sparkles", flag: "AI_CHAT" },
   { href: "/notifications", label: "اعلان‌ها", icon: "Bell", flag: "NOTIFICATIONS" },
-  { href: "/settings", label: "حساب من", icon: "User", mobile: true },
+  { href: "/settings", label: "حساب من", icon: "User" },
 ];
 
 export const COACH_NAV: NavItem[] = [
@@ -71,10 +72,11 @@ function isCurrentPath(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + "/");
 }
 
-function NavLink({ item, active }: { item: NavItem; active: boolean }) {
+function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; onClick?: () => void }) {
   return (
     <Link
       href={item.href}
+      onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
         "flex min-h-11 items-center gap-3 rounded-xl border-s-2 border-transparent px-3 text-sm transition-colors duration-150",
@@ -127,14 +129,17 @@ export function AppSidebar({ className }: { className?: string }) {
 export function MobileBottomNav() {
   const pathname = usePathname();
   const nav = useMemberNav();
-  const items = nav.filter((item) => item.mobile).slice(0, 5);
+  const [moreOpen, setMoreOpen] = React.useState(false);
+  const items = nav.filter((item) => item.mobile);
+  const extraItems = nav.filter((item) => !item.mobile);
+  const extraActive = extraItems.some((item) => isCurrentPath(pathname, item.href));
 
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface-1 lg:hidden"
       aria-label="ناوبری موبایل"
     >
-      <div className="mx-auto grid h-[68px] max-w-xl items-stretch px-2" style={{ gridTemplateColumns: `repeat(${items.length || 1}, minmax(0, 1fr))` }}>
+      <div className="mx-auto grid h-[68px] max-w-xl items-stretch px-2" style={{ gridTemplateColumns: `repeat(${items.length + (extraItems.length ? 1 : 0) || 1}, minmax(0, 1fr))` }}>
         {items.map((item) => {
           const active = isCurrentPath(pathname, item.href);
           return (
@@ -157,6 +162,28 @@ export function MobileBottomNav() {
             </Link>
           );
         })}
+        {extraItems.length > 0 && (
+          <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+            <SheetTrigger asChild>
+              <button type="button" aria-label="بیشتر؛ همه بخش‌ها" className={cn(
+                "flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] focus-visible:outline-2 focus-visible:outline-primary",
+                extraActive ? "font-bold text-primary" : "text-esi-text-secondary",
+              )}>
+                <span className={cn("flex h-8 w-12 items-center justify-center rounded-xl", extraActive && "bg-primary/12")}><Icon name="Menu" size={21} /></span>
+                بیشتر
+              </button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-3xl pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+              <SheetHeader className="px-6 pt-6 text-start">
+                <SheetTitle>همه بخش‌های اسی‌فیت</SheetTitle>
+                <SheetDescription>پیشرفت، دستاوردها و بقیه ابزارهای مسیرت</SheetDescription>
+              </SheetHeader>
+              <div className="grid gap-1 px-4 sm:grid-cols-2">
+                {extraItems.map((item) => <NavLink key={item.href} item={item} active={isCurrentPath(pathname, item.href)} onClick={() => setMoreOpen(false)} />)}
+              </div>
+            </SheetContent>
+          </Sheet>
+        )}
       </div>
       <div className="h-[env(safe-area-inset-bottom,0px)]" aria-hidden />
     </nav>

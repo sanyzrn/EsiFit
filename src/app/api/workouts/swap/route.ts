@@ -110,6 +110,8 @@ export async function POST(req: Request) {
         exerciseId: log.exerciseId,
         name: target.nameFa,
         slug: target.slug,
+        instructions: target.instructionsFa,
+        equipment: target.equipment,
         ...prescription,
       },
     });

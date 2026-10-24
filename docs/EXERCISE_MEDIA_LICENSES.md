@@ -1,6 +1,6 @@
 # Exercise media policy — EsiFit
 
-Updated: 2026-10-23
+Updated: 2026-10-24
 
 **Permission does not change just because a site is a demo.**
 The app must not embed/download/hotlink openGym's Gym visual stills or
@@ -17,6 +17,9 @@ For reuse, obtain an independent written license from https://gymvisual.com.
   6 single illustrations). No inaccurate lookalike substitution.
 - Technical map: `src/features/workouts/data/exercise-media.ts`
 - UI: `src/features/workouts/exercise-visual.tsx`
+- Focus playback sequences the existing start/peak stills unchanged; it adds no
+  interpolated poses, downloaded media archive or new third-party media source.
+  Static-only media stay static; reduced motion uses manual frame selection.
 - Media resolution: licensed flat-style WebP from public RepDB free-tier
   endpoint. **No** premium samples, no generative style transfer, no dataset API,
   no redistribution of downloaded image archives.

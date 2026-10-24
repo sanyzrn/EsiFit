@@ -44,7 +44,7 @@ export function AppShell({
   const isAuthFlow = variant === "auth" || pathname.startsWith("/auth/");
   const showMemberChrome = Boolean(session) && !isAuthFlow && !isLiveWorkout;
   const showBottomNav = showMemberChrome;
-  const showMobileHeader = Boolean(session) && !isAuthFlow;
+  const showMobileHeader = Boolean(session) && !isAuthFlow && !isLiveWorkout;
 
   // Bottom nav only when it exists — avoid empty reserved padding.
   const mainPadBottom = showBottomNav

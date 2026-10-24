@@ -5,7 +5,7 @@ import { z } from "zod";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { rateLimit } from "@/lib/http/rate-limit";
 
-const commentSchema = z.object({ postId: z.string(), content: z.string().min(1).max(300) });
+const commentSchema = z.object({ postId: z.string(), content: z.string().trim().min(1).max(300) });
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     }
     const body = commentSchema.parse(await req.json());
     const post = await db.post.findUnique({ where: { id: body.postId } });
-    if (!post) return NextResponse.json({ ok: false, code: "not_found", message: "پست یافت نشد." }, { status: 404 });
+    if (!post || post.visibility !== "public") return NextResponse.json({ ok: false, code: "not_found", message: "پست یافت نشد." }, { status: 404 });
 
     const comment = await db.comment.create({
       data: { postId: body.postId, userId: session.id, content: body.content.trim() },
@@ -38,4 +38,23 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     return appErrorResponse(error);
   }
+}
+
+/** Stable chronological pages; hidden posts never expose their discussion. */
+export async function GET(req: NextRequest) {
+  try {
+    const params = new URL(req.url).searchParams;
+    const { postId, cursor } = z.object({ postId: z.string().min(1).max(100), cursor: z.coerce.number().int().min(0).max(100000).default(0) })
+      .parse({ postId: params.get("postId"), cursor: params.get("cursor") ?? undefined });
+    const post = await db.post.findFirst({ where: { id: postId, visibility: "public" }, select: { id: true } });
+    if (!post) return NextResponse.json({ ok: false, code: "not_found" }, { status: 404 });
+    const comments = await db.comment.findMany({
+      where: { postId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }], skip: cursor, take: 21,
+      include: { user: { select: { displayName: true } } },
+    });
+    return NextResponse.json({ ok: true,
+      comments: comments.slice(0, 20).map(c => ({ id: c.id, content: c.content, author: c.user.displayName })),
+      nextCursor: comments.length > 20 ? cursor + 20 : null,
+    });
+  } catch (error) { return appErrorResponse(error); }
 }

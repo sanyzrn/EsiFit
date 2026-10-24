@@ -15,6 +15,8 @@ import {
   type WorkoutRest as RestPhase,
 } from "@/lib/workout/rest-clock";
 import { LastTimeCard, PlateCalculator, WarmupHint, type ExerciseHistoryView } from "@/features/workouts/exercise-assist";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { useActiveSetClock } from "@/features/workouts/use-active-set-clock";
 import { ExerciseVisual } from "@/features/workouts/exercise-visual";
 import { incrementFor } from "@/lib/workout/progression";
 import { rankBySearch } from "@/lib/search/normalize";
@@ -39,6 +41,7 @@ export type LiveExercise = {
   restSeconds: number;
   note: string;
   equipment?: string;
+  instructions?: string;
   history?: ExerciseHistoryView;
   sets?: Array<{ id?: string; setNumber: number; weightKg: number | null; reps: number | null; rpe?: number | null; isPr?: boolean }>;
 };
@@ -90,6 +93,8 @@ export function WorkoutSessionHUD({
     const firstIncomplete = exercises.findIndex((ex) => (ex.sets?.length ?? 0) < Math.max(1, ex.targetSets));
     return firstIncomplete === -1 ? Math.max(0, exercises.length - 1) : firstIncomplete;
   });
+  const [focusMode, setFocusMode] = React.useState(true);
+  const [captureOpen, setCaptureOpen] = React.useState(false);
   const [weight, setWeight] = React.useState("");
   const [reps, setReps] = React.useState("");
   const [rpe, setRpe] = React.useState<number | null>(null);
@@ -187,6 +192,12 @@ export function WorkoutSessionHUD({
     ? Math.min(100, Math.round(session.exercises.reduce((sum, ex) => sum + Math.min(ex.sets?.length ?? 0, Math.max(1, ex.targetSets)), 0) / totalPlannedSets * 100))
     : 0;
   const isLastExercise = currentIdx === session.exercises.length - 1;
+  const setClock = useActiveSetClock(`esifit:set-clock:${session.id}:${exercise?.exerciseId ?? "empty"}:${nextSetNumber}`, !rest && (!targetComplete || allowExtraSet) && !completed && !captureOpen);
+  const nextExercise = targetComplete && !isLastExercise ? session.exercises[currentIdx + 1] : exercise;
+  const dismissRest = () => {
+    saveRest(null);
+    if (targetComplete && !isLastExercise && rest?.exerciseId === exercise?.exerciseId) setCurrentIdx(index => index + 1);
+  };
   // Free sessions (no plan day) can grow mid-workout via the library picker.
   const isFreeSession = !("planDayId" in initialSession) || initialSession.planDayId == null;
 
@@ -239,7 +250,7 @@ export function WorkoutSessionHUD({
     if (!exercise) return;
     setSwapLoading(true);
     try {
-      const d = await api<{ log: { id: string; exerciseId: string; name: string; slug: string; targetSets: number; targetRepsMin: number; targetRepsMax: number; targetRpe: number; restSeconds: number; note: string } }>(
+      const d = await api<{ log: { id: string; exerciseId: string; name: string; slug: string; instructions?: string; equipment?: string; targetSets: number; targetRepsMin: number; targetRepsMax: number; targetRpe: number; restSeconds: number; note: string } }>(
         "/api/workouts/swap",
         { method: "POST", json: { sessionId: session.id, exerciseId: exercise.exerciseId, targetExerciseId: targetId, reason } },
       );
@@ -252,6 +263,8 @@ export function WorkoutSessionHUD({
                 exerciseId: d.log.exerciseId,
                 name: d.log.name,
                 slug: d.log.slug,
+                instructions: d.log.instructions,
+                equipment: d.log.equipment,
                 sets: [],
               }
             : ex,
@@ -354,10 +367,10 @@ export function WorkoutSessionHUD({
       void syncQueue();
       navigator.vibrate?.(35);
       setAllowExtraSet(false);
+      setCaptureOpen(false);
 
-      // Only rest *between* programmed sets. A finished exercise leads to
-      // the next movement instead of hiding it behind a pointless timer.
-      if (nextSetNumber < targetSets && exercise.restSeconds > 0) {
+      // Rest between sets and movements, but never after the final planned set.
+      if ((nextSetNumber < targetSets || !isLastExercise) && exercise.restSeconds > 0) {
         saveRest(startWorkoutRest(exercise.exerciseId, Math.max(30, exercise.restSeconds), Date.now()));
       } else {
         saveRest(null);
@@ -470,6 +483,91 @@ export function WorkoutSessionHUD({
     );
   }
 
+  const setCapture = (
+<section className="rounded-[26px] border border-border bg-surface-1 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-bold">{targetComplete && !allowExtraSet ? "حرکت کامل شد" : `آماده‌سازی ست ${toPersianDigits(nextSetNumber)}`}</p>
+                <p className="mt-0.5 text-[11px] text-esi-text-muted">
+                  {isResting ? "استراحت در حال انجام است؛ وزن و تکرار را برای ست بعد تنظیم کن" : "تکرار واقعی را بعد از انجام ست ثبت کن"}
+                </p>
+              </div>
+              <span className="shrink-0 rounded-xl bg-surface-2 px-2.5 py-1.5 text-xs font-bold tabular-nums text-esi-text-secondary">
+                {toPersianDigits(loggedSets.length)} / {toPersianDigits(targetSets)}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <NumberPadInput
+                label="وزن (کیلوگرم)"
+                value={weight}
+                onChange={setWeight}
+                step={incrementFor(exercise.equipment ?? "barbell")}
+              />
+              <NumberPadInput
+                label="تکرار"
+                value={reps}
+                onChange={setReps}
+                step={1}
+                integer
+              />
+            </div>
+            {exercise.equipment === "barbell" && (parseLocaleNumber(weight) ?? 0) > 0 && (
+              <button
+                type="button"
+                onClick={() => { setCaptureOpen(false); setPlateOpen(true); }}
+                className="flex min-h-9 w-full items-center justify-center gap-2 rounded-lg bg-surface-2 text-xs font-medium text-esi-text-secondary transition-colors hover:text-primary active:scale-[0.99]"
+              >
+                <Icon name="Dumbbell" size={14} />
+                چه صفحه‌هایی ببندم؟
+              </button>
+            )}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-esi-text-muted shrink-0">RPE:</span>
+              {[6.5, 7.5, 8.5, 9.5].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setRpe(rpe === v ? null : v)}
+                  aria-pressed={rpe === v}
+                  className={cn(
+                    "min-h-9 flex-1 rounded-lg text-xs font-medium tabular-nums transition-colors",
+                    rpe === v ? "bg-blue-500 text-white" : "bg-surface-2 text-esi-text-secondary",
+                  )}
+                >
+                  {toPersianDigits(v)}
+                </button>
+              ))}
+            </div>
+            {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
+            <div className="flex gap-2">
+              <Button
+                className="flex-1 h-12 text-base font-bold"
+                onClick={() => void logSet()}
+                disabled={savingSet || isResting || (targetComplete && !allowExtraSet)}
+              >
+                {savingSet
+                  ? "در حال ذخیره…"
+                  : isResting
+                    ? `استراحت • ${toPersianDigits(restRemaining)} ثانیه`
+                    : targetComplete && !allowExtraSet
+                      ? "ست‌های برنامه کامل شد"
+                      : `ثبت پایان ست ${toPersianDigits(nextSetNumber)}`}
+              </Button>
+              {voiceFlag && typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) && (
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className={cn("h-12 w-12 shrink-0", listening && "esi-pulse text-primary")}
+                  onClick={startVoice}
+                  aria-label="ثبت صوتی وزن و تکرار"
+                >
+                  <Icon name="Mic" size={20} />
+                </Button>
+              )}
+            </div>
+          </section>
+  );
+
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col safe-top safe-bottom">
       {/* ---- Top bar: session meta ---- */}
@@ -478,14 +576,17 @@ export function WorkoutSessionHUD({
           <span className="text-xs text-esi-text-muted shrink-0">{toPersianDigits(currentIdx + 1)}/{toPersianDigits(session.exercises.length)}</span>
           <p className="text-sm font-semibold truncate">{session.name}</p>
         </div>
-        <div className="flex items-center gap-3 text-sm tabular-nums text-esi-text-secondary">
-          <span className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-2 text-sm tabular-nums text-esi-text-secondary">
+          <button type="button" onClick={() => setFocusMode(value => !value)} className="flex min-h-11 items-center gap-1 rounded-lg px-2 text-xs text-primary" aria-label={focusMode ? "نمایش جزئیات تمرین" : "بازگشت به حالت تمرکز"}>
+            <Icon name={focusMode ? "List" : "Maximize2"} size={17} />{focusMode ? "جزئیات" : "تمرکز"}
+          </button>
+          <span className="hidden items-center gap-1.5 sm:flex">
             <Icon name="Timer" size={16} />
             {formatClock(elapsed)}
           </span>
           <a
             href="/workouts"
-            className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-esi-text-secondary"
+            className="inline-flex min-h-11 items-center rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-esi-text-secondary"
             aria-label="خروج از صفحه بدون پایان دادن؛ جلسه حفظ می‌شود"
           >
             خروج
@@ -494,7 +595,7 @@ export function WorkoutSessionHUD({
             type="button"
             onClick={() => setFinishConfirm(true)}
             disabled={busy}
-            className="rounded-lg bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground transition-transform active:scale-95 disabled:opacity-60"
+            className="min-h-11 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground transition-transform active:scale-95 disabled:opacity-60"
           >
             پایان تمرین
           </button>
@@ -510,7 +611,7 @@ export function WorkoutSessionHUD({
       </div>
 
       {/* ---- Exercise strip ---- */}
-      <div className="shrink-0 border-b border-border px-3 py-2.5">
+      {!focusMode && <div className="shrink-0 border-b border-border px-3 py-2.5">
         <div className="flex gap-2 overflow-x-auto no-scrollbar" role="tablist" aria-label="حرکات جلسه">
           {isFreeSession && (
             <button
@@ -543,9 +644,46 @@ export function WorkoutSessionHUD({
             );
           })}
         </div>
-      </div>
-
+      </div>}
       {/* ---- Current exercise + set entry ---- */}
+      {focusMode ? (
+        <section className="esi-workout-focus min-h-0 flex-1 overflow-y-auto" aria-label="حالت تمرکز تمرین">
+          <div className="flex min-h-0 flex-col bg-surface-1">
+            <div className="shrink-0 px-4 pb-2 pt-4 text-center">
+              <p className="text-xs font-bold text-primary">حرکت {toPersianDigits(currentIdx + 1)} از {toPersianDigits(session.exercises.length)}</p>
+              <h1 className="mt-2 text-xl font-extrabold leading-snug sm:text-2xl">{exercise.name}</h1>
+            </div>
+            <ExerciseVisual key={exercise.exerciseId} slug={exercise.slug} name={exercise.name} instructions={exercise.instructions} autoPlay playing={!setClock.paused && !rest} immersive />
+          </div>
+          <div className="flex flex-col justify-center gap-4 px-4 py-4 sm:px-6 lg:gap-6 lg:px-10">
+            <div className="flex items-center justify-between gap-3 text-xs text-esi-text-secondary">
+              <span>ست {toPersianDigits(Math.min(nextSetNumber, targetSets))} از {toPersianDigits(targetSets)}</span>
+              <span>{toPersianDigits(exercise.targetRepsMin)} تا {toPersianDigits(exercise.targetRepsMax)} تکرار</span>
+            </div>
+            <div className="text-center">
+              <p className="text-xs font-semibold text-esi-text-muted">{targetComplete ? "حرکت کامل شد" : setClock.paused ? "زمان ست · متوقف" : "زمان این ست"}</p>
+              <p role="timer" aria-label="زمان سپری‌شده این ست" className="mt-1 font-display text-6xl leading-none tabular-nums sm:text-7xl" dir="ltr">{toPersianDigits(formatClock(setClock.seconds))}</p>
+            </div>
+            {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
+            {targetComplete && !allowExtraSet ? (
+              <div className="space-y-2">
+                <Button className="min-h-14 w-full gap-2 text-base font-bold" onClick={() => isLastExercise ? setFinishConfirm(true) : setCurrentIdx(index => index + 1)}><Icon name="Check" size={20} />{isLastExercise ? "پایان جلسه و دیدن نتیجه" : "بریم حرکت بعدی"}</Button>
+                {nextSetNumber <= 30 && <Button variant="ghost" className="min-h-11 w-full text-xs" onClick={() => setAllowExtraSet(true)}>افزودن یک ست خارج از برنامه</Button>}
+              </div>
+            ) : (
+              <div className="grid grid-cols-[auto_1fr] gap-3">
+                <Button variant="secondary" className="min-h-14 min-w-14" onClick={setClock.toggle} aria-label={setClock.paused ? "ادامه زمان ست" : "مکث زمان ست"}><Icon name={setClock.paused ? "Play" : "Pause"} size={22} /></Button>
+                <Button className="min-h-14 gap-2 text-base font-bold" onClick={() => setCaptureOpen(true)} disabled={savingSet || Boolean(rest)}><Icon name="Check" size={20} />ثبت پایان ست</Button>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3 border-t border-border pt-2">
+              <Button variant="ghost" className="min-h-11 gap-2 text-xs" disabled={currentIdx === 0 || savingSet} onClick={() => setCurrentIdx(index => index - 1)}><Icon name="ChevronRight" size={17} />حرکت قبلی</Button>
+              <Button variant="ghost" className="min-h-11 gap-2 text-xs" disabled={isLastExercise || savingSet} onClick={() => setCurrentIdx(index => index + 1)}>حرکت بعدی<Icon name="ChevronLeft" size={17} /></Button>
+            </div>
+            <p className="text-center text-[11px] leading-5 text-esi-text-muted">پخش تصویر برای یادگیری حرکت است؛ تکرار واقعی را بعد از ست ثبت کن.</p>
+          </div>
+        </section>
+      ) : (
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className={cn("mx-auto max-w-lg px-4 py-6 space-y-6", rest && "pb-32")}>
           {/* Focus card: one real exercise, planned effort and visible set progress. */}
@@ -635,89 +773,7 @@ export function WorkoutSessionHUD({
             ))}
           </div>
 
-          {/* Set capture stays editable during rest; actual logging is locked. */}
-          <section className="rounded-[26px] border border-border bg-surface-1 p-4 space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <p className="text-sm font-bold">{targetComplete && !allowExtraSet ? "حرکت کامل شد" : `آماده‌سازی ست ${toPersianDigits(nextSetNumber)}`}</p>
-                <p className="mt-0.5 text-[11px] text-esi-text-muted">
-                  {isResting ? "استراحت در حال انجام است؛ وزن و تکرار را برای ست بعد تنظیم کن" : "تکرار واقعی را بعد از انجام ست ثبت کن"}
-                </p>
-              </div>
-              <span className="shrink-0 rounded-xl bg-surface-2 px-2.5 py-1.5 text-xs font-bold tabular-nums text-esi-text-secondary">
-                {toPersianDigits(loggedSets.length)} / {toPersianDigits(targetSets)}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <NumberPadInput
-                label="وزن (کیلوگرم)"
-                value={weight}
-                onChange={setWeight}
-                step={incrementFor(exercise.equipment ?? "barbell")}
-              />
-              <NumberPadInput
-                label="تکرار"
-                value={reps}
-                onChange={setReps}
-                step={1}
-                integer
-              />
-            </div>
-            {exercise.equipment === "barbell" && (parseLocaleNumber(weight) ?? 0) > 0 && (
-              <button
-                type="button"
-                onClick={() => setPlateOpen(true)}
-                className="flex min-h-9 w-full items-center justify-center gap-2 rounded-lg bg-surface-2 text-xs font-medium text-esi-text-secondary transition-colors hover:text-primary active:scale-[0.99]"
-              >
-                <Icon name="Dumbbell" size={14} />
-                چه صفحه‌هایی ببندم؟
-              </button>
-            )}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-esi-text-muted shrink-0">RPE:</span>
-              {[6.5, 7.5, 8.5, 9.5].map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setRpe(rpe === v ? null : v)}
-                  aria-pressed={rpe === v}
-                  className={cn(
-                    "min-h-9 flex-1 rounded-lg text-xs font-medium tabular-nums transition-colors",
-                    rpe === v ? "bg-blue-500 text-white" : "bg-surface-2 text-esi-text-secondary",
-                  )}
-                >
-                  {toPersianDigits(v)}
-                </button>
-              ))}
-            </div>
-            {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
-            <div className="flex gap-2">
-              <Button
-                className="flex-1 h-12 text-base font-bold"
-                onClick={() => void logSet()}
-                disabled={savingSet || isResting || (targetComplete && !allowExtraSet)}
-              >
-                {savingSet
-                  ? "در حال ذخیره…"
-                  : isResting
-                    ? `استراحت • ${toPersianDigits(restRemaining)} ثانیه`
-                    : targetComplete && !allowExtraSet
-                      ? "ست‌های برنامه کامل شد"
-                      : `ثبت پایان ست ${toPersianDigits(nextSetNumber)}`}
-              </Button>
-              {voiceFlag && typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) && (
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className={cn("h-12 w-12 shrink-0", listening && "esi-pulse text-primary")}
-                  onClick={startVoice}
-                  aria-label="ثبت صوتی وزن و تکرار"
-                >
-                  <Icon name="Mic" size={20} />
-                </Button>
-              )}
-            </div>
-          </section>
+          {setCapture}
 
           {targetComplete && (
             <motion.section
@@ -765,6 +821,17 @@ export function WorkoutSessionHUD({
         </div>
       </div>
 
+      )}
+      <Sheet open={captureOpen} onOpenChange={setCaptureOpen}>
+        <SheetContent side="bottom" className="z-[70] max-h-[90dvh] overflow-y-auto rounded-t-3xl pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+          <SheetHeader className="mx-auto w-full max-w-lg text-start">
+            <SheetTitle>نتیجه واقعی این ست</SheetTitle>
+            <SheetDescription>{exercise.name} · ست {toPersianDigits(nextSetNumber)}</SheetDescription>
+          </SheetHeader>
+          <div className="mx-auto w-full max-w-lg px-4">{setCapture}</div>
+        </SheetContent>
+      </Sheet>
+
       <AnimatePresence>
         {plateOpen && <PlateCalculator targetKg={parseLocaleNumber(weight) ?? 0} onClose={() => setPlateOpen(false)} />}
       </AnimatePresence>
@@ -777,9 +844,11 @@ export function WorkoutSessionHUD({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", stiffness: 420, damping: 35 }}
-            className="absolute inset-x-0 bottom-0 z-20 border-t border-border bg-surface-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_28px_rgb(0_0_0/0.16)]"
+            className={cn("absolute z-20 border-t border-border bg-surface-1 pb-[env(safe-area-inset-bottom)]", focusMode ? "inset-0 flex flex-col justify-center overflow-y-auto px-4" : "inset-x-0 bottom-0")}
             aria-label="کنترل استراحت"
           >
+            {focusMode && <button type="button" onClick={() => setFocusMode(false)} className="absolute start-4 top-4 min-h-11 rounded-xl border border-border px-4 text-xs font-bold">نمایش تمرین</button>}
+            {focusMode && <div className="mx-auto mb-4 w-full max-w-lg text-center"><p className="text-sm font-bold text-primary">نفس بگیر، مرحله بعد نزدیکه</p><p className="mt-4 font-display text-7xl tabular-nums" dir="ltr">{restReady ? "آماده" : toPersianDigits(restClockLabel(restRemaining))}</p><p className="mt-2 text-xs text-esi-text-muted">{restPaused ? "تایمر متوقف شده" : restReady ? "هر وقت آماده‌ای ادامه بده" : "زمان باقی‌مانده استراحت"}</p></div>}
             <div className="h-1 w-full bg-surface-3" aria-hidden="true">
               <div
                 className={cn("h-full transition-[width] duration-500", restReady ? "bg-emerald-500" : "bg-primary")}
@@ -794,8 +863,8 @@ export function WorkoutSessionHUD({
                 </div>
                 <span className="shrink-0 text-[10px] text-esi-text-muted">مرحله استراحت</span>
               </div>
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div className={cn("min-w-[75px] flex-1 text-center font-display text-2xl tabular-nums", restReady ? "text-emerald-600" : "text-primary")} role="timer" aria-label={restReady ? "استراحت تمام شد" : `${restRemaining} ثانیه مانده`}>
+              <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+                <div className={cn("min-w-[75px] flex-1 text-center font-display text-2xl tabular-nums max-[360px]:basis-full", focusMode && "hidden", restReady ? "text-emerald-600" : "text-primary")} role="timer" aria-label={restReady ? "استراحت تمام شد" : `${restRemaining} ثانیه مانده`}>
                   {restReady ? "آماده" : toPersianDigits(restClockLabel(restRemaining))}
                 </div>
                 <button
@@ -826,7 +895,7 @@ export function WorkoutSessionHUD({
                 </button>
                 <button
                   type="button"
-                  onClick={() => restReady || confirmSkipRest ? saveRest(null) : setConfirmSkipRest(true)}
+                  onClick={() => restReady || confirmSkipRest ? dismissRest() : setConfirmSkipRest(true)}
                   className={cn(
                     "h-11 min-w-[64px] shrink-0 rounded-xl px-2 text-xs font-bold",
                     confirmSkipRest || restReady ? "bg-primary text-primary-foreground" : "bg-surface-2 text-esi-text-secondary",
@@ -837,6 +906,7 @@ export function WorkoutSessionHUD({
                 </button>
               </div>
             </div>
+            {focusMode && nextExercise && <div className="mx-auto mt-6 w-full max-w-sm rounded-2xl border border-border bg-background p-4 text-center"><p className="text-xs font-bold text-primary">بعدی: {nextExercise.name}</p><p className="mt-2 text-xs text-esi-text-secondary">{targetComplete ? "حرکت بعدی" : `ست ${toPersianDigits(nextSetNumber)} از ${toPersianDigits(targetSets)}`} · {toPersianDigits(nextExercise.targetRepsMin)} تا {toPersianDigits(nextExercise.targetRepsMax)} تکرار</p><ExerciseVisual key={nextExercise.exerciseId} slug={nextExercise.slug} name={nextExercise.name} compact className="mx-auto mt-4 w-36" /></div>}
           </motion.section>
         )}
       </AnimatePresence>

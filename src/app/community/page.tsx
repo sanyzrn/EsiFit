@@ -11,8 +11,10 @@ export default async function CommunityPage() {
   const session = await getSessionUser();
   if (!session) redirect("/auth/login");
   if (session.role !== "member") redirect(session.role === "admin" ? "/admin" : "/coach");
+  const flags = resolveEnabledFlags();
+  if (!flags.COMMUNITY) redirect("/dashboard");
   return (
-    <AppShell session={session} flags={resolveEnabledFlags()}>
+    <AppShell session={session} flags={flags}>
       <CommunityView signedIn />
     </AppShell>
   );

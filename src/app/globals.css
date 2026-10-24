@@ -905,3 +905,21 @@ body::after { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .esi-card { transition: none; }
 }
+
+/* Workout focus canvas: one movement and its essential controls, no card stack. */
+.esi-workout-focus {
+  --workout-art-min-height: 192px;
+  --workout-art-landscape-height: 224px;
+  --workout-control-min-width: 320px;
+  display: grid;
+  grid-template-rows: minmax(var(--workout-art-min-height), 1fr) auto;
+}
+@media (min-width: 1024px) {
+  .esi-workout-focus {
+    grid-template-columns: minmax(0, 1.5fr) minmax(var(--workout-control-min-width), 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+@media (max-height: 600px) and (max-width: 1023px) {
+  .esi-workout-focus { grid-template-rows: minmax(var(--workout-art-landscape-height), 1fr) auto; }
+}
