@@ -4,6 +4,7 @@ import { activityStreak } from "@/lib/domain/gamification-engine";
 import { todayISO, lastNDaysISO } from "@/lib/dates/jalali";
 import { computeGoalProgress } from "@/lib/domain/goals";
 import { currentValueForGoal } from "@/lib/goal-values";
+import { formatWorkoutDayTitle, formatWorkoutPlanTitle } from "@/lib/workout/plan-titles";
 
 /**
  * Coach workspace data layer — one place for roster + athlete detail queries,
@@ -110,7 +111,7 @@ export async function getCoachRoster(coachId: string): Promise<RosterEntry[]> {
         athleteId: athlete.id,
         displayName: athlete.displayName,
         tier: athlete.tier,
-        planName: planByUser.get(athlete.id) ?? null,
+        planName: planByUser.get(athlete.id) ? formatWorkoutPlanTitle(planByUser.get(athlete.id)!) : null,
         sessions7d,
         sessions28d,
         weeklyTarget,
@@ -225,13 +226,13 @@ export async function getCoachAthleteDetail(athleteId: string): Promise<AthleteD
           weeklyWorkoutTarget: profile.weeklyWorkoutTarget,
         }
       : null,
-    planName: plan?.name ?? null,
+    planName: plan ? formatWorkoutPlanTitle(plan.name) : null,
     streakDays: streak,
     weightTrend: measurements.map((m) => ({ date: m.measuredOn, weightKg: m.weightKg })),
     weeklyTonnage,
     recentSessions: sessions.map((s) => ({
       id: s.id,
-      name: s.name,
+      name: formatWorkoutDayTitle(s.name),
       date: s.startedAt.toISOString(),
       volumeKg: s.totalVolumeKg,
       durationMinutes: Math.round(s.durationSeconds / 60),
