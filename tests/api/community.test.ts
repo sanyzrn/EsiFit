@@ -46,6 +46,8 @@ describe("community interactions", () => {
     const first = await (await feed(nextReq("/api/community/feed"))).json();
     expect(first.posts).toHaveLength(12);
     expect(first.nextCursor).toBeTypeOf("string");
+    // Deleting the last row of a page must not break its continuation cursor.
+    await db.post.delete({ where: { id: first.posts[11].id } });
     const second = await (
       await feed(nextReq(`/api/community/feed?cursor=${first.nextCursor}`))
     ).json();

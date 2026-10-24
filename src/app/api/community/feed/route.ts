@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { rateLimit } from "@/lib/http/rate-limit";
 
-const querySchema = z.object({ cursor: z.string().min(1).max(100).optional(), scope: z.enum(["all", "mine"]).default("all") });
+const querySchema = z.object({ cursor: z.string().min(1).max(200).optional(), scope: z.enum(["all", "mine"]).default("all") });
 const postSchema = z.object({ content: z.string().trim().min(3).max(500) });
 
 /** Public posts; current-user reaction and ownership are private, never CDN cached. */
@@ -13,12 +13,14 @@ export async function GET(req: NextRequest) {
   try {
     const params = new URL(req.url).searchParams;
     const query = querySchema.parse({ cursor: params.get("cursor") ?? undefined, scope: params.get("scope") ?? undefined });
+    const position = query.cursor ? z.tuple([z.string().datetime(), z.string().min(1).max(100)]).parse(query.cursor.split("!")) : null;
     const session = await getSessionUser();
     if (query.scope === "mine" && !session) return NextResponse.json({ ok: false, code: "authentication" }, { status: 401 });
     const posts = await db.post.findMany({
-      where: { visibility: "public", ...(query.scope === "mine" ? { userId: session!.id } : {}) },
+      where: { visibility: "public", ...(query.scope === "mine" ? { userId: session!.id } : {}),
+        ...(position ? { OR: [{ createdAt: { lt: new Date(position[0]) } }, { createdAt: new Date(position[0]), id: { lt: position[1] } }] } : {}),
+      },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
       take: 13,
       include: {
         user: { select: { id: true, displayName: true, tier: true } },
@@ -40,7 +42,7 @@ export async function GET(req: NextRequest) {
         likeCount: p._count.likes, commentCount: p._count.comments,
         comments: p.comments.map((c) => ({ id: c.id, content: c.content, author: c.user.displayName })),
       })),
-      nextCursor: posts.length > 12 ? page[page.length - 1].id : null,
+      nextCursor: posts.length > 12 ? `${page[page.length - 1].createdAt.toISOString()}!${page[page.length - 1].id}` : null,
     }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) { return appErrorResponse(error); }
 }
