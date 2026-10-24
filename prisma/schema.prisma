@@ -62,6 +62,8 @@ model User {
   coachOf             CoachClient[]    @relation("CoachRoster")
   aiCoachEnrollment   AiCoachEnrollment?
   weeklyRecaps        WeeklyRecap[]
+  aiGrant             AiGrant?
+  aiActions           AiAction[]
 }
 
 model UserProfile {
@@ -851,4 +853,48 @@ model WeeklyRecap {
 
   @@unique([userId, weekStart])
   @@index([userId, weekStart])
+}
+
+// HamPa: credentials stay on the server; grants are independent of subscriptions.
+model AiProvider {
+  id           String @id @default(cuid())
+  label        String
+  kind         String // gemini | custom (OpenAI-compatible)
+  baseUrl      String
+  model        String
+  encryptedKey String
+  enabled      Boolean @default(true)
+  testedAt     DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  grants       AiGrant[]
+}
+
+model AiGrant {
+  userId       String @id
+  providerId   String
+  enabled      Boolean @default(true)
+  dailyLimit   Int @default(20)
+  monthlyLimit Int @default(300)
+  updatedAt    DateTime @updatedAt
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider     AiProvider @relation(fields: [providerId], references: [id], onDelete: Restrict)
+}
+
+model AiAction {
+  id             String @id @default(cuid())
+  actorId        String
+  actorRole      String
+  requestId      String @default("")
+  conversationId String
+  kind           String
+  payloadJson    String
+  preview        String
+  status         String @default("pending") // pending | executing | succeeded | failed | cancelled
+  resultJson     String?
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  actor          User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  @@index([actorId, conversationId, createdAt])
 }

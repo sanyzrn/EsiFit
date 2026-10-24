@@ -5,15 +5,14 @@ import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 import { AIAssistantView } from "@/features/ai/ai-assistant-view";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "دستیار هوشمند" };
+export const metadata = { title: "همپا — دستیار اسی‌فیت" };
 
 export default async function AIPage() {
   const session = await getSessionUser();
   if (!session) redirect("/auth/login");
-  if (session.role !== "member") redirect(session.role === "admin" ? "/admin" : "/coach");
   return (
     <AppShell session={session} flags={resolveEnabledFlags()}>
-      <AIAssistantView tier={session.tier} />
+      <AIAssistantView role={session.role} />
     </AppShell>
   );
 }

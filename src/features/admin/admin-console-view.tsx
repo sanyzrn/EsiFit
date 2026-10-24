@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { AiManagementTab } from "@/features/admin/ai-management-tab";
 import { CoachAssignmentsTab } from "@/features/admin/coach-assignments-tab";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +54,7 @@ const STATUS_FA: Record<string, string> = { active: "فعال", suspended: "مع
 
 export function AdminConsoleView({ adminName }: { adminName: string }) {
   const [tab, setTab] = React.useState("overview");
+  React.useEffect(() => { if (new URLSearchParams(window.location.search).get("tab") === "ai") setTab("ai"); }, []);
   const [overview, setOverview] = React.useState<Overview | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -78,6 +80,7 @@ export function AdminConsoleView({ adminName }: { adminName: string }) {
     { value: "coaches", label: "مربی‌ها و ورزشکاران", icon: "Users" },
     { value: "users", label: "مدیریت حساب‌ها", icon: "UserPlus" },
     { value: "moderation", label: "محتوا", icon: "ShieldCheck" },
+    { value: "ai", label: "هوش مصنوعی", icon: "Sparkles" },
   ];
   const metrics = [
     { label: "ورزشکاران", count: athletes, icon: "Users", hint: "حساب ورزشکار" },
@@ -108,7 +111,7 @@ export function AdminConsoleView({ adminName }: { adminName: string }) {
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="mt-5 px-4 lg:px-8">
-        <TabsList className="mb-5 grid h-auto w-full grid-cols-2 gap-1.5 rounded-2xl border border-border bg-surface-1 p-1.5 sm:grid-cols-4">
+        <TabsList className="mb-5 grid h-auto w-full grid-cols-2 gap-1.5 rounded-2xl border border-border bg-surface-1 p-1.5 sm:grid-cols-5">
           {humanNav.map((item) => (
             <TabsTrigger
               key={item.value} value={item.value}
@@ -214,6 +217,7 @@ export function AdminConsoleView({ adminName }: { adminName: string }) {
           )}
         </TabsContent>
 
+        <TabsContent value="ai"><AiManagementTab /></TabsContent>
         <TabsContent value="coaches"><CoachAssignmentsTab /></TabsContent>
         <TabsContent value="users"><UsersTab /></TabsContent>
         <TabsContent value="moderation"><ModerationTab /></TabsContent>

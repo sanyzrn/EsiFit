@@ -78,7 +78,7 @@ export async function DELETE(req: Request) {
         const link = await db.coachClient.findUnique({
           where: { coachId_athleteId: { coachId: session.id, athleteId: post.userId } },
         });
-        if (!link) {
+        if (!link || link.status !== "active") {
           return NextResponse.json({ ok: false, code: "authorization" }, { status: 403 });
         }
       }
@@ -102,7 +102,7 @@ export async function DELETE(req: Request) {
       const link = await db.coachClient.findUnique({
         where: { coachId_athleteId: { coachId: session.id, athleteId: comment.userId } },
       });
-      if (!link) return NextResponse.json({ ok: false, code: "authorization" }, { status: 403 });
+      if (!link || link.status !== "active") return NextResponse.json({ ok: false, code: "authorization" }, { status: 403 });
     }
 
     await db.comment.delete({ where: { id } });
