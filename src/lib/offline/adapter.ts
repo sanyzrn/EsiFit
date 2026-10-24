@@ -259,6 +259,14 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
  * previous user's unsynced sets and read their cached dashboard.
  */
 export async function clearLocalUserData(): Promise<void> {
+  // Clear both stores before deleting the database: another open tab can block
+  // deleteDatabase, but must never preserve the previous user's private data.
+  try {
+    await tx<undefined>(STORE_OPS, "readwrite", (store) => store.clear() as IDBRequest<undefined>);
+    await tx<undefined>(STORE_CACHE, "readwrite", (store) => store.clear() as IDBRequest<undefined>);
+  } catch {
+    // No IndexedDB in private browsing; continue with best-effort cleanup.
+  }
   try {
     if (dbPromise) {
       const db = await dbPromise;

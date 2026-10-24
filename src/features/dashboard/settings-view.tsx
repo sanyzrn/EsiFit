@@ -12,7 +12,7 @@ import { useSession } from "@/lib/client/use-session";
 import { TIER_LABELS, getEntitlements, type UserTier } from "@/lib/entitlements/entitlements";
 import { toPersianDigits, parseLocaleNumber } from "@/lib/formatting/numbers";
 import { formatRelative } from "@/lib/dates/jalali";
-import { clearLocalUserData, syncQueue, getQueuedOperations } from "@/lib/offline/adapter";
+import { clearLocalUserData, getQueuedOperations } from "@/lib/offline/adapter";
 import { EQUIPMENT_KEYS, EQUIPMENT_LABEL_FA } from "@/lib/workout/equipment";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +29,7 @@ export function SettingsView({
   const { toast } = useToast();
   const [reducedMotion, setReducedMotion] = React.useState(false);
   const [confirmingDelete, setConfirmingDelete] = React.useState(false);
+  const [loggingOut, setLoggingOut] = React.useState(false);
   const memberAccount = session.role === "member";
   const ent = getEntitlements(session.tier as UserTier);
 
@@ -48,25 +49,37 @@ export function SettingsView({
   };
 
   const logout = async () => {
-    // Best-effort flush: never destroy unsynced workout/water data silently.
+    if (loggingOut) return;
+    setLoggingOut(true);
     try {
-      await syncQueue();
+      // Never wait indefinitely for a queue flush before allowing sign-out.
+      // Unsynced records remain local until the user explicitly agrees to discard them.
       const remaining = await getQueuedOperations();
-      if (remaining.length > 0) {
-        const proceed = window.confirm(
-          "خروج داده‌های همگام‌نشده را از این دستگاه حذف می‌کند. ادامه می‌دهید؟",
-        );
-        if (!proceed) return;
+      if (remaining.length > 0 && !window.confirm(
+        `شما ${remaining.length} مورد همگام‌نشده دارید. با خروج، این داده‌ها از این دستگاه حذف می‌شوند. ادامه می‌دهید؟`,
+      )) return;
+
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        throw new Error("خروج در سرور انجام نشد. لطفاً دوباره تلاش کنید.");
       }
-    } catch {
-      // sync unavailable — still allow logout
+      // Purge old offline records, then replace the entire document to discard
+      // React session state, router caches, and personalized in-memory pages.
+      await clearLocalUserData();
+      window.location.replace("/auth/login");
+    } catch (error) {
+      toast({
+        title: "خروج ناموفق بود",
+        description: errorMessage(error),
+        variant: "destructive",
+      });
+    } finally {
+      setLoggingOut(false);
     }
-    await fetch("/api/auth/logout", { method: "POST" });
-    // Server-side revocation is not enough: the offline queue, the read-through
-    // cache and the cached pages live on this device and must go with it.
-    await clearLocalUserData();
-    router.push("/");
-    router.refresh();
   };
 
   const exportData = async () => {
@@ -147,9 +160,9 @@ export function SettingsView({
               تنظیمات هویتی و دسترسی‌های حساس، فقط از جریان‌های مدیریت مجاز تغییر می‌کنند.
             </p>
           </section>
-          <Button variant="secondary" className="h-12 w-full" onClick={() => void logout()}>
+          <Button variant="secondary" className="h-12 w-full" onClick={() => void logout()} disabled={loggingOut}>
             <Icon name="LogOut" size={17} />
-            خروج از حساب
+            {loggingOut ? "در حال خروج…" : "خروج از حساب"}
           </Button>
         </div>
       </div>
@@ -251,9 +264,9 @@ export function SettingsView({
           </div>
         </section>
 
-        <Button variant="secondary" className="w-full h-12" onClick={() => void logout()}>
+        <Button variant="secondary" className="w-full h-12" onClick={() => void logout()} disabled={loggingOut}>
           <Icon name="LogOut" size={17} />
-          خروج از حساب
+          {loggingOut ? "در حال خروج…" : "خروج از حساب"}
         </Button>
 
         <p className="text-center text-[10px] text-esi-text-muted">اسی‌فیت نسخه ۱٫۰ — ساخته‌شده با Next.js و PWA</p>
