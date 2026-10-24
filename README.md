@@ -121,6 +121,10 @@ bunx tsc --noEmit   # تایپ‌چک کامل (strict)
 
 ## انتشار کنترل‌شده
 
+**نکته Build:** دستور `npm run build` ابتدا `prisma generate` را اجرا می‌کند تا مدل‌های دیتابیس (از جمله مربی AI) در محیط مستقل Vercel نیز موجود باشند. موفقیت CI تنها وقتی قابل اتکا برای انتشار است که همین مرحله در Build پلتفرم هم اجرا شود.
+
+
+
 `vercel.json` با `git.deploymentEnabled: false` مانع Deployment خودکار Push و Merge می‌شود؛ GitHub Actions Build و تست‌ها را همچنان اجرا می‌کند. پس از تجمیع تغییرات، یک انتشار Production از **آخرین SHA شاخه `main`** در پنل Vercel بسازید (نه Redeploy یک نسخه قدیمی). تا زمانی که وضعیت READY و SHA همسان نشده، وب‌سایت نسخه قبلی را نمایش می‌دهد. [راهنمای دقیق](docs/DEPLOYMENT_WORKFLOW.md).
 
 ## نکات تولید
