@@ -30,19 +30,21 @@ export const MEMBER_NAV: NavItem[] = [
   { href: "/achievements", label: "دستاوردها", icon: "Trophy", flag: "GAMIFICATION" },
   { href: "/community", label: "انجمن", icon: "Users", flag: "COMMUNITY", mobile: true },
   { href: "/store", label: "فروشگاه", icon: "ShoppingBag", flag: "SHOP" },
-  { href: "/ai", label: "دستیار هوشمند", icon: "Sparkles", flag: "AI_CHAT" },
+  { href: "/ai", label: "همپا، دستیار هوشمند", icon: "Sparkles", flag: "AI_CHAT" },
   { href: "/notifications", label: "اعلان‌ها", icon: "Bell", flag: "NOTIFICATIONS" },
   { href: "/settings", label: "حساب من", icon: "User" },
 ];
 
 export const COACH_NAV: NavItem[] = [
   { href: "/coach", label: "ورزشکاران", icon: "ClipboardList", mobile: true },
+  { href: "/ai", label: "همپا", icon: "Sparkles", flag: "AI_CHAT", mobile: true },
   { href: "/notifications", label: "اعلان‌ها", icon: "Bell", mobile: true },
   { href: "/settings", label: "حساب من", icon: "User", mobile: true },
 ];
 
 export const ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "مدیریت", icon: "Shield", mobile: true },
+  { href: "/ai", label: "همپا", icon: "Sparkles", flag: "AI_CHAT", mobile: true },
   { href: "/notifications", label: "اعلان‌ها", icon: "Bell", mobile: true },
   { href: "/settings", label: "حساب من", icon: "User", mobile: true },
 ];

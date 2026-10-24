@@ -18,6 +18,7 @@ export const TIER_LABELS: Record<UserTier, string> = {
 export type Entitlements = {
   tier: UserTier;
   /** AI assistant messages per rolling day. */
+  /** Legacy tier allowance; effective assistant access/limits come from AiGrant. */
   aiMessagesPerDay: number;
   /** Months of workout/nutrition history retained in views. */
   historyMonths: number;

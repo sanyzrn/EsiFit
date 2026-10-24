@@ -2,89 +2,89 @@ import "server-only";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors/app-error";
 import { todayISO } from "@/lib/dates/jalali";
-import { randomUUID } from "crypto";
-
-/**
- * Atomic AI daily-quota reservation (concurrency-safe without Redis).
- *
- * A slot is claimed by inserting a `pending` AiUsageLog row only when the
- * current success+pending count for the user-local day is still under the
- * limit — done in a single INSERT…SELECT so parallel requests cannot both
- * observe "under limit" and both insert.
- *
- * Pending rows older than PENDING_TTL_MS are ignored (crash recovery).
- * Provider failure must call releaseAiQuotaSlot so the slot frees immediately.
- */
+import { randomUUID } from "node:crypto";
+import type { Prisma } from "@prisma/client";
 
 const PENDING_TTL_MS = 5 * 60 * 1000;
-
 export type QuotaClaim =
   | { ok: true; requestId: string; dayKey: string; used: number; limit: number }
   | { ok: false; used: number; limit: number };
-
-export function newQuotaRequestId(): string {
-  return `aiq-${randomUUID()}`;
+export const newQuotaRequestId = () => `aiq-${randomUUID()}`;
+function usageWhere(
+  userId: string,
+  timezone: string,
+  monthly = false,
+): Prisma.AiUsageLogWhereInput {
+  const today = todayISO(timezone);
+  const start = monthly ? `${today.slice(0, 7)}-01` : today;
+  return {
+    userId,
+    OR: [
+      { dayKey: { gte: start, lte: today }, status: "success" },
+      {
+        dayKey: { gte: start, lte: today },
+        status: "pending",
+        createdAt: { gt: new Date(Date.now() - PENDING_TTL_MS) },
+      },
+      {
+        dayKey: "",
+        status: "success",
+        createdAt: { gte: new Date(`${start}T00:00:00Z`) },
+      },
+    ],
+  };
 }
 
+/** Serialize reservations per user. INSERT…SELECT alone does not serialize concurrent snapshots. */
 export async function claimAiQuotaSlot(params: {
   userId: string;
   timezone: string;
   limit: number;
+  monthlyLimit?: number;
   requestId?: string;
   conversationId?: string | null;
+  provider?: string;
+  model?: string;
 }): Promise<QuotaClaim> {
-  const { userId, timezone, limit } = params;
   const requestId = params.requestId ?? newQuotaRequestId();
-  const dayKey = todayISO(timezone);
-  const pendingBefore = new Date(Date.now() - PENDING_TTL_MS);
-
-  // Single-statement conditional insert: count includes this day's successes
-  // and live pending reservations; stale pendings are free.
-  const inserted = await db.$executeRaw`
-    INSERT INTO "AiUsageLog" (
-      "id", "userId", "conversationId", "provider", "model",
-      "status", "dayKey", "requestId", "createdAt"
+  const dayKey = todayISO(params.timezone);
+  return db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`ai-quota:${params.userId}`}, 0))`;
+    const used = await tx.aiUsageLog.count({
+      where: usageWhere(params.userId, params.timezone),
+    });
+    const existing = await tx.aiUsageLog.findUnique({ where: { requestId } });
+    if (existing) {
+      return existing.userId === params.userId && existing.status === "pending"
+        ? { ok: true, requestId, dayKey, used, limit: params.limit }
+        : { ok: false, used, limit: params.limit };
+    }
+    const monthUsed =
+      params.monthlyLimit == null
+        ? 0
+        : await tx.aiUsageLog.count({
+            where: usageWhere(params.userId, params.timezone, true),
+          });
+    if (
+      used >= params.limit ||
+      (params.monthlyLimit != null && monthUsed >= params.monthlyLimit)
     )
-    SELECT
-      ${requestId},
-      ${userId},
-      ${params.conversationId ?? null},
-      'z-ai',
-      'glm-4-flash',
-      'pending',
-      ${dayKey},
-      ${requestId},
-      NOW()
-    WHERE (
-      SELECT COUNT(*)::int
-      FROM "AiUsageLog" u
-      WHERE u."userId" = ${userId}
-        AND (
-          (u."dayKey" = ${dayKey} AND u."status" = 'success')
-          OR (u."dayKey" = ${dayKey} AND u."status" = 'pending' AND u."createdAt" > ${pendingBefore})
-          OR (u."dayKey" = '' AND u."status" = 'success' AND u."createdAt" >= ${new Date(`${dayKey}T00:00:00.000Z`)})
-        )
-    ) < ${limit}
-  `;
-
-  if (inserted >= 1) {
-    const used = await countAiQuotaUsage(userId, timezone);
-    return { ok: true, requestId, dayKey, used, limit };
-  }
-
-  // Unique requestId collision (rare retry of same id) still counts as claimed
-  // only if our pending row exists.
-  const existing = await db.aiUsageLog.findUnique({ where: { requestId } });
-  if (existing && existing.userId === userId && existing.status === "pending") {
-    const used = await countAiQuotaUsage(userId, timezone);
-    return { ok: true, requestId, dayKey, used, limit };
-  }
-
-  const used = await countAiQuotaUsage(userId, timezone);
-  return { ok: false, used, limit };
+      return { ok: false, used, limit: params.limit };
+    await tx.aiUsageLog.create({
+      data: {
+        id: requestId,
+        requestId,
+        userId: params.userId,
+        dayKey,
+        status: "pending",
+        conversationId: params.conversationId,
+        provider: params.provider ?? "unconfigured",
+        model: params.model ?? "unconfigured",
+      },
+    });
+    return { ok: true, requestId, dayKey, used: used + 1, limit: params.limit };
+  });
 }
-
-/** Mark reservation as a successful billable completion. */
 export async function finalizeAiQuota(
   requestId: string,
   data: {
@@ -94,54 +94,34 @@ export async function finalizeAiQuota(
     totalTokens?: number;
     latencyMs?: number;
   },
-): Promise<void> {
+) {
   await db.aiUsageLog.updateMany({
     where: { requestId, status: "pending" },
-    data: {
-      status: "success",
-      conversationId: data.conversationId ?? undefined,
-      promptTokens: data.promptTokens ?? 0,
-      completionTokens: data.completionTokens ?? 0,
-      totalTokens: data.totalTokens ?? 0,
-      latencyMs: data.latencyMs ?? 0,
-    },
+    data: { status: "success", ...data },
   });
 }
-
-/** Free the reserved slot after a provider/block failure. */
 export async function releaseAiQuotaSlot(
   requestId: string,
   status: "failed" | "blocked" = "failed",
-): Promise<void> {
+) {
   await db.aiUsageLog.updateMany({
     where: { requestId, status: "pending" },
     data: { status },
   });
 }
-
-/** Current billable usage for the user-local day (success + live pending). */
-export async function countAiQuotaUsage(userId: string, timezone: string): Promise<number> {
-  const dayKey = todayISO(timezone);
-  const pendingBefore = new Date(Date.now() - PENDING_TTL_MS);
-  const rows = await db.aiUsageLog.findMany({
-    where: {
-      userId,
-      OR: [
-        { dayKey, status: "success" },
-        { dayKey, status: "pending", createdAt: { gt: pendingBefore } },
-        { dayKey: "", status: "success", createdAt: { gte: new Date(`${dayKey}T00:00:00.000Z`) } },
-      ],
-    },
-    select: { id: true },
-  });
-  return rows.length;
+export async function countAiQuotaUsage(
+  userId: string,
+  timezone: string,
+  monthly = false,
+) {
+  return db.aiUsageLog.count({ where: usageWhere(userId, timezone, monthly) });
 }
-
-/** Throw AppError(quota) when the claim failed. */
-export function assertQuotaClaim(claim: QuotaClaim): asserts claim is Extract<QuotaClaim, { ok: true }> {
-  if (!claim.ok) {
+export function assertQuotaClaim(
+  claim: QuotaClaim,
+): asserts claim is Extract<QuotaClaim, { ok: true }> {
+  if (!claim.ok)
     throw new AppError("quota", {
-      userMessage: `سهمیه روزانه (${claim.limit} پیام) تمام شده است. با ارتقای پلن سهمیه بیشتری بگیرید.`,
+      userMessage:
+        "سهمیه روزانه یا ماهانهٔ همپا تمام شده است. برای تغییر سهمیه با مدیر تماس بگیرید.",
     });
-  }
 }

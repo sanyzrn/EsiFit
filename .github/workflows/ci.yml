@@ -65,7 +65,7 @@ jobs:
         run: npx prisma generate
 
       - name: Essential tests (unit, authentication, roles)
-        run: npx vitest run tests/unit tests/api/auth.test.ts tests/api/roles.test.ts tests/api/community.test.ts
+        run: npx vitest run tests/unit tests/api/auth.test.ts tests/api/roles.test.ts tests/api/community.test.ts tests/api/ai.test.ts
 
       - name: Production build and type check
         run: npm run build

@@ -1,170 +1,262 @@
-import { NextRequest, NextResponse } from "next/server";
-import { appErrorResponse } from "@/lib/errors/respond";
-import ZAI from "z-ai-web-dev-sdk";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { generateText, isStepCount } from "ai";
 import { getSessionUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors/app-error";
-import { getEntitlements, type UserTier } from "@/lib/entitlements/entitlements";
-import { z } from "zod";
-import { formatJalaliNumeric, todayISO } from "@/lib/dates/jalali";
+import { appErrorResponse } from "@/lib/errors/respond";
+import { getAiAccess } from "@/lib/ai/access";
+import { configuredModel } from "@/lib/ai/provider";
+import { assistantPrompt } from "@/lib/ai/prompt";
+import { assistantTools } from "@/lib/ai/actions";
 import {
-  assertQuotaClaim,
   claimAiQuotaSlot,
+  countAiQuotaUsage,
+  assertQuotaClaim,
   finalizeAiQuota,
-  newQuotaRequestId,
   releaseAiQuotaSlot,
 } from "@/lib/ai/quota";
 
-/**
- * AI assistant — provider-agnostic server adapter.
- * Quota is claimed atomically (pending reservation) before the provider call,
- * then finalized on success or released on failure. Concurrent requests cannot
- * exceed the tier daily limit.
- */
+export const maxDuration = 60;
+const bodySchema = z
+  .object({
+    conversationId: z.string().optional(),
+    providerId: z.string().optional(),
+    message: z.string().trim().min(1).max(1200),
+  })
+  .strict();
+const actionSelect = {
+  id: true,
+  preview: true,
+  status: true,
+  expiresAt: true,
+  resultJson: true,
+} as const;
 
-const schema = z.object({
-  conversationId: z.string().optional(),
-  message: z.string().min(1).max(1200),
-});
-
-const SYSTEM_PROMPT = `تو «مربی اسی‌فیت» هستی — دستیار هوشمند یک اپلیکیشن فارسی تناسب اندام.
-قوانین پاسخ:
-- همیشه فقط به زبان فارسی روان پاسخ بده.
-- کوتاه، کاربردی و ساختارمند پاسخ بده (حداکثر ۱۸۰ کلمه مگر کاربر جزئیات بخواهد).
-- ایمنی اول است: هرگز تشخیص پزشکی نده، دارو تجویز نکن و درد را جدی بگیر. اگر کاربر از درد تیز، سرگیجه، درد قفسه سینه یا تورم گفت، تمرین را متوقف و مراجعه به پزشک را توصیه کن.
-- برای رژیم خاص (بارداری، دیابت، بیماری کلیوی، اختلال خوردن، سن زیر ۱۸) توصیه کن با متخصص مشورت کند.
-- وعده قطعی نده: «کمک می‌کند» درست است، «تضمین می‌شود» نادرست.
-- برنامه تمرینی که پیشنهاد می‌دهی ساختار مشخص داشته باشد (حرکت، ست، تکرار، استراحت).
-- اعداد را با ارقام فارسی بنویس.`;
-
-export async function POST(req: NextRequest) {
-  const startedAt = Date.now();
-  const requestId = newQuotaRequestId();
-  let reserved = false;
+export async function GET(req: Request) {
   try {
-    const session = await getSessionUser();
-    if (session && session.role !== "member") return NextResponse.json({ ok: false, code: "authorization", message: "این بخش مخصوص ورزشکاران است." }, { status: 403 });
-    if (!session) {
-      return NextResponse.json({ ok: false, code: "authentication", message: "برای گفتگو با دستیار هوشمند وارد شوید." }, { status: 401 });
+    const actor = await getSessionUser();
+    if (!actor) throw new AppError("authentication");
+    let access;
+    try {
+      access = await getAiAccess(actor);
+    } catch (error) {
+      if (error instanceof AppError)
+        return NextResponse.json({
+          ok: true,
+          available: false,
+          reason: error.userMessage,
+          conversations: [],
+          messages: [],
+          actions: [],
+          providers: [],
+        });
+      throw error;
     }
+    const conversations = await db.aiConversation.findMany({
+      where: { userId: actor.id, contextType: `hampa:${actor.role}` },
+      orderBy: { updatedAt: "desc" },
+      take: 30,
+      select: { id: true, title: true },
+    });
+    const selected = new URL(req.url).searchParams.get("conversationId");
+    const conversation = conversations.find((item) => item.id === selected);
+    if (selected && !conversation) throw new AppError("not_found");
+    const [messages, actions, used, monthUsed, providers] = await Promise.all([
+      conversation
+        ? db.aiMessage.findMany({
+            where: { conversationId: conversation.id },
+            orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+            take: 60,
+            select: { id: true, role: true, content: true, status: true },
+          })
+        : [],
+      conversation
+        ? db.aiAction.findMany({
+            where: { actorId: actor.id, conversationId: conversation.id },
+            orderBy: { createdAt: "asc" },
+            select: actionSelect,
+          })
+        : [],
+      countAiQuotaUsage(actor.id, actor.timezone),
+      countAiQuotaUsage(actor.id, actor.timezone, true),
+      actor.role === "admin"
+        ? db.aiProvider.findMany({
+            where: { enabled: true },
+            select: { id: true, label: true },
+          })
+        : [],
+    ]);
+    return NextResponse.json({
+      ok: true,
+      available: true,
+      conversations,
+      conversationId: conversation?.id,
+      messages: messages.reverse(),
+      actions,
+      provider: { id: access.provider.id, label: access.provider.label },
+      providers,
+      quota: {
+        used,
+        limit: access.dailyLimit,
+        monthUsed,
+        monthlyLimit: access.monthlyLimit,
+      },
+    });
+  } catch (error) {
+    return appErrorResponse(error);
+  }
+}
 
-    const body = schema.parse(await req.json());
-
-    // ---- Atomic quota claim (server-side entitlement) ----
-    const ent = getEntitlements(session.tier as UserTier);
+export async function POST(req: Request) {
+  let requestId: string | undefined;
+  let conversationId: string | undefined;
+  let userMessageId: string | undefined;
+  try {
+    const actor = await getSessionUser();
+    if (!actor) throw new AppError("authentication");
+    const body = bodySchema.parse(await req.json());
+    const access = await getAiAccess(actor, body.providerId);
+    if (body.conversationId) {
+      const conversation = await db.aiConversation.findFirst({
+        where: {
+          id: body.conversationId,
+          userId: actor.id,
+          contextType: `hampa:${actor.role}`,
+        },
+      });
+      if (!conversation) throw new AppError("not_found");
+      conversationId = conversation.id;
+    }
     const claim = await claimAiQuotaSlot({
-      userId: session.id,
-      timezone: session.timezone,
-      limit: ent.aiMessagesPerDay,
-      requestId,
+      userId: actor.id,
+      timezone: actor.timezone,
+      limit: access.dailyLimit,
+      monthlyLimit: access.monthlyLimit,
+      provider: access.provider.id,
+      model: access.provider.model,
+      conversationId,
     });
     assertQuotaClaim(claim);
-    reserved = true;
-
-    // ---- Conversation ----
-    let conversationId = body.conversationId;
-    if (conversationId) {
-      const conv = await db.aiConversation.findUnique({ where: { id: conversationId } });
-      if (!conv || conv.userId !== session.id) conversationId = undefined;
-    }
+    requestId = claim.requestId;
     if (!conversationId) {
-      const conv = await db.aiConversation.create({
-        data: { userId: session.id, title: body.message.slice(0, 40), contextType: "general" },
+      const conversation = await db.aiConversation.create({
+        data: {
+          userId: actor.id,
+          contextType: `hampa:${actor.role}`,
+          title: body.message.slice(0, 50),
+        },
       });
-      conversationId = conv.id;
+      conversationId = conversation.id;
     }
-
-    // Bind reservation to the conversation for audit.
-    await db.aiUsageLog.updateMany({
-      where: { requestId, status: "pending" },
+    await db.aiUsageLog.update({
+      where: { requestId },
       data: { conversationId },
     });
-
     const userMessage = await db.aiMessage.create({
-      data: { conversationId, role: "user", content: body.message, status: "complete" },
+      data: { conversationId, role: "user", content: body.message },
     });
-
-    // ---- Context: brief member snapshot (deterministic data, not AI truth) ----
-    const today = todayISO(session.timezone);
-    const [profile, recentSessions, latestWeight] = await Promise.all([
-      db.userProfile.findUnique({ where: { userId: session.id } }),
-      db.workoutSession.findMany({
-        where: { userId: session.id, status: "completed" },
-        orderBy: { startedAt: "desc" },
-        take: 3,
-        select: { name: true, totalVolumeKg: true, startedAt: true },
-      }),
-      db.bodyMeasurement.findFirst({ where: { userId: session.id, weightKg: { not: null } }, orderBy: { measuredOn: "desc" } }),
-    ]);
-    const contextLines = [
-      `امروز: ${formatJalaliNumeric(new Date())}`,
-      profile?.heightCm ? `قد کاربر: ${profile.heightCm} سانتی‌متر` : null,
-      latestWeight?.weightKg ? `وزن ثبت‌شده اخیر: ${latestWeight.weightKg} کیلوگرم` : null,
-      profile?.primaryGoal ? `هدف: ${profile.primaryGoal === "build_muscle" ? "عضله‌سازی" : profile.primaryGoal === "lose_weight" ? "کاهش وزن" : profile.primaryGoal === "endurance" ? "استقامت" : profile.primaryGoal === "recomp" ? "ریکامپ" : "سلامت عمومی"}` : null,
-      profile?.experienceLevel ? `سطح تجربه: ${profile.experienceLevel === "beginner" ? "مبتدی" : profile.experienceLevel === "intermediate" ? "متوسط" : "پیشرفته"}` : null,
-      recentSessions.length ? `سه تمرین اخیر: ${recentSessions.map((s) => s.name).join("، ")}` : null,
-    ].filter(Boolean);
-    const deepContext = ent.aiDeepContext ? contextLines.join("\n") : "";
-
-    // ---- Provider call (server-only adapter) ----
+    userMessageId = userMessage.id;
     const history = await db.aiMessage.findMany({
-      where: { conversationId },
-      orderBy: { createdAt: "desc" },
-      take: 8,
-      select: { role: true, content: true },
+      where: {
+        conversationId,
+        status: "complete",
+        role: { in: ["user", "assistant"] },
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: 12,
     });
-    const messages = [
-      { role: "system" as const, content: SYSTEM_PROMPT },
-      ...(deepContext ? [{ role: "system" as const, content: `زمینه کاربر:\n${deepContext}` }] : []),
-      ...history
-        .reverse()
-        .filter((m) => m.role === "user" || m.role === "assistant")
-        .map((m) => ({
-          role: m.role === "user" ? ("user" as const) : ("assistant" as const),
-          content: m.content,
-        })),
-    ];
-
-    const zai = await ZAI.create();
-    let assistantText = "";
+    const startedAt = Date.now();
+    let result;
     try {
-      const completion = await zai.chat.completions.create({
-        messages,
-        thinking: { type: "disabled" },
+      result = await generateText({
+        model: configuredModel(access.provider),
+        system: assistantPrompt(actor),
+        messages: history
+          .reverse()
+          .map((message) => ({
+            role: message.role as "user" | "assistant",
+            content: message.content,
+          })),
+        tools: assistantTools(actor, conversationId, requestId),
+        stopWhen: isStepCount(4),
+        maxOutputTokens: 1800,
+        maxRetries: 0,
+        abortSignal: AbortSignal.timeout(45000),
       });
-      assistantText = completion.choices[0]?.message?.content ?? "";
-    } catch (providerError) {
-      await releaseAiQuotaSlot(requestId, "failed");
-      reserved = false;
-      await db.aiMessage.create({
-        data: { conversationId, role: "system_notice", content: "پاسخ هوشمند موقتاً در دسترس نیست.", status: "failed" },
+    } catch {
+      throw new AppError("provider", {
+        userMessage:
+          "ارتباط همپا با مدل کامل نشد. سهمیه مصرف نشد؛ کمی بعد دوباره تلاش کنید.",
       });
-      throw new AppError("provider", { userMessage: "دستیار موقتاً در دسترس نیست. چند لحظه دیگر تلاش کنید.", cause: providerError });
     }
-
-    const assistantMessage = await db.aiMessage.create({
-      data: { conversationId, role: "assistant", content: assistantText, status: "complete" },
+    const actions = await db.aiAction.findMany({
+      where: {
+        actorId: actor.id,
+        conversationId,
+        requestId,
+        status: "pending",
+      },
+      select: actionSelect,
+      take: 3,
     });
-
+    const content =
+      result.text.trim() ||
+      (actions.length
+        ? "پیشنهاد زیر آمادهٔ بررسی شماست. هنوز تغییری اجرا نشده است."
+        : "پاسخ متنی آماده نشد. لطفاً درخواست را کوتاه‌تر و مشخص‌تر بنویسید.");
+    if (!result.text.trim() && !actions.length)
+      throw new AppError("provider", {
+        userMessage: "مدل پاسخ قابل استفاده نداد؛ سهمیه مصرف نشد.",
+      });
+    const message = await db.aiMessage.create({
+      data: {
+        conversationId,
+        role: "assistant",
+        content: content.slice(0, 16000),
+      },
+    });
+    await db.aiConversation.update({
+      where: { id: conversationId },
+      data: { updatedAt: new Date() },
+    });
     await finalizeAiQuota(requestId, {
       conversationId,
-      promptTokens: Math.round(body.message.length / 3),
-      completionTokens: Math.round(assistantText.length / 3),
-      totalTokens: Math.round((body.message.length + assistantText.length) / 3),
       latencyMs: Date.now() - startedAt,
+      promptTokens: result.totalUsage.inputTokens ?? 0,
+      completionTokens: result.totalUsage.outputTokens ?? 0,
+      totalTokens: result.totalUsage.totalTokens ?? 0,
     });
-    reserved = false;
-
     return NextResponse.json({
       ok: true,
       conversationId,
       userMessageId: userMessage.id,
-      message: { id: assistantMessage.id, content: assistantText },
-      quota: { used: claim.used, limit: ent.aiMessagesPerDay },
+      message: { id: message.id, content: message.content },
+      actions,
+      quota: {
+        used: claim.used,
+        limit: access.dailyLimit,
+        monthUsed: await countAiQuotaUsage(actor.id, actor.timezone, true),
+        monthlyLimit: access.monthlyLimit,
+      },
     });
   } catch (error) {
-    if (reserved) {
-      await releaseAiQuotaSlot(requestId, "failed").catch(() => undefined);
+    if (userMessageId)
+      await db.aiMessage
+        .updateMany({
+          where: { id: userMessageId },
+          data: { status: "failed" },
+        })
+        .catch(() => {});
+    if (requestId) await releaseAiQuotaSlot(requestId).catch(() => {});
+    if (conversationId && requestId) {
+      // A failed provider may already have proposed a change. Never leave such a proposal actionable.
+      await db.aiAction
+        .updateMany({
+          where: { conversationId, requestId, status: "pending" },
+          data: { status: "cancelled" },
+        })
+        .catch(() => {});
     }
     return appErrorResponse(error);
   }

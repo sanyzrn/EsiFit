@@ -77,7 +77,7 @@ export const FLAG_REGISTRY: Record<FeatureFlag, FeatureFlagConfig> = {
   SHOP: { label: "فروشگاه", default: true },
   NOTIFICATIONS: { label: "اعلان‌ها", default: true },
   WEEKLY_RECAP: { label: "گزارش هفتگی", default: true, dependsOn: ["ANALYTICS"] },
-  AI_CHAT: { label: "دستیار هوشمند", default: true, requiresMember: true },
+  AI_CHAT: { label: "همپا، دستیار اسی‌فیت", default: true },
   AI_INSIGHTS: { label: "بینش‌های هوشمند", default: true, requiresMember: true },
   AI_PROVIDER_SWITCHING: { label: "سوییچ ارائه‌دهنده AI", default: false },
   LIVE_WORKOUT_MODE: { label: "حالت تمرین زنده", default: true, dependsOn: ["WORKOUTS"] },

@@ -15,7 +15,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       const link = await db.coachClient.findUnique({
         where: { coachId_athleteId: { coachId: session.id, athleteId: id } },
       });
-      if (!link) {
+      if (!link || link.status !== "active") {
         return NextResponse.json(
           { ok: false, code: "authorization", message: "این ورزشکار در فهرست شما نیست." },
           { status: 403 },
