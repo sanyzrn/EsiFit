@@ -45,7 +45,7 @@ export function DayFlow() {
       {/* spine */}
       <div aria-hidden className="absolute inset-y-2 start-[27px] w-px bg-border">
         <motion.div
-          className="absolute inset-0 origin-top bg-gradient-to-b from-turquoise to-primary shadow-[0_0_12px_var(--primary)]"
+          className="absolute inset-0 origin-top bg-primary"
           style={reduce ? undefined : { scaleY }}
         />
       </div>
