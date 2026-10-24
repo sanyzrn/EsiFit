@@ -1,11 +1,11 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { DEFAULT_TIMEZONE, daysBetweenISO, todayISO } from "@/lib/dates/jalali";
+import { formatWorkoutDayTitle, PLAN_TEMPLATE_LABELS } from "@/lib/workout/plan-titles";
 
 /**
  * Starter plan templates — attached to every new account so the dashboard
- * always has "today's workout". Structure follows the classic push/pull/legs
- * split, 3 training days + active rest, 4-week block.
+ * always has "today's workout". Three training days + active rest, 4-week block.
  */
 
 type PlannedSpec = {
@@ -73,12 +73,9 @@ const PPL_TEMPLATE: DaySpec[] = [
 ];
 
 /** Coach assignment templates (roadmap: coach plan tools). */
-export type PlanTemplateKey = "ppl" | "upper_lower";
+export type PlanTemplateKey = keyof typeof PLAN_TEMPLATE_LABELS;
 
-export const PLAN_TEMPLATE_FA: Record<PlanTemplateKey, string> = {
-  ppl: "پوش/پول/پا — ۳ روز",
-  upper_lower: "بالاتنه/پایین‌تنه — ۴ روز",
-};
+export const PLAN_TEMPLATE_FA: Record<PlanTemplateKey, string> = PLAN_TEMPLATE_LABELS;
 
 const UPPER_LOWER_TEMPLATE: DaySpec[] = [
   {
@@ -157,13 +154,13 @@ const UPPER_LOWER_TEMPLATE: DaySpec[] = [
 
 const TEMPLATES: Record<PlanTemplateKey, { name: string; description: string; days: DaySpec[] }> = {
   ppl: {
-    name: "برنامه شروع اسی‌فیت — پوش/پول/پا",
-    description: "برنامه سه‌روزه پایه با یک روز استراحت فعال؛ برای هفته‌های اول و آشنایی با فرم حرکات.",
+    name: "برنامه سه‌روزه اسی‌فیت",
+    description: "سه جلسه تمرین سینه و پشت، پا، سرشانه و بازو؛ به‌همراه ریکاوری فعال برای آشنایی با فرم حرکات.",
     days: PPL_TEMPLATE,
   },
   upper_lower: {
-    name: "بالاتنه/پایین‌تنه — ۴ روز",
-    description: "چهار روز تمرین با تفکیک بالاتنه/پایین‌تنه؛ مناسب هدف هیپرتروفی با پیوستگی بالا.",
+    name: "بالاتنه و پایین‌تنه — ۵ جلسه",
+    description: "پنج جلسه تمرین در چرخه هفت‌روزه با تفکیک بالاتنه/پایین‌تنه؛ شامل روزهای ریکاوری و استراحت.",
     days: UPPER_LOWER_TEMPLATE,
   },
 };
@@ -267,7 +264,7 @@ export async function createPlanFromTemplate(
             planId: plan.id,
             weekNumber,
             dayNumber: dayIdx + 1,
-            name: `${spec.name}${weekSuffix}`,
+            name: formatWorkoutDayTitle(`${spec.name}${weekSuffix}`),
             focusRegion: spec.focusRegion,
             isRestDay: Boolean(spec.isRest),
           },
@@ -327,7 +324,7 @@ export async function getTodayPlanDay(userId: string, timezone: string = DEFAULT
   const weekOne = plan.days.filter((d) => d.weekNumber === 1).sort((a, b) => a.dayNumber - b.dayNumber);
   if (weekOne.length === 0) {
     const any = [...plan.days].sort((a, b) => a.dayNumber - b.dayNumber);
-    return any[0];
+    return { ...any[0], name: formatWorkoutDayTitle(any[0].name) };
   }
 
   const cycleLen = weekOne.length;
@@ -336,9 +333,10 @@ export async function getTodayPlanDay(userId: string, timezone: string = DEFAULT
   const weekNumber = Math.min(plan.weeks || PLAN_WEEKS, Math.floor(elapsed / cycleLen) + 1);
   const dayNumber = (elapsed % cycleLen) + 1;
 
-  return (
+  const day = (
     plan.days.find((d) => d.weekNumber === weekNumber && d.dayNumber === dayNumber) ??
     plan.days.find((d) => d.weekNumber === 1 && d.dayNumber === dayNumber) ??
     weekOne[0]
   );
+  return { ...day, name: formatWorkoutDayTitle(day.name) };
 }
