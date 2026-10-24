@@ -47,8 +47,8 @@ export default async function LandingPage() {
       <section className="mx-auto max-w-6xl px-4 lg:px-8 py-24">
         <RevealOnScroll>
           <SectionHeader
-            title="یک محصول کامل، نه چند ابزار پراکنده"
-            description="هر بخش با بقیه صحبت می‌کند: تمرین شما آمادگی فردا را می‌سازد، آمادگی به تغذیه وصل است و همه‌چیز به تحلیل تبدیل می‌شود."
+            title="تمرین، تغذیه و پیشرفت؛ همه در یک جا"
+            description="برنامه تمرین، غذاها و نتیجه تلاش‌هایت کنار هم هستند تا راحت‌تر پیشرفتت را دنبال کنی."
           />
         </RevealOnScroll>
         <FeatureBento />
@@ -64,7 +64,7 @@ export default async function LandingPage() {
             <RevealOnScroll>
               <SectionHeader
                 title="یک روز با اسی‌فیت"
-                description="از اولین نگاه صبح تا جمع‌بندی آخر هفته — هر قدم، داده‌ای می‌سازد که قدم بعد را هوشمندتر می‌کند."
+                description="از برنامه امروز تا جمع‌بندی آخر هفته، ببین چقدر پیش رفته‌ای و قدم بعدی چیست."
               />
             </RevealOnScroll>
           </div>
@@ -76,8 +76,8 @@ export default async function LandingPage() {
       <section className="mx-auto max-w-6xl px-4 lg:px-8 py-24">
         <RevealOnScroll>
           <SectionHeader
-            title="اول حساب کن، بعد تصمیم بگیر"
-            description="همین حالا امتحان کن — بدون ثبت‌نام و بدون ذخیره‌ی هیچ داده‌ای. ثبت‌نام فقط برای تاریخچه و شخصی‌سازی است."
+            title="اول نتیجه را ببین، بعد تصمیم بگیر"
+            description="قد و وزنت را وارد کن و نتیجه را همان لحظه ببین. نیازی به ثبت‌نام نیست و چیزی ذخیره نمی‌شود."
           />
         </RevealOnScroll>
         <RevealOnScroll delay={0.1} className="mt-10">
@@ -90,8 +90,8 @@ export default async function LandingPage() {
         <section className="mx-auto max-w-6xl px-4 lg:px-8 pb-24">
           <RevealOnScroll>
             <SectionHeader
-              title="محتوای مبتنی بر شواهد، نه باور عامیانه"
-              description="هر ادعا به منبع گره خورده است. محتوای سلامت با مرور تخصصی منتشر می‌شود."
+              title="مطالب کاربردی درباره تمرین و تغذیه"
+              description="مقاله‌های آموزشی همراه با منبع، برای انتخاب‌های بهتر درباره تمرین و سلامت."
               action={
                 <Button asChild variant="secondary" size="sm">
                   <Link href="/blog">همه مقالات</Link>
@@ -125,14 +125,13 @@ export default async function LandingPage() {
             قدم اول رو بردار
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-sm leading-7 text-esi-text-secondary">
-            برنامه تمرین و تغذیه‌ات رو در یک جای ساده و منظم داشته باش؛ پیشرفت واقعی از ثبت قدم‌های کوچیک شروع می‌شه.
+            برنامه تمرین و تغذیه‌ات را یک‌جا داشته باش و پیشرفتت را قدم‌به‌قدم ببین.
           </p>
           <Button asChild size="lg" className="mt-6 min-h-12 px-8">
             <Link href={session ? "/dashboard" : "/auth/login"}>
               {session ? "رفتن به داشبورد" : "شروع رایگان"}
             </Link>
           </Button>
-          <p className="mt-3 text-xs text-esi-text-muted">بدون نیاز به کارت بانکی</p>
         </div>
       </section>
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ArrowUpLeft, Check, Dumbbell, Flame, HeartPulse } from "lucide-react";
+import { ArrowLeft, ArrowUpLeft, Dumbbell, Flame, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /** First-party campaign portrait supplied by the user; true alpha, no photo frame. */
@@ -29,7 +29,7 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
             className="esi-campaign-eyebrow inline-flex items-center gap-2.5 text-[11px] font-bold tracking-wide text-[var(--hero-muted)]"
           >
             <span aria-hidden="true" className="esi-campaign-signal" />
-            تجربه متفاوت تمرین، از همین‌جا
+            برنامه‌ریزی برای تمرین بهتر، از همین‌جا
             <span className="h-px w-7 bg-[var(--hero-hairline)]" aria-hidden="true" />
             <span dir="ltr" className="font-mono text-[10px] tracking-[0.19em]">EST. ESIFIT</span>
           </div>
@@ -41,16 +41,15 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
             <span className="esi-campaign-line">هر روز،</span>
             <span className="esi-campaign-line">
               <span className="esi-campaign-word">قوی‌تر</span>
-              <span className="esi-campaign-period" aria-hidden="true">.</span>
             </span>
-            <span className="esi-campaign-line esi-campaign-last-line">از دیروز.</span>
+            <span className="esi-campaign-line esi-campaign-last-line">از دیروز</span>
           </h1>
 
           <p
             className="esi-campaign-description text-sm leading-7 text-[var(--hero-muted)] sm:text-base sm:leading-8"
           >
-            برنامه تمرین، ثبت هوشمند ست‌ها و تغذیه در یک مسیر ساده.
-            اسی‌فیت کمکت می‌کند پیشرفتت را ببینی، نه فقط درباره‌اش فکر کنی.
+            برنامه تمرین، ثبت ست‌ها و تغذیه، همه در یک جا.
+            اسی‌فیت کمک می‌کند تمرین‌هایت را دنبال کنی و پیشرفتت را ببینی.
           </p>
 
           <div
@@ -76,12 +75,6 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
             </Button>
           </div>
 
-          <div
-            className="esi-campaign-trust flex items-center gap-2 text-[11px] text-[var(--hero-muted)]"
-          >
-            <Check size={15} className="text-[var(--hero-orange)]" aria-hidden="true" />
-            بدون کارت بانکی · با شماره موبایل
-          </div>
         </div>
 
         {/* Same cutout at every breakpoint; art stays separate from readable copy. */}

@@ -102,7 +102,7 @@ function MacroStudy() {
   const reduce = useReducedMotion();
   const rings = [
     { label: "پروتئین", pct: 0.82, color: "var(--lapis)" },
-    { label: "کربو", pct: 0.64, color: "var(--turquoise)" },
+    { label: "کربوهیدرات", pct: 0.64, color: "var(--turquoise)" },
     { label: "چربی", pct: 0.47, color: "var(--iris)" },
   ];
   const r = 26;
@@ -146,7 +146,7 @@ function ChatStudy() {
         امروز خیلی خسته‌ام، تمرین سبک‌تر بزنم؟
       </div>
       <div className="max-w-[88%] self-end rounded-2xl rounded-se-md bg-primary px-3.5 py-2 text-primary-foreground">
-        آمادگی‌ات ۶۲ است؛ حجم را ۲۰٪ کم کن و کیفیت اجرا را بالا نگه دار.
+        امتیاز آمادگی‌ات ۶۲ است. امروز ۲۰٪ کمتر تمرین کن و روی اجرای درست حرکت‌ها تمرکز کن.
       </div>
       <div className="flex w-14 items-center justify-center gap-1 self-start rounded-2xl bg-surface-3 py-2.5">
         {[0, 1, 2].map((i) => (
@@ -234,16 +234,16 @@ export function FeatureBento() {
     <div className="mt-12 grid gap-5 lg:grid-cols-12">
       <Tile
         className="lg:col-span-7"
-        title="حالت تمرین زنده"
-        text="ثبت هر ست در سه ثانیه، با تایمر استراحت و صفحه‌ای که حین تمرین حواس‌ات را پرت نمی‌کند. اینترنت قطع شد؟ هیچ ست و تکراری گم نمی‌شود."
+        title="ثبت تمرین، همان موقع"
+        text="وزنه و تکرار هر ست را همان موقع ثبت کن و زمان استراحتت را ببین. اگر اینترنت قطع شود، تمرینت ذخیره می‌ماند."
       >
         <LiveLogStudy />
       </Tile>
       <Tile
         className="lg:col-span-5"
         delay={0.06}
-        title="امتیاز آمادگی روزانه"
-        text="ترکیب شفاف خواب، بار تمرینی و پیوستگی — با توضیح اینکه هر عامل چقدر در عدد امروز نقش داشته."
+        title="آمادگی امروزت"
+        text="با توجه به خواب و تمرین‌های اخیرت، ببین امروز چقدر آماده‌ای و چه عواملی روی آن اثر گذاشته‌اند."
       >
         <div className="flex h-full items-center justify-center">
           <KhatamDial value={78} size={190} color="var(--turquoise)" label="نمونه امتیاز آمادگی ۷۸">
@@ -256,8 +256,8 @@ export function FeatureBento() {
       <Tile
         className="lg:col-span-4"
         delay={0.04}
-        title="تغذیه با غذای ایرانی"
-        text="از چلوکباب تا عدسی؛ مقدار سرو واقعی و حلقه‌هایی که همان لحظه پر می‌شوند."
+        title="ثبت آسان غذاهای ایرانی"
+        text="از عدسی تا چلوکباب، غذایت را ثبت کن و میزان پروتئین، کربوهیدرات و چربی روزانه را ببین."
       >
         <MacroStudy />
       </Tile>
@@ -265,7 +265,7 @@ export function FeatureBento() {
         className="lg:col-span-4"
         delay={0.1}
         title="نقشه حرارتی عضلات"
-        text="بدن‌ات نشان می‌دهد کدام عضله در ۳۰ روز گذشته کار شده و کدام فراموش شده است."
+        text="روی تصویر بدن ببین در ۳۰ روز گذشته کدام عضله‌ها را بیشتر تمرین داده‌ای."
       >
         <div className="flex h-full items-center justify-center">
           <MuscleBody mode="display" intensity={SAMPLE_HEAT} height={190} ariaLabel="نمونه نقشه حرارتی عضلات" />
@@ -275,23 +275,23 @@ export function FeatureBento() {
         className="lg:col-span-4"
         delay={0.16}
         title="دستیار هوشمند"
-        text="مربی فارسی‌زبان با سهمیه شفاف و خط‌قرمزهای ایمنی سلامت."
+        text="درباره حرکت‌ها، برنامه تمرین و تغذیه سؤال بپرس و راهنمایی بگیر."
       >
         <ChatStudy />
       </Tile>
       <Tile
         className="lg:col-span-6"
         delay={0.04}
-        title="گیمیفیکیشن بی‌ادعا"
-        text="امتیاز تجربه، نشان و ماموریت‌های روزانه که به خود تمرین وصل‌اند، نه به باز کردن قفل محتوای پولی."
+        title="تمرین کن، امتیاز بگیر"
+        text="با تمرین و انجام کارهای روزانه امتیاز جمع کن، نشان بگیر و پیشرفتت را ببین."
       >
         <XpStudy />
       </Tile>
       <Tile
         className="lg:col-span-6"
         delay={0.1}
-        title="ساخته‌شده برای باشگاه واقعی"
-        text="سیگنال ضعیف باشگاه مشکلی نیست: همه‌چیز اول روی گوشی‌ات ذخیره می‌شود و بعد، بی‌صدا همگام می‌شود."
+        title="تمرین بدون نگرانی از اینترنت"
+        text="تمرین‌هایت روی گوشی ذخیره می‌شوند و وقتی اینترنت وصل شد، خودکار به‌روز می‌شوند."
       >
         <OfflineStudy />
       </Tile>

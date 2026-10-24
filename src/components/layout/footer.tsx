@@ -6,7 +6,7 @@ const GROUPS = [
     title: "محصول",
     links: [
       { href: "/calculators", label: "ماشین‌حساب‌های تناسب اندام" },
-      { href: "/plans", label: "اشتراک و پلن‌ها" },
+      { href: "/plans", label: "اشتراک‌ها" },
       { href: "/store", label: "فروشگاه" },
       { href: "/ai", label: "دستیار هوشمند" },
     ],
@@ -38,8 +38,8 @@ export function Footer() {
           <div className="space-y-4">
             <BrandMark />
             <p className="text-sm leading-6 text-esi-text-secondary max-w-xs">
-              اسی‌فیت اکوسیستم جامع تناسب اندام فارسی است: تمرین حرفه‌ای، تغذیه دقیق، ریکاوری هوشمند
-              و تحلیل پیشرفت — همه در یک اپلیکیشن موبایل‌پسند.
+              اسی‌فیت یک برنامه فارسی برای ثبت تمرین، پیگیری تغذیه و دیدن پیشرفت است.
+              روی گوشی و کامپیوتر هم به‌راحتی می‌توانی از آن استفاده کنی.
             </p>
           </div>
           {GROUPS.map((g) => (

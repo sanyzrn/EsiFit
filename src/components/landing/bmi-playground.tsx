@@ -23,10 +23,10 @@ const MIN = 14;
 const MAX = 40;
 
 const NOTE: Record<BmiCategory, string> = {
-  underweight: "کمی پایین‌تر از محدوده سالم. تغذیه کافی و تمرین قدرتی می‌تواند کمک کند.",
-  normal: "در محدوده سالم هستید. هدف اصلی می‌تواند ترکیب بدنی و قدرت باشد، نه عدد ترازو.",
-  overweight: "کمی بالاتر از محدوده سالم. BMI عضله و چربی را جدا نمی‌کند — ترکیب بدنی را هم ببینید.",
-  obese: "بالاتر از محدوده سالم. شروع تدریجی با پیاده‌روی و تمرین مقاومتی انتخاب خوبی است.",
+  underweight: "وزنت نسبت به قدت پایین‌تر از محدوده معمول است. تغذیه کافی و تمرین مناسب می‌تواند کمک کند.",
+  normal: "وزنت در محدوده معمول است. به قدرت و سلامت بدنت هم توجه کن، نه فقط عدد ترازو.",
+  overweight: "این عدد کمی بالاتر از محدوده معمول است؛ اما BMI تفاوت عضله و چربی را نشان نمی‌دهد.",
+  obese: "این عدد بالاتر از محدوده معمول است. بهتر است تغییرات را آرام و پیوسته شروع کنی.",
 };
 
 function Slider({
@@ -128,7 +128,7 @@ export function BmiPlayground() {
             محدوده وزن سالم برای قد {toPersianDigits(height)}: {toPersianDigits(range.min)} تا {toPersianDigits(range.max)} کیلوگرم
           </p>
           <Button asChild variant="secondary" className="mt-6">
-            <Link href="/calculators">هشت ماشین‌حساب کامل</Link>
+            <Link href="/calculators">دیدن همه ابزارهای محاسبه</Link>
           </Button>
         </div>
       </div>
