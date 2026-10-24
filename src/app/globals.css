@@ -412,9 +412,8 @@ body::after { display: none; }
   }
 }
 .esi-skeleton {
-  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
-  background-size: 200% 100%;
-  animation: esi-shimmer 1.6s infinite linear;
+  background: var(--surface-2);
+  animation: none;
 }
 
 @keyframes esi-ambient {
@@ -558,11 +557,7 @@ body::after { display: none; }
     transform: scale(0.96, 1.04) rotate(-1deg);
   }
 }
-.esi-flame {
-  display: inline-block;
-  transform-origin: 50% 90%;
-  animation: esi-flicker 2.4s ease-in-out infinite;
-}
+.esi-flame { display: inline-block; animation: none; filter: none; }
 
 @keyframes esi-wave-hand {
   0%, 100% { transform: rotate(0); }
