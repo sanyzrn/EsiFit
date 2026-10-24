@@ -93,10 +93,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0B0D10" },
-    { media: "(prefers-color-scheme: light)", color: "#F5F4F0" },
-  ],
+  themeColor: "#0B0D10",
 };
 
 export default function RootLayout({
@@ -105,7 +102,7 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={`${vazir.variable} ${lalezar.variable} antialiased bg-background text-foreground min-h-screen`}>
-        <ThemeProvider defaultTheme="dark" storageKey="esifit-theme">
+        <ThemeProvider defaultTheme="dark" forcedTheme="dark" enableSystem={false} storageKey="esifit-theme">
           {children}
           <Toaster position="top-center" dir="rtl" richColors closeButton />
           <ServiceWorkerRegistrar />
