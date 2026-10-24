@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   reactStrictMode: true,
+  images: {
+    remotePatterns: [{ protocol: "https", hostname: "images.unsplash.com", pathname: "/photo-*" }],
+  },
   // Allows isolated production-build verification without clobbering dev .next.
   distDir: process.env.NEXT_DIST_DIR || ".next",
   async headers() {
