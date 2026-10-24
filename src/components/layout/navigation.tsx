@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
 import { Icon } from "@/components/ui/icon";
 import { useSession } from "@/lib/client/use-session";
 import { useFlags } from "@/lib/feature-flags/flag-provider";
@@ -11,25 +10,19 @@ import type { FeatureFlag } from "@/lib/feature-flags/registry";
 import { TIER_LABELS, type UserTier } from "@/lib/entitlements/entitlements";
 import { ROLE_LABELS, type Role } from "@/lib/auth/session-types";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { KhatamMark } from "@/components/motion/khatam";
 
-/**
- * Shared navigation model — single source for sidebar + bottom nav.
- * Each entry declares its feature flag; disabled entries are hidden.
- * Staff roles (coach/admin) get an extra section — permission axis, not tier.
- */
-
+/** One source of navigation truth. Role gates are enforced at the API as well. */
 export type NavItem = {
   href: string;
   label: string;
   icon: string;
   flag?: FeatureFlag;
-  mobile?: boolean; // show in bottom nav (max 5)
+  mobile?: boolean;
 };
 
 export const MEMBER_NAV: NavItem[] = [
-  { href: "/dashboard", label: "داشبورد", icon: "LayoutDashboard", flag: "DASHBOARD", mobile: true },
+  { href: "/dashboard", label: "خانه", icon: "LayoutDashboard", flag: "DASHBOARD", mobile: true },
   { href: "/workouts", label: "تمرین", icon: "Dumbbell", flag: "WORKOUTS", mobile: true },
   { href: "/nutrition", label: "تغذیه", icon: "Apple", flag: "NUTRITION", mobile: true },
   { href: "/analytics", label: "پیشرفت", icon: "ChartLine", flag: "ANALYTICS", mobile: true },
@@ -38,24 +31,23 @@ export const MEMBER_NAV: NavItem[] = [
   { href: "/store", label: "فروشگاه", icon: "ShoppingBag", flag: "SHOP" },
   { href: "/ai", label: "دستیار هوشمند", icon: "Sparkles", flag: "AI_CHAT" },
   { href: "/notifications", label: "اعلان‌ها", icon: "Bell", flag: "NOTIFICATIONS" },
-  { href: "/settings", label: "تنظیمات", icon: "Settings" },
+  { href: "/settings", label: "حساب من", icon: "User", mobile: true },
 ];
 
 export const COACH_NAV: NavItem[] = [
-  { href: "/coach", label: "ورزشکاران من", icon: "ClipboardList", mobile: true },
+  { href: "/coach", label: "ورزشکاران", icon: "ClipboardList", mobile: true },
   { href: "/notifications", label: "اعلان‌ها", icon: "Bell", mobile: true },
-  { href: "/settings", label: "تنظیمات", icon: "Settings", mobile: true },
+  { href: "/settings", label: "حساب من", icon: "User", mobile: true },
 ];
 
 export const ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "مدیریت", icon: "Shield", mobile: true },
   { href: "/notifications", label: "اعلان‌ها", icon: "Bell", mobile: true },
-  { href: "/settings", label: "تنظیمات", icon: "Settings", mobile: true },
+  { href: "/settings", label: "حساب من", icon: "User", mobile: true },
 ];
 
 export const STAFF_NAV: Record<"coach" | "admin", NavItem[]> = {
   coach: [],
-  // Admin navigation is ADMIN_NAV. Staff coaching links belong to coaches.
   admin: [],
 };
 
@@ -66,14 +58,17 @@ export function useMemberNav(): NavItem[] {
   return model.filter((item) => !item.flag || flags[item.flag]);
 }
 
-/** Staff section for the current session role (admin sees both). */
 export function useStaffNav(): { role: "coach" | "admin"; items: NavItem[] } | null {
   const session = useSession();
   const flags = useFlags();
   const role = session?.role as Role | undefined;
   if (role !== "coach" && role !== "admin") return null;
   const items = STAFF_NAV[role].filter((item) => !item.flag || flags[item.flag]);
-  return items.length > 0 ? { role, items } : null;
+  return items.length ? { role, items } : null;
+}
+
+function isCurrentPath(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(href + "/");
 }
 
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
@@ -82,24 +77,14 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
       href={item.href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group/nav relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors duration-150",
+        "flex min-h-11 items-center gap-3 rounded-xl border border-transparent px-3 text-sm transition-colors duration-150",
         active
-          ? "text-esi-text-primary font-semibold"
-          : "text-esi-text-secondary hover:text-esi-text-primary hover:bg-surface-2",
+          ? "border-primary/20 bg-primary/10 font-semibold text-esi-text-primary"
+          : "text-esi-text-secondary hover:bg-surface-2 hover:text-esi-text-primary",
       )}
     >
-      {active && (
-        <motion.span
-          layoutId="nav-active-pill"
-          className="absolute inset-0 rounded-xl bg-surface-3 shadow-[inset_0_1px_0_var(--card-sheen)]"
-          transition={{ type: "spring", stiffness: 420, damping: 34 }}
-          aria-hidden
-        >
-          <span className="absolute inset-y-2 start-0 w-[3px] rounded-full bg-primary shadow-[0_0_12px_var(--primary)]" />
-        </motion.span>
-      )}
-      <Icon name={item.icon} size={20} className={cn("relative z-10 transition-transform duration-200 group-hover/nav:scale-110", active && "text-primary")} />
-      <span className="relative z-10">{item.label}</span>
+      <Icon name={item.icon} size={20} strokeWidth={1.75} className={active ? "text-primary" : undefined} />
+      <span>{item.label}</span>
     </Link>
   );
 }
@@ -108,132 +93,78 @@ export function AppSidebar({ className }: { className?: string }) {
   const pathname = usePathname();
   const session = useSession();
   const nav = useMemberNav();
-  const staff = useStaffNav();
 
   return (
-    <aside className={cn("hidden lg:flex flex-col h-dvh sticky top-0 w-64 border-s border-border bg-sidebar", className)}>
-      <div className="flex items-center gap-2.5 px-6 h-16 shrink-0">
+    <aside className={cn("sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-s border-border bg-sidebar lg:flex", className)}>
+      <div className="flex h-20 shrink-0 items-center border-b border-border px-5">
         <BrandMark />
       </div>
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto" aria-label="ناوبری اصلی">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5" aria-label="ناوبری اصلی">
+        <p className="mb-3 px-3 text-xs font-semibold text-esi-text-muted">فضای شما</p>
         {nav.map((item) => (
-          <NavLink
-            key={item.href}
-            item={item}
-            active={pathname === item.href || pathname.startsWith(item.href + "/")}
-          />
+          <NavLink key={item.href} item={item} active={isCurrentPath(pathname, item.href)} />
         ))}
-
-        {staff && (
-          <>
-            <div className="pt-4 pb-1 px-3 flex items-center gap-2" aria-hidden>
-              <span className="h-px flex-1 bg-border" />
-              <span className="text-[10px] font-semibold tracking-wide text-esi-text-muted">
-                {roleSectionTitleFa(staff.role)}
-              </span>
-              <span className="h-px flex-1 bg-border" />
-            </div>
-            {staff.items.map((item) => (
-              <NavLink
-                key={item.href}
-                item={item}
-                active={pathname === item.href || pathname.startsWith(item.href + "/")}
-              />
-            ))}
-          </>
-        )}
       </nav>
       {session && (
-        <div className="border-t border-border p-4 flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full esi-gradient-brand flex items-center justify-center text-primary-foreground text-sm font-bold shrink-0">
+        <Link href="/settings" className="flex min-h-20 items-center gap-3 border-t border-border px-5 transition-colors hover:bg-surface-2">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-sm font-bold text-esi-text-primary">
             {session.displayName.trim()[0] ?? "؟"}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium truncate">{session.displayName}</p>
-            <div className="flex items-center gap-1.5">
-              {session.role === "member" && (
-              <Badge variant="tier" className="text-[10px] px-1.5 py-0">
-                {TIER_LABELS[session.tier as UserTier] ?? "رایگان"}
-              </Badge>
-              )}
-              {(session.role === "coach" || session.role === "admin") && (
-                <Badge variant="neutral" className="text-[10px] px-1.5 py-0">
-                  {ROLE_LABELS[session.role]}
-                </Badge>
-              )}
-            </div>
-          </div>
-        </div>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-semibold">{session.displayName}</span>
+            <span className="mt-1 block text-xs text-esi-text-muted">
+              {session.role === "member" ? TIER_LABELS[session.tier as UserTier] ?? "رایگان" : ROLE_LABELS[session.role]}
+            </span>
+          </span>
+          <Icon name="ChevronLeft" size={16} className="text-esi-text-muted" />
+        </Link>
       )}
     </aside>
   );
 }
 
+/** Flat, edge-to-edge mobile navigation. No glass, floating dock, glow or animation. */
 export function MobileBottomNav() {
   const pathname = usePathname();
-  const session = useSession();
-  const nav = useMemberNav().filter((i) => i.mobile);
-  const staff = useStaffNav();
-
-  // Each role gets its own destinations; there are no cross-role nav links.
-  // The grid below uses the actual item count, without reserving an empty slot.
-  const items = React.useMemo(() => {
-    if (session?.role === "coach" || session?.role === "admin") return nav.filter((item) => item.mobile);
-    const base = nav.filter((item) => item.mobile).slice(0, 4);
-    const extra = staff && session ? staff.items[0] : nav.find((i) => !base.includes(i));
-    return extra ? [...base, extra] : base;
-  }, [nav, staff, session]);
+  const nav = useMemberNav();
+  const items = React.useMemo(() => nav.filter((item) => item.mobile).slice(0, 5), [nav]);
 
   return (
     <nav
-      className="lg:hidden fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 rounded-[26px] border border-border esi-glass shadow-[var(--shadow-float)]"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface-1 lg:hidden"
       aria-label="ناوبری موبایل"
     >
-      <div className="grid h-16" style={{ gridTemplateColumns: `repeat(${items.length || 1}, minmax(0, 1fr))` }}>
+      <div className="mx-auto grid h-16 max-w-lg" style={{ gridTemplateColumns: `repeat(${items.length || 1}, minmax(0, 1fr))` }}>
         {items.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(item.href + "/");
+          const active = isCurrentPath(pathname, item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 text-[10px] min-h-[44px] transition-colors",
-                active ? "text-primary font-semibold" : "text-esi-text-muted",
+                "relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 px-1 text-xs transition-colors duration-150",
+                active ? "font-semibold text-primary" : "text-esi-text-muted hover:text-esi-text-primary",
               )}
             >
-              {active && (
-                <motion.span
-                  layoutId="esifit-bottom-nav-pill"
-                  className="absolute inset-x-1.5 inset-y-1 rounded-2xl bg-primary/15 shadow-[0_0_18px_-4px_var(--primary)]"
-                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                  aria-hidden
-                />
-              )}
-              <Icon name={item.icon} size={22} strokeWidth={active ? 2 : 1.75} className="relative z-10 shrink-0" />
-              <span className="relative z-10 text-center leading-tight">{item.label}</span>
+              {active && <span className="absolute inset-x-5 top-0 h-0.5 rounded-b bg-primary" aria-hidden />}
+              <Icon name={item.icon} size={21} strokeWidth={active ? 2 : 1.75} />
+              <span className="truncate text-center leading-tight">{item.label}</span>
             </Link>
           );
         })}
       </div>
+      <div className="h-[env(safe-area-inset-bottom,0px)]" aria-hidden />
     </nav>
   );
 }
 
-function roleSectionTitleFa(role: "coach" | "admin"): string {
-  return role === "coach" ? "مربی‌گری" : "مدیریت";
-}
-
-/** Brand mark — khatam glyph + Lalezar wordmark. */
+/** Branding preserved while motion effects are removed from app chrome. */
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
-    <Link href="/" className="flex items-center gap-2 group" aria-label="اسی‌فیت — صفحه اصلی">
-      <KhatamMark size={38} className="transition-transform duration-500 ease-[var(--ease-spring)] group-hover:rotate-[22.5deg] group-hover:scale-110" />
-      {!compact && (
-        <span className="font-display text-[26px] leading-none pt-1">
-          اسی<span className="text-primary">‌فیت</span>
-        </span>
-      )}
+    <Link href="/" className="flex items-center gap-2" aria-label="اسی‌فیت — صفحه اصلی">
+      <KhatamMark size={34} />
+      {!compact && <span className="pt-1 font-display text-2xl leading-none">اسی<span className="text-primary">‌فیت</span></span>}
     </Link>
   );
 }
