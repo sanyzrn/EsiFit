@@ -42,7 +42,8 @@ export function formatWorkoutDayTitle(name: string): string {
   const [, base, week, deload] = match;
   const label = DAY_LABELS[base];
   if (!label) return name;
-  return `${label} | هفته ${WEEK_NAMES[week]}${deload ? " (کاهش فشار)" : ""}`;
+  const recoveryDay = base === "استراحت" || base === "استراحت فعال";
+  return `${label} | هفته ${WEEK_NAMES[week]}${deload && !recoveryDay ? " (کاهش فشار)" : ""}`;
 }
 
 /** Legacy program names are also fixed at display time, with no DB migration. */
