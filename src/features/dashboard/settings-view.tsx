@@ -13,6 +13,7 @@ import { TIER_LABELS, getEntitlements, type UserTier } from "@/lib/entitlements/
 import { toPersianDigits, parseLocaleNumber } from "@/lib/formatting/numbers";
 import { formatRelative } from "@/lib/dates/jalali";
 import { clearLocalUserData, getQueuedOperations } from "@/lib/offline/adapter";
+import { withDeadline } from "@/lib/client/with-deadline";
 import { EQUIPMENT_KEYS, EQUIPMENT_LABEL_FA } from "@/lib/workout/equipment";
 import { cn } from "@/lib/utils";
 
@@ -51,34 +52,59 @@ export function SettingsView({
   const logout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
+    let signedOut = false;
     try {
-      // Never wait indefinitely for a queue flush before allowing sign-out.
-      // Unsynced records remain local until the user explicitly agrees to discard them.
-      const remaining = await getQueuedOperations();
-      if (remaining.length > 0 && !window.confirm(
+      // IndexedDB can remain blocked indefinitely on Android/Chrome after
+      // another tab or suspended PWA keeps an old database connection alive.
+      let remaining: Awaited<ReturnType<typeof getQueuedOperations>> | null = null;
+      try {
+        remaining = await withDeadline(getQueuedOperations(), 1500);
+      } catch {
+        if (!window.confirm(
+          "بررسی داده‌های آفلاین این دستگاه ممکن نشد. خروج ممکن است داده‌های همگام‌نشده را حذف کند. ادامه می‌دهید؟",
+        )) return;
+      }
+      if (remaining && remaining.length > 0 && !window.confirm(
         `شما ${remaining.length} مورد همگام‌نشده دارید. با خروج، این داده‌ها از این دستگاه حذف می‌شوند. ادامه می‌دهید؟`,
       )) return;
 
-      const response = await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "same-origin",
-        cache: "no-store",
-      });
+      const controller = new AbortController();
+      let response: Response;
+      try {
+        response = await withDeadline(fetch("/api/auth/logout", {
+          method: "POST",
+          credentials: "same-origin",
+          cache: "no-store",
+          signal: controller.signal,
+        }), 12000);
+      } catch {
+        throw new Error("اتصال به سرور برای خروج برقرار نشد. اتصال اینترنت را بررسی و دوباره تلاش کنید.");
+      } finally {
+        controller.abort();
+      }
       if (!response.ok) {
         throw new Error("خروج در سرور انجام نشد. لطفاً دوباره تلاش کنید.");
       }
-      // Purge old offline records, then replace the entire document to discard
-      // React session state, router caches, and personalized in-memory pages.
-      await clearLocalUserData();
+      signedOut = true;
+
+      // Do not await mobile IndexedDB indefinitely *after* revoking the server
+      // session: the purge marker is persisted, and a later DB open completes
+      // the purge before exposing data even if this browser suspends the page.
+      try {
+        await withDeadline(clearLocalUserData(), 1500);
+      } catch {
+        // The crash-safe purge marker remains in localStorage for next open.
+      }
+      // Full document navigation discards stale Next.js Router & React state.
       window.location.replace("/auth/login");
     } catch (error) {
       toast({
         title: "خروج ناموفق بود",
-        description: errorMessage(error),
+        description: error instanceof Error ? error.message : errorMessage(error),
         variant: "destructive",
       });
     } finally {
-      setLoggingOut(false);
+      if (!signedOut) setLoggingOut(false);
     }
   };
 
