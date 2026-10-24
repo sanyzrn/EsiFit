@@ -5,6 +5,7 @@ import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 import { db } from "@/lib/db";
 import { getTodayPlanDay } from "@/features/workouts/data/plan-templates";
 import { WorkoutsView } from "@/features/workouts/workouts-view";
+import { formatWorkoutPlanTitle } from "@/lib/workout/plan-titles";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "تمرین" };
@@ -44,7 +45,7 @@ export default async function WorkoutsPage() {
               }
             : null
         }
-        activePlanName={activePlan?.name ?? null}
+        activePlanName={activePlan ? formatWorkoutPlanTitle(activePlan.name) : null}
         exercises={exercises.map((ex) => ({
           id: ex.id,
           slug: ex.slug,
