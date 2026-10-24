@@ -1,4 +1,4 @@
-import { parseLocaleNumber, toLatinDigits } from "@/lib/formatting/numbers";
+import { toLatinDigits } from "@/lib/formatting/numbers";
 import type { CalculatorField } from "@/features/calculators/registry";
 
 /** Input validation for the eight public calculators (text inputs do not honor HTML min/max). */
@@ -6,7 +6,7 @@ export function isApplicableCalculatorField(field: CalculatorField, values: Reco
   return field.key !== "hipCm" || values.sex === "female";
 }
 
-function strictNumber(input: string): number | null {
+export function parseCalculatorNumber(input: string): number | null {
   let value = toLatinDigits(input).trim().replace(/٫/g, ".").replace(/٬/g, "");
   // Accept an unambiguous grouped number (1,000) or decimal comma (80,5).
   if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(value)) value = value.replace(/,/g, "");
@@ -34,7 +34,7 @@ export function validateCalculatorInputs(
       }
       continue;
     }
-    const n = strictNumber(raw);
+    const n = parseCalculatorNumber(raw);
     if (n === null) {
       errors[field.key] = "عدد معتبر وارد کنید.";
       continue;
@@ -51,9 +51,9 @@ export function validateCalculatorInputs(
   }
   // Cross-field checks prevent logarithm domain errors and implausible Navy results.
   if (fields.some((field) => field.key === "neckCm")) {
-    const waist = parseLocaleNumber(values.waistCm ?? "");
-    const neck = parseLocaleNumber(values.neckCm ?? "");
-    const hip = parseLocaleNumber(values.hipCm ?? "");
+    const waist = parseCalculatorNumber(values.waistCm ?? "");
+    const neck = parseCalculatorNumber(values.neckCm ?? "");
+    const hip = parseCalculatorNumber(values.hipCm ?? "");
     if (!errors.waistCm && !errors.neckCm && waist !== null && neck !== null && waist <= neck) {
       errors.waistCm = "دور کمر باید از دور گردن بیشتر باشد.";
     }
