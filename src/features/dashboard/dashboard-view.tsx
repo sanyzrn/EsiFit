@@ -169,7 +169,7 @@ export function DashboardView() {
       {!data ? <DashboardSkeleton /> : (
         <>
           {/* Today: only one prominent action, with rest/resume states intact. */}
-          <section aria-label="تمرین امروز" className="overflow-hidden rounded-2xl border border-border bg-surface-1">
+          <section aria-label="تمرین امروز" className="overflow-hidden rounded-2xl border border-border bg-surface-2">
             <div className="h-1 w-20 bg-primary" aria-hidden />
             <div className="grid gap-6 p-5 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
               <div className="min-w-0">
@@ -228,7 +228,16 @@ export function DashboardView() {
             </div>
           </section>
 
-          {/* Progress: readable and complete, with a compact static status bar. */}
+          {/* Progress: useful at a glance, visually separate from actions. */}
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold text-primary">نگاه سریع</p>
+              <h2 className="mt-1 text-lg font-extrabold sm:text-xl">وضعیت امروز</h2>
+            </div>
+            <Link href="/analytics" className="inline-flex min-h-11 items-center gap-1 rounded-xl px-2 text-xs font-semibold text-esi-text-secondary transition-colors hover:bg-surface-2 hover:text-esi-text-primary">
+              جزئیات <Icon name="ChevronLeft" size={15} />
+            </Link>
+          </div>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
             {readinessFlag && (
               <section aria-label="آمادگی امروز" className={cn(sectionClass, "min-w-0")}>
@@ -301,6 +310,10 @@ export function DashboardView() {
           </div>
 
           {/* Daily actions: macros and drinking remain fully functional. */}
+          <div>
+            <p className="text-xs font-semibold text-primary">ثبت روزانه</p>
+            <h2 className="mt-1 text-lg font-extrabold sm:text-xl">تغذیه و آب</h2>
+          </div>
           <div className="grid gap-4 lg:grid-cols-2">
             <section aria-label="تغذیه و درشت‌مغذی‌ها" className={sectionClass}>
               <div className="mb-4 flex items-center justify-between gap-3">
@@ -369,7 +382,11 @@ export function DashboardView() {
             </section>
           </div>
 
-          {/* History lives last. */}
+          {/* Historical trends come last, after today's priorities. */}
+          <div>
+            <p className="text-xs font-semibold text-primary">مسیر تو</p>
+            <h2 className="mt-1 text-lg font-extrabold sm:text-xl">تغییرات و هدف‌ها</h2>
+          </div>
           <div className="grid gap-4 lg:grid-cols-2">
             {goalFlag && data.goals.length > 0 && (
               <section aria-label="اهداف من" className={sectionClass}>
