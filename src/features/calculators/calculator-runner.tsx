@@ -135,7 +135,7 @@ export function CalculatorRunner({
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             >
               <p className="text-xs font-semibold text-primary">{result.headline}</p>
-              <p className="mt-2 text-4xl font-extrabold tabular-nums tracking-tight">
+              <p className="mt-2 text-2xl font-extrabold leading-relaxed tabular-nums tracking-tight break-words sm:text-4xl">
                 {result.headlineValue}
               </p>
 
