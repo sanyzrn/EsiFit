@@ -3,23 +3,19 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion, useReducedMotion } from "framer-motion";
-import { RecoveryOrb, type ReadinessFactor } from "@/components/data-viz/recovery-orb";
-import { MacroRingGroup } from "@/components/data-viz/macro-rings";
-import { AnimatedCounter } from "@/components/ui/animated-counter";
+import type { ReadinessFactor } from "@/components/data-viz/recovery-orb";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/ui/icon";
 import { api, errorMessage, isApiError } from "@/lib/client/api";
 import { cacheGet, cachePut, enqueueOperation, newClientId } from "@/lib/offline/adapter";
 import { useSession } from "@/lib/client/use-session";
 import { useFeatureFlag } from "@/lib/feature-flags/flag-provider";
-import { formatJalaliWeekdayDay, todayISO } from "@/lib/dates/jalali";
+import { formatJalaliWeekdayDay } from "@/lib/dates/jalali";
 import { formatNumber, formatDelta, toPersianDigits } from "@/lib/formatting/numbers";
 import { TIER_LABELS, type UserTier } from "@/lib/entitlements/entitlements";
 import { cn } from "@/lib/utils";
-import { MOTION } from "@/lib/motion/motion";
-import { KhatamStar } from "@/components/motion/khatam";
 
 type DashboardData = {
   greetingName: string;
@@ -46,33 +42,43 @@ type DashboardData = {
   goals: Array<{ id: string; title: string; percent: number; statusFa: string }>;
 };
 
-/**
- * DashboardView — priority: Greeting → Today → Progress/Readiness → Action → History.
- * Offline: hydrates from IndexedDB cache, mutations queue safely.
+const READINESS_LABELS: Record<string, string> = {
+  ready: "آماده تمرین",
+  moderate: "آمادگی متوسط",
+  caution: "کمی محتاط",
+  recover: "نیاز به ریکاوری",
+};
+const GUIDANCE_LABELS: Record<string, string> = {
+  push: "فشار بیشتر",
+  maintain: "حفظ روند",
+  adjust: "تعدیل تمرین",
+  recover: "ریکاوری",
+  return: "بازگشت به تمرین",
+};
+
+const sectionClass = "rounded-2xl border border-border bg-surface-1 p-4 sm:p-5";
+
+/** Clear content hierarchy: Greeting → Today → Progress → Actions → History.
+ * The old decorative glow/orb/water wave has been replaced by readable numbers.
+ * API contract and offline write semantics are intentionally unchanged.
  */
 export function DashboardView() {
   const [data, setData] = React.useState<DashboardData | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [waterBusy, setWaterBusy] = React.useState(false);
+  const [workoutBusy, setWorkoutBusy] = React.useState(false);
   const session = useSession();
   const router = useRouter();
   const readinessFlag = useFeatureFlag("READINESS_SCORE");
   const offlineFlag = useFeatureFlag("OFFLINE_TRACKERS");
   const coachFlag = useFeatureFlag("ADAPTIVE_COACH");
   const goalFlag = useFeatureFlag("GOAL_ENGINE");
-  const reduce = useReducedMotion();
-  const enter = (i = 0) => ({
-    initial: reduce ? { opacity: 0 } : { opacity: 0, y: 12 },
-    animate: { opacity: 1, y: 0 },
-    transition: reduce
-      ? { duration: 0.01 }
-      : { duration: MOTION.duration.enter, ease: MOTION.ease, delay: Math.min(i * 0.05, 0.3) },
-  });
 
   const load = React.useCallback(async () => {
     try {
       const res = await api<DashboardData>("/api/dashboard");
       setData(res);
+      setError(null);
       void cachePut("dashboard", res);
     } catch (e) {
       const cached = await cacheGet<DashboardData>("dashboard");
@@ -84,24 +90,22 @@ export function DashboardView() {
     }
   }, []);
 
-  React.useEffect(() => {
-    void load();
-  }, [load]);
+  React.useEffect(() => { void load(); }, [load]);
 
   const addWater = async (ml: number) => {
+    if (waterBusy) return;
     setWaterBusy(true);
     const clientId = newClientId("water");
     const loggedAt = new Date().toISOString();
     const op = { clientId, kind: "water" as const, endpoint: "/api/water", payload: { ml, clientId, loggedAt } };
     try {
       await api("/api/water", { method: "POST", json: { ml, clientId, loggedAt } });
-      setData((d) =>
-        d ? { ...d, water: { ...d.water, ml: d.water.ml + ml } } : d,
-      );
+      setData((d) => d ? { ...d, water: { ...d.water, ml: d.water.ml + ml } } : d);
+      setError(null);
     } catch (e) {
       if (offlineFlag && isApiError(e) && e.code === "network") {
         await enqueueOperation(op);
-        setData((d) => (d ? { ...d, water: { ...d.water, ml: d.water.ml + ml } } : d));
+        setData((d) => d ? { ...d, water: { ...d.water, ml: d.water.ml + ml } } : d);
       } else {
         setError(errorMessage(e));
       }
@@ -111,282 +115,298 @@ export function DashboardView() {
   };
 
   const startWorkout = async () => {
+    if (workoutBusy) return;
+    setWorkoutBusy(true);
     try {
-      const payload = data?.todayWorkout?.planDayId
-        ? { planDayId: data.todayWorkout.planDayId }
-        : {};
+      const payload = data?.todayWorkout?.planDayId ? { planDayId: data.todayWorkout.planDayId } : {};
       const res = await api<{ session: { id: string } }>("/api/workouts/sessions", { method: "POST", json: payload });
       router.push(`/workout/live?session=${res.session.id}`);
     } catch (e) {
       setError(errorMessage(e));
+      setWorkoutBusy(false);
     }
   };
 
   const hour = new Date().getHours();
-  const greeting = hour < 5 ? "شب‌بخیر" : hour < 12 ? "صبح بخیر" : hour < 17 ? "وقت بخیر" : "شب بخیر";
-  const waterPct = data ? Math.min(100, Math.round((data.water.ml / data.water.targetMl) * 100)) : 0;
+  const greeting = hour < 5 ? "شب‌بخیر" : hour < 12 ? "صبح بخیر" : hour < 17 ? "وقت بخیر" : "عصر بخیر";
+  const waterPct = data?.water.targetMl ? Math.min(100, Math.round(data.water.ml / data.water.targetMl * 100)) : 0;
+  const nutritionPct = data?.nutrition.targets?.calories
+    ? Math.min(100, Math.round(data.nutrition.totals.calories / data.nutrition.targets.calories * 100)) : 0;
+  const readinessScore = data?.readiness ? Math.max(0, Math.min(100, data.readiness.score)) : 0;
 
   return (
-    <div className="px-4 lg:px-8 pt-6 max-w-6xl mx-auto w-full space-y-6">
-      {/* ---- Greeting ---- */}
-      <header className="flex flex-wrap items-start justify-between gap-4">
+    <div className="mx-auto w-full max-w-6xl space-y-5 px-4 pb-6 pt-5 lg:px-8 lg:pt-8">
+      {/* Greeting */}
+      <header className="flex flex-wrap items-end justify-between gap-4 pb-1">
         <div>
-          <p className="text-sm text-esi-text-muted">{formatJalaliWeekdayDay(new Date())}</p>
-          <h1 className="mt-1 font-display text-4xl lg:text-5xl leading-tight">
-            {greeting}، <span className="text-primary">{data?.greetingName ?? session?.displayName ?? ""}</span> <span className="inline-block origin-[70%_70%] animate-[esi-wave-hand_2.4s_ease-in-out_1]" aria-hidden>👋</span>
+          <p className="text-xs font-medium text-esi-text-muted">{formatJalaliWeekdayDay(new Date())}</p>
+          <h1 className="mt-2 text-2xl font-bold leading-snug tracking-tight sm:text-3xl lg:text-4xl">
+            {greeting}، <span className="text-primary">{data?.greetingName ?? session?.displayName ?? "ورزشکار"}</span>
           </h1>
+          <p className="mt-1 text-sm text-esi-text-secondary">امروز یک قدم به هدف خودت نزدیک‌تر شو.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-1 px-3 py-1.5 text-xs text-esi-text-secondary">
-            <span className="esi-flame text-base leading-none" aria-hidden>🔥</span>
-            <AnimatedCounter value={data?.gamification.streakDays ?? 0} className="tabular-nums font-semibold" />
-            روز زنجیره
+        <div className="flex flex-wrap gap-2">
+          <span className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-border bg-surface-1 px-3 text-xs text-esi-text-secondary">
+            <Icon name="Flame" size={16} className="text-primary" />
+            {toPersianDigits(data?.gamification.streakDays ?? 0)} روز متوالی
           </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-1 px-3 py-1.5 text-xs text-esi-text-secondary">
-            سطح {toPersianDigits(data?.gamification.level ?? 1)}
-            <span className="font-semibold text-primary">{TIER_LABELS[(session?.tier ?? "free") as UserTier]}</span>
+          <span className="inline-flex min-h-9 items-center rounded-xl border border-border bg-surface-1 px-3 text-xs font-medium text-esi-text-secondary">
+            {TIER_LABELS[(session?.tier ?? "free") as UserTier] ?? "رایگان"}
           </span>
         </div>
       </header>
 
       {error && (
-        <div role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/8 px-4 py-3 text-sm text-destructive flex items-center justify-between gap-3">
-          {error}
-          <Button variant="ghost" size="sm" className="h-8" onClick={() => void load()}>تلاش دوباره</Button>
+        <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          <span>{error}</span>
+          <Button variant="outline" size="sm" onClick={() => void load()}>تلاش دوباره</Button>
         </div>
       )}
 
-      {!data ? (
-        <DashboardSkeleton />
-      ) : (
+      {!data ? <DashboardSkeleton /> : (
         <>
-          {/* ---- Main grid: priority = Today → Readiness → Nutrition → Water ---- */}
-          <div className="grid gap-5 lg:grid-cols-3">
-            {/* Today workout — action card */}
-            <motion.section
-              aria-label="تمرین امروز"
-              className="lg:col-span-2 esi-card rounded-3xl p-6 relative overflow-hidden"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <div aria-hidden className="absolute -top-16 -start-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
-              <KhatamStar size={220} strokeWidth={0.5} spin className="pointer-events-none absolute -bottom-20 -end-16 text-primary/15" />
-              <div className="flex items-start justify-between gap-4 relative">
-                <div>
-                  <p className="text-xs font-semibold text-primary">امروز</p>
-                  <h2 className="mt-1 font-display text-3xl leading-tight">
-                    {data.activeSession ? "تمرین نیمه‌تمام دارید!" : data.todayWorkout?.isRest ? "روز استراحت فعال" : data.todayWorkout?.name ?? "تمرین آزاد"}
-                  </h2>
-                  {data.todayWorkout && !data.activeSession && (
-                    <p className="mt-1 text-sm text-esi-text-secondary">
-                      {data.todayWorkout.isRest
-                        ? "پیاده‌روی سبک یا کشش — بدن امروز در حال بازسازی است."
-                        : `${toPersianDigits(data.todayWorkout.exerciseCount)} حرکت • حدود ${toPersianDigits(data.todayWorkout.estimatedMinutes)} دقیقه`}
-                    </p>
-                  )}
-                  {data.activeSession && (
-                    <p className="mt-1 text-sm text-esi-text-secondary">
-                      جلسه «{data.activeSession.name}» در جریان است — ادامه دهید.
-                    </p>
-                  )}
+          {/* Today: only one prominent action, with rest/resume states intact. */}
+          <section aria-label="تمرین امروز" className="overflow-hidden rounded-2xl border border-border bg-surface-1">
+            <div className="h-1 bg-primary" aria-hidden />
+            <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+              <div className="min-w-0">
+                <div className="mb-3 flex items-center gap-2">
+                  <Icon name="CalendarCheck" size={17} className="text-primary" />
+                  <span className="text-xs font-semibold text-primary">برنامه امروز</span>
                 </div>
-                <div className="h-14 w-14 rounded-2xl bg-surface-2 flex items-center justify-center text-2xl shrink-0" aria-hidden>
-                  {data.todayWorkout?.isRest ? "🧘" : "🏋️"}
-                </div>
+                <h2 className="text-xl font-bold leading-snug sm:text-2xl lg:text-3xl">
+                  {data.activeSession
+                    ? "تمرینت منتظر ادامه است"
+                    : data.todayWorkout?.isRest
+                      ? "امروز برای ریکاوریه"
+                      : data.todayWorkout?.name ?? "برای حرکت آماده‌ای؟"}
+                </h2>
+                <p className="mt-2 text-sm leading-7 text-esi-text-secondary">
+                  {data.activeSession
+                    ? `جلسه «${data.activeSession.name}» ذخیره شده؛ از همان‌جا ادامه بده.`
+                    : data.todayWorkout?.isRest
+                      ? "استراحت و حرکت سبک بخشی از پیشرفتت هستند."
+                      : data.todayWorkout
+                        ? `${toPersianDigits(data.todayWorkout.exerciseCount)} حرکت · حدود ${toPersianDigits(data.todayWorkout.estimatedMinutes)} دقیقه`
+                        : "یک جلسه آزاد انتخاب کن و مسیرت رو شروع کن."}
+                </p>
+                {coachFlag && data.coachGuidance && (
+                  <div className="mt-4 max-w-xl border-t border-border pt-3">
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-esi-text-primary">
+                      <Icon name="Activity" size={15} className="text-primary" />
+                      {GUIDANCE_LABELS[data.coachGuidance.tone] ?? "راهنمای تمرین"}
+                      {data.coachGuidance.volumeModifierPercent !== 0 && (
+                        <span className="font-normal text-esi-text-muted">
+                          · حجم {toPersianDigits(data.coachGuidance.volumeModifierPercent)}٪
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs leading-6 text-esi-text-secondary">{data.coachGuidance.messageFa}</p>
+                    <p className="mt-1 text-xs leading-6 text-esi-text-muted">{data.coachGuidance.cueFa}</p>
+                  </div>
+                )}
               </div>
-              {coachFlag && data.coachGuidance && (
-                <CoachGuidanceChip
-                  tone={data.coachGuidance.tone}
-                  messageFa={data.coachGuidance.messageFa}
-                  cueFa={data.coachGuidance.cueFa}
-                  volumeModifierPercent={data.coachGuidance.volumeModifierPercent}
-                />
-              )}
-              <div className="mt-5 flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2 lg:flex-col">
                 {data.activeSession ? (
-                  <Button asChild className="esi-sheen esi-glow h-12 px-8 text-base">
-                    <Link href={`/workout/live?session=${data.activeSession.id}`}>ادامه تمرین</Link>
+                  <Button asChild size="lg" className="min-w-36">
+                    <Link href={`/workout/live?session=${data.activeSession.id}`}>
+                      ادامه تمرین <Icon name="ChevronLeft" size={18} />
+                    </Link>
                   </Button>
                 ) : data.todayWorkout?.isRest ? (
-                  <Button asChild variant="secondary" className="h-11 px-6">
-                    <Link href="/workouts">انتخاب تمرین دلخواه</Link>
-                  </Button>
+                  <Button asChild size="lg" variant="secondary"><Link href="/workouts">انتخاب تمرین</Link></Button>
                 ) : (
-                  <Button className="esi-sheen esi-glow h-12 px-8 text-base" onClick={() => void startWorkout()}>
-                    شروع تمرین
+                  <Button onClick={() => void startWorkout()} disabled={workoutBusy} size="lg">
+                    {workoutBusy ? "در حال شروع…" : "شروع تمرین"} <Icon name="ChevronLeft" size={18} />
                   </Button>
                 )}
-                <Button asChild variant="ghost" className="h-11">
-                  <Link href="/workouts">برنامه‌ها</Link>
-                </Button>
+                <Button asChild variant="outline"><Link href="/workouts">برنامه‌های من</Link></Button>
               </div>
-            </motion.section>
+            </div>
+          </section>
 
-            {/* Readiness */}
+          {/* Progress: readable and complete, with a compact static status bar. */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {readinessFlag && (
-              <motion.section
-                aria-label="آمادگی امروز"
-                className="esi-card rounded-3xl p-6 flex flex-col items-center justify-center"
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-              >
+              <section aria-label="آمادگی امروز" className={sectionClass}>
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-sm font-semibold">آمادگی امروز</h2>
+                  <Icon name="HeartPulse" size={18} className="text-primary" />
+                </div>
                 {data.readiness ? (
                   <>
-                    <RecoveryOrb
-                      score={data.readiness.score}
-                      state={data.readiness.state as "ready" | "moderate" | "caution" | "recover"}
-                      factors={data.readiness.factors}
-                      isEstimated={data.readiness.isEstimated}
-                      size={170}
-                    />
-                    <Link href="/analytics" className="mt-3 text-xs text-esi-text-muted hover:text-esi-text-primary transition-colors">
-                      تحلیل کامل پیشرفت ←
-                    </Link>
+                    <div className="mt-4 flex items-baseline gap-2">
+                      <span className="text-4xl font-bold tabular-nums">{toPersianDigits(readinessScore)}</span>
+                      <span className="text-xs text-esi-text-muted">از ۱۰۰</span>
+                    </div>
+                    <Progress value={readinessScore} aria-label="امتیاز آمادگی امروز" className="mt-3 h-2" />
+                    <p className="mt-3 text-xs text-esi-text-secondary">{READINESS_LABELS[data.readiness.state] ?? "آمادگی روزانه"}{data.readiness.isEstimated ? " · تخمینی" : ""}</p>
+                    {data.readiness.factors.length > 0 && (
+                      <details className="mt-3 text-xs">
+                        <summary className="cursor-pointer font-medium text-primary">عوامل مؤثر بر آمادگی</summary>
+                        <ul className="mt-3 space-y-2">
+                          {data.readiness.factors.map((factor) => (
+                            <li key={factor.type} className="flex items-center justify-between gap-2 text-esi-text-secondary">
+                              <span>{factor.label}</span><span className="tabular-nums">{toPersianDigits(factor.normalizedScore)}٪</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
                   </>
-                ) : (
-                  <p className="text-sm text-esi-text-muted">داده کافی برای محاسبه آمادگی نیست</p>
-                )}
-              </motion.section>
+                ) : <p className="mt-5 text-sm leading-7 text-esi-text-muted">هنوز داده کافی ثبت نشده.</p>}
+              </section>
             )}
 
-            {/* Nutrition */}
-            <motion.section
-              aria-label="تغذیه امروز"
-              className="lg:col-span-2 esi-card rounded-3xl p-6"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="font-bold">تغذیه امروز</h2>
-                <Link href="/nutrition" className="text-xs text-esi-text-muted hover:text-esi-text-primary transition-colors flex items-center gap-1">
-                  ثبت وعده
-                  <Icon name="ChevronLeft" size={14} />
-                </Link>
+            <section aria-label="روند تمرین" className={sectionClass}>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold">روند فعالیت</h2>
+                <Icon name="ChartLine" size={18} className="text-primary" />
               </div>
-              <MacroRingGroup totals={data.nutrition.totals} targets={data.nutrition.targets} />
-              {data.nutrition.entryCount === 0 && (
-                <p className="mt-4 rounded-xl bg-surface-2 px-4 py-3 text-xs text-esi-text-secondary">
-                  هنوز چیزی ثبت نشده — اولین وعده را از صفحه تغذیه اضافه کنید.
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="text-4xl font-bold tabular-nums">{toPersianDigits(data.gamification.level)}</span>
+                <span className="text-xs text-esi-text-muted">سطح فعلی</span>
+              </div>
+              <Progress value={data.gamification.levelProgress} aria-label="پیشرفت سطح فعلی" className="mt-3 h-2" />
+              <p className="mt-3 text-xs text-esi-text-secondary">
+                {toPersianDigits(data.gamification.xp)} امتیاز · {toPersianDigits(data.gamification.streakDays)} روز استمرار
+              </p>
+              <Link href="/achievements" className="mt-4 inline-flex min-h-8 items-center gap-1 text-xs font-semibold text-primary">
+                دستاوردهای من <Icon name="ChevronLeft" size={14} />
+              </Link>
+            </section>
+
+            <section aria-label="کالری امروز" className={cn(sectionClass, readinessFlag ? "sm:col-span-2 lg:col-span-1" : "")}>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold">کالری امروز</h2>
+                <Icon name="Apple" size={18} className="text-primary" />
+              </div>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="text-4xl font-bold tabular-nums">{formatNumber(data.nutrition.totals.calories)}</span>
+                <span className="text-xs text-esi-text-muted">کیلوکالری</span>
+              </div>
+              <Progress value={nutritionPct} aria-label="درصد کالری امروز" className="mt-3 h-2" />
+              <p className="mt-3 text-xs text-esi-text-secondary">
+                {data.nutrition.targets
+                  ? `از هدف ${formatNumber(data.nutrition.targets.calories)} کیلوکالری`
+                  : "برای نمایش هدف، پروفایلت رو تکمیل کن."}
+              </p>
+              <Link href="/nutrition" className="mt-4 inline-flex min-h-8 items-center gap-1 text-xs font-semibold text-primary">
+                دفتر تغذیه <Icon name="ChevronLeft" size={14} />
+              </Link>
+            </section>
+          </div>
+
+          {/* Daily actions: macros and drinking remain fully functional. */}
+          <div className="grid gap-3 lg:grid-cols-2">
+            <section aria-label="تغذیه و درشت‌مغذی‌ها" className={sectionClass}>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-bold">تغذیه</h2>
+                  <p className="mt-1 text-xs text-esi-text-muted">{toPersianDigits(data.nutrition.entryCount)} وعده ثبت‌شده</p>
+                </div>
+                <Button asChild variant="outline" size="sm"><Link href="/nutrition">ثبت وعده</Link></Button>
+              </div>
+              <div className="space-y-4">
+                {([
+                  { label: "پروتئین", key: "proteinG" as const, color: "bg-turquoise" },
+                  { label: "کربوهیدرات", key: "carbsG" as const, color: "bg-lapis" },
+                  { label: "چربی", key: "fatG" as const, color: "bg-iris" },
+                ]).map((macro) => {
+                  const actual = data.nutrition.totals[macro.key];
+                  const target = data.nutrition.targets?.[macro.key];
+                  const percent = target ? Math.min(100, actual / target * 100) : 0;
+                  return (
+                    <div key={macro.key}>
+                      <div className="mb-2 flex items-center justify-between gap-3 text-xs">
+                        <span className="font-medium text-esi-text-secondary">{macro.label}</span>
+                        <span className="tabular-nums text-esi-text-muted">
+                          {formatNumber(actual)} {target ? `/ ${formatNumber(target)}` : ""} گرم
+                        </span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-surface-3" role="progressbar" aria-label={macro.label} aria-valuenow={Math.round(percent)} aria-valuemin={0} aria-valuemax={100}>
+                        <div className={cn("h-full rounded-full", macro.color)} style={{ width: `${percent}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {!data.nutrition.entryCount && (
+                <p className="mt-4 rounded-xl bg-surface-2 p-3 text-xs text-esi-text-secondary">
+                  اولین وعده رو ثبت کن تا روند تغذیه اینجا نمایش داده بشه.
                 </p>
               )}
-            </motion.section>
+            </section>
 
-            {/* Water quick-add */}
-            <motion.section
-              aria-label="آب روزانه"
-              className="esi-card rounded-3xl p-6 flex flex-col"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <h2 className="font-bold mb-4">آب امروز</h2>
-              <div className="flex items-end justify-between">
+            <section aria-label="آب روزانه" className={sectionClass}>
+              <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="font-display text-5xl leading-none tabular-nums">
-                    <AnimatedCounter value={Math.round(data.water.ml / 100) / 10} format="decimal" digits={1} />
-                    <span className="text-sm font-medium text-esi-text-muted ms-1">لیتر</span>
-                  </p>
-                  <p className="text-xs text-esi-text-muted mt-1">هدف {formatNumber(data.water.targetMl / 1000, { maximumFractionDigits: 1 })} لیتر</p>
+                  <h2 className="text-base font-bold">آب روزانه</h2>
+                  <p className="mt-1 text-xs text-esi-text-muted">ساده و سریع ثبت کن</p>
                 </div>
-                <WaterGlass pct={waterPct} />
+                <Icon name="Droplets" size={19} className="text-lapis" />
               </div>
-              <div className="mt-4 h-2 rounded-full bg-surface-3 overflow-hidden" role="progressbar" aria-valuenow={waterPct} aria-valuemin={0} aria-valuemax={100} aria-label="درصد آب مصرفی">
-                <motion.div
-                  className="h-full rounded-full bg-blue-500"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${waterPct}%` }}
-                  transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                />
+              <div className="mt-6 flex items-baseline gap-2">
+                <span className="text-4xl font-bold tabular-nums">{formatNumber(data.water.ml / 1000, { maximumFractionDigits: 2 })}</span>
+                <span className="text-xs text-esi-text-muted">لیتر از {formatNumber(data.water.targetMl / 1000, { maximumFractionDigits: 1 })} لیتر</span>
               </div>
-              <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="mt-4 h-2 overflow-hidden rounded-full bg-surface-3" role="progressbar" aria-valuenow={waterPct} aria-valuemin={0} aria-valuemax={100} aria-label="درصد آب مصرفی">
+                <div className="h-full rounded-full bg-lapis" style={{ width: `${waterPct}%` }} />
+              </div>
+              <p className="mt-2 text-xs text-esi-text-secondary">{toPersianDigits(waterPct)}٪ هدف روزانه</p>
+              <div className="mt-5 grid grid-cols-3 gap-2">
                 {[250, 500, 750].map((ml) => (
                   <button
-                    key={ml}
-                    type="button"
-                    disabled={waterBusy}
+                    key={ml} type="button" disabled={waterBusy}
                     onClick={() => void addWater(ml)}
-                    className="min-h-11 rounded-xl border border-border bg-surface-2 text-sm font-medium tabular-nums transition-all duration-150 hover:border-blue-500/50 active:scale-95 disabled:opacity-50"
-                  >
-                    +{toPersianDigits(ml)}
-                  </button>
+                    className="flex min-h-11 items-center justify-center rounded-xl border border-border bg-surface-2 text-sm font-semibold tabular-nums transition-colors hover:border-primary/60 disabled:opacity-50"
+                  >+{toPersianDigits(ml)} <span className="ms-1 text-[11px] font-normal">میلی‌لیتر</span></button>
                 ))}
               </div>
-            </motion.section>
+            </section>
+          </div>
 
-                        {/* Goals */}
+          {/* History lives last. */}
+          <div className="grid gap-3 lg:grid-cols-2">
             {goalFlag && data.goals.length > 0 && (
-              <motion.section
-                aria-label="اهداف من"
-                className="esi-card rounded-3xl p-6"
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-bold flex items-center gap-2">
-                    <Icon name="Target" size={17} className="text-primary" />
-                    اهداف من
-                  </h2>
-                  <Link href="/analytics" className="text-xs text-esi-text-muted hover:text-esi-text-primary transition-colors">
-                    همه اهداف ←
-                  </Link>
+              <section aria-label="اهداف من" className={sectionClass}>
+                <div className="mb-5 flex items-center justify-between gap-2">
+                  <h2 className="text-base font-bold">اهداف من</h2>
+                  <Button asChild variant="ghost" size="sm"><Link href="/analytics">جزئیات</Link></Button>
                 </div>
-                <ul className="space-y-3">
-                  {data.goals.map((g) => (
-                    <li key={g.id}>
-                      <div className="flex items-center justify-between text-xs mb-1.5">
-                        <span className="font-semibold truncate">{g.title}</span>
-                        <span className="tabular-nums text-esi-text-secondary">{toPersianDigits(g.percent)}٪</span>
+                <ul className="space-y-4">
+                  {data.goals.map((goal) => (
+                    <li key={goal.id}>
+                      <div className="mb-2 flex items-center justify-between gap-2 text-xs">
+                        <span className="truncate font-medium">{goal.title}</span>
+                        <span className="shrink-0 tabular-nums text-esi-text-muted">{toPersianDigits(goal.percent)}٪</span>
                       </div>
-                      <div className="h-2 rounded-full bg-surface-3 overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${g.percent}%` }}
-                          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                          className="h-full rounded-full esi-gradient-brand"
-                        />
-                      </div>
-                      <p className="text-[10px] text-esi-text-muted mt-1">{g.statusFa}</p>
+                      <Progress value={Math.max(0, Math.min(goal.percent, 100))} aria-label={`پیشرفت ${goal.title}`} />
+                      <p className="mt-1.5 text-xs text-esi-text-muted">{goal.statusFa}</p>
                     </li>
                   ))}
                 </ul>
-              </motion.section>
+              </section>
             )}
-
-{/* Weight history mini */}
-            <motion.section
-              aria-label="وزن"
-              className="lg:col-span-3 esi-card rounded-3xl p-6"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h2 className="font-bold mb-1">وزن فعلی</h2>
-                  {data.weight ? (
-                    <p className="font-display text-5xl leading-none tabular-nums">
-                      {formatNumber(data.weight.current, { maximumFractionDigits: 1 })}
-                      <span className="text-sm font-medium text-esi-text-muted ms-1">کیلوگرم</span>
-                    </p>
-                  ) : (
-                    <p className="text-sm text-esi-text-muted">هنوز وزنی ثبت نشده</p>
-                  )}
-                </div>
-                {data.weight && (
-                  <p className={cn("text-sm tabular-nums font-medium", data.weight.deltaFromStart <= 0 ? "text-primary" : "text-amber-400")}>
-                    {data.weight.deltaFromStart <= 0 ? "▼ " : "▲ "}
-                    {formatDelta(data.weight.deltaFromStart)} از شروع
-                  </p>
-                )}
-                <Button asChild variant="secondary" size="sm" className="h-9">
-                  <Link href="/analytics">روند کامل</Link>
-                </Button>
+            <section aria-label="تغییرات وزن" className={cn(sectionClass, goalFlag && data.goals.length > 0 ? "" : "lg:col-span-2")}>
+              <div className="mb-5 flex items-center justify-between gap-2">
+                <h2 className="text-base font-bold">روند وزن</h2>
+                <Button asChild variant="ghost" size="sm"><Link href="/analytics">مشاهده روند</Link></Button>
               </div>
-            </motion.section>
+              {data.weight ? (
+                <>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-bold tabular-nums">{formatNumber(data.weight.current, { maximumFractionDigits: 1 })}</span>
+                    <span className="text-xs text-esi-text-muted">کیلوگرم</span>
+                  </div>
+                  <p className={cn("mt-3 text-xs font-medium", data.weight.deltaFromStart <= 0 ? "text-turquoise" : "text-esi-text-secondary")}>
+                    {formatDelta(data.weight.deltaFromStart)} کیلو از زمان شروع
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm leading-7 text-esi-text-muted">هنوز وزنی ثبت نشده؛ از بخش پیشرفت اندازه‌گیریت رو وارد کن.</p>
+              )}
+            </section>
           </div>
         </>
       )}
@@ -394,83 +414,19 @@ export function DashboardView() {
   );
 }
 
-function WaterGlass({ pct }: { pct: number }) {
-  const reduce = useReducedMotion();
-  return (
-    <div className="relative h-24 w-16 overflow-hidden rounded-b-[22px] rounded-t-lg border-2 border-lapis/50 bg-lapis/5" aria-hidden>
-      <motion.div
-        className="absolute inset-x-0 bottom-0"
-        initial={{ height: 0 }}
-        animate={{ height: `${Math.max(pct, 4)}%` }}
-        transition={{ duration: reduce ? 0 : 1.1, ease: [0.22, 1, 0.36, 1] }}
-      >
-        {/* two offset sine waves, each 200% wide so translating -50% loops seamlessly */}
-        <svg viewBox="0 0 120 12" preserveAspectRatio="none" className="esi-wave absolute left-0 -top-2 h-3 w-[200%] text-lapis/55" fill="currentColor">
-          <path d="M0 6 Q15 0 30 6 T60 6 T90 6 T120 6 V12 H0Z" />
-        </svg>
-        <svg viewBox="0 0 120 12" preserveAspectRatio="none" className="esi-wave-slow absolute left-0 -top-1.5 h-3 w-[200%] text-lapis/35" fill="currentColor">
-          <path d="M0 6 Q15 12 30 6 T60 6 T90 6 T120 6 V12 H0Z" />
-        </svg>
-        <div className="absolute inset-0 top-1 bg-lapis/35" />
-      </motion.div>
-    </div>
-  );
-}
-
 function DashboardSkeleton() {
   return (
-    <div className="grid gap-5 lg:grid-cols-3">
-      <Skeleton className="lg:col-span-2 h-48 rounded-3xl" />
-      <Skeleton className="h-48 rounded-3xl" />
-      <Skeleton className="lg:col-span-2 h-56 rounded-3xl" />
-      <Skeleton className="h-56 rounded-3xl" />
-      <Skeleton className="lg:col-span-3 h-28 rounded-3xl" />
+    <div className="space-y-3" role="status" aria-label="در حال بارگذاری داشبورد">
+      <Skeleton className="h-52 rounded-2xl" />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Skeleton className="h-40 rounded-2xl" />
+        <Skeleton className="h-40 rounded-2xl" />
+        <Skeleton className="h-40 rounded-2xl" />
+      </div>
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Skeleton className="h-52 rounded-2xl" />
+        <Skeleton className="h-52 rounded-2xl" />
+      </div>
     </div>
-  );
-}
-
-
-const TONE_META: Record<string, { icon: string; cls: string; labelFa: string }> = {
-  push: { icon: "Zap", cls: "border-primary/30 bg-primary/8 text-primary", labelFa: "روز فشار" },
-  maintain: { icon: "Activity", cls: "border-border bg-surface-2 text-esi-text-secondary", labelFa: "حفظ روال" },
-  adjust: { icon: "Shuffle", cls: "border-amber-500/30 bg-amber-500/8 text-amber-500", labelFa: "تغییر محرک" },
-  recover: { icon: "BatteryLow", cls: "border-destructive/30 bg-destructive/8 text-destructive", labelFa: "ریکاوری" },
-  return: { icon: "Undo2", cls: "border-blue-500/30 bg-blue-500/8 text-blue-500", labelFa: "بازگشت" },
-};
-
-function CoachGuidanceChip({
-  tone,
-  messageFa,
-  cueFa,
-  volumeModifierPercent,
-}: {
-  tone: string;
-  messageFa: string;
-  cueFa: string;
-  volumeModifierPercent: number;
-}) {
-  const meta = TONE_META[tone] ?? TONE_META.maintain;
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.15, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className={`mt-4 rounded-2xl border px-4 py-3 ${meta.cls}`}
-      role="status"
-    >
-      <p className="text-xs font-bold flex items-center gap-2">
-        <Icon name={meta.icon} size={14} />
-        مربی تطبیقی — {meta.labelFa}
-        {volumeModifierPercent !== 0 && (
-          <span className="font-mono text-[10px] opacity-80">
-            حجم {volumeModifierPercent > 0 ? "+" : ""}{toPersianDigits(volumeModifierPercent)}٪
-          </span>
-        )}
-      </p>
-      <p className="mt-1 text-xs leading-5 text-esi-text-secondary">{messageFa}</p>
-      <p className="mt-1.5 text-[11px] leading-5 text-esi-text-secondary">
-        <span className="font-semibold">امروز: </span>{cueFa}
-      </p>
-    </motion.div>
   );
 }
