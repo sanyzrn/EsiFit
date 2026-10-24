@@ -205,7 +205,7 @@ export function CalculatorRunner({
           {disclaimer}
         </p>
 
-        {session && result && valid && (
+        {session && result && valid && !result.invalid && (
           <div className="flex items-center gap-3">
             <Button variant="secondary" className="h-10" onClick={() => void save()}>
               <Icon name="BookmarkPlus" size={16} />
@@ -215,7 +215,7 @@ export function CalculatorRunner({
             {saveError && <span role="alert" className="text-xs text-destructive">{saveError}</span>}
           </div>
         )}
-        {!session && result && valid && (
+        {!session && result && valid && !result.invalid && (
           <p className="text-xs text-esi-text-muted">
             <a href="/auth/login" className="text-primary font-medium">وارد شوید</a> تا نتایج در تاریخچه ذخیره شود و با مقایسه روند ببینید.
           </p>
