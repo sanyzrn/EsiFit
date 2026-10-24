@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 import { PageHeader } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,6 +72,20 @@ export function WorkoutsView({
   const [query, setQuery] = React.useState("");
   const [equipment, setEquipment] = React.useState<string>("all");
   const [selected, setSelected] = React.useState<LibraryExercise | null>(null);
+  // Keep exercise details above the app shell and block page scrolling while open.
+  React.useEffect(() => {
+    if (!selected) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelected(null);
+    };
+    document.addEventListener("keydown", onEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onEscape);
+    };
+  }, [selected]);
   const [starting, setStarting] = React.useState(false);
   const [activeSession, setActiveSession] = React.useState<{ id: string; name: string } | null>(null);
   const [checkingSession, setCheckingSession] = React.useState(true);
@@ -346,20 +361,20 @@ export function WorkoutsView({
       </section>
 
       {/* Exercise detail sheet */}
-      {selected && (
+      {selected && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-6"
+          className="fixed inset-0 z-[100] flex items-end justify-center bg-[#050608]/90 p-0 backdrop-blur-md sm:items-center sm:p-6"
           role="dialog"
           aria-modal="true"
-          aria-label={selected.name}
+          aria-labelledby="exercise-detail-title"
           onClick={() => setSelected(null)}
         >
           <div
-            className="w-full sm:max-w-lg max-h-[85dvh] overflow-y-auto rounded-t-3xl sm:esi-card rounded-3xl p-6"
+            className="relative max-h-[calc(100dvh-1rem)] w-full overflow-y-auto overscroll-contain rounded-t-3xl border border-border bg-surface-1 p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-esi-text-primary sm:max-h-[85dvh] sm:max-w-lg sm:rounded-3xl sm:pb-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
-              <h3 className="text-xl font-bold">{selected.name}</h3>
+              <h3 id="exercise-detail-title" className="text-xl font-bold">{selected.name}</h3>
               <button
                 type="button"
                 onClick={() => setSelected(null)}
@@ -429,7 +444,8 @@ export function WorkoutsView({
               <a href={`/workout/live`}>شروع تمرین</a>
             </Button>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
