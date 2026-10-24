@@ -4,12 +4,11 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================================
-   EsiFit Design System — «لاجورد و زعفران» (Lapis & Saffron)
-   Deep lapis-ink surfaces, saffron as the one signal colour,
-   firouzeh (Persian turquoise) for "good", ember/coral for heat.
-   The recurring motif is the khatam — an eight-point star — drawn
-   from Persian tilework: it frames scores, textures the background
-   and anchors the brand.
+   EsiFit Design System — «زغال و انرژی» (Charcoal & Energy Orange)
+   Neutral charcoal surfaces; vivid workout-orange CTA, controlled red/coral
+   emphasis and green recovery/success. Semantic tokens preserve contrast and
+   accessibility in both dark and light themes. Persian geometric motifs remain
+   subtle decorative details, not competing focal points.
    ============================================================ */
 
 @theme inline {
@@ -102,137 +101,131 @@
 /* ---------------- Dark theme (default) ---------------- */
 :root,
 .dark {
-  --background: #070b1f;
-  --foreground: #f6f3ea;
-  --surface-1: #0e1531;
-  --surface-2: #151d43;
-  --surface-3: #1e2859;
-  --text-primary: #f6f3ea;
-  --text-secondary: #bcc2de;
-  --text-muted: #8089b3;
-  --card: #0e1531;
-  --card-foreground: #f6f3ea;
-  --popover: #151d43;
-  --popover-foreground: #f6f3ea;
-  --primary: #ffc83d;
-  --primary-foreground: #1c1300;
-  --secondary: #151d43;
-  --secondary-foreground: #f6f3ea;
-  --muted: #151d43;
-  --muted-foreground: #bcc2de;
-  --accent: #1e2859;
-  --accent-foreground: #f6f3ea;
-  --destructive: #ff6b81;
-  --destructive-foreground: #1d0309;
-  --border: #29346b;
-  --input: #29346b;
-  --ring: #8aa2ff;
-  --focus: #8aa2ff;
-
-  --saffron: #ffc83d;
-  --turquoise: #3de0c6;
-  --lapis: #7f9bff;
-  --ember: #ff9a4d;
-  --coral: #ff6b81;
-  --iris: #b79bff;
-
-  --chart-1: #ffc83d;
-  --chart-2: #3de0c6;
-  --chart-3: #7f9bff;
-  --chart-4: #b79bff;
-  --chart-5: #ff6b81;
-  --sidebar: #0a1028;
-  --sidebar-foreground: #f6f3ea;
-  --sidebar-primary: #ffc83d;
-  --sidebar-primary-foreground: #1c1300;
-  --sidebar-accent: #151d43;
-  --sidebar-accent-foreground: #f6f3ea;
-  --sidebar-border: #1e2859;
-  --sidebar-ring: #8aa2ff;
-
+  --background: #0b0d10;
+  --foreground: #f8f7f5;
+  --surface-1: #15171b;
+  --surface-2: #202328;
+  --surface-3: #2b3036;
+  --text-primary: #f8f7f5;
+  --text-secondary: #c1c5cc;
+  --text-muted: #a6adb7;
+  --card: #15171b;
+  --card-foreground: #f8f7f5;
+  --popover: #202328;
+  --popover-foreground: #f8f7f5;
+  --primary: #f97316;
+  --primary-foreground: #14100d;
+  --secondary: #202328;
+  --secondary-foreground: #f8f7f5;
+  --muted: #202328;
+  --muted-foreground: #c1c5cc;
+  --accent: #2b3036;
+  --accent-foreground: #f8f7f5;
+  --destructive: #f04e57;
+  --destructive-foreground: #18040a;
+  --border: #393e46;
+  --input: #393e46;
+  --ring: #ff9d59;
+  --focus: #ff9d59;
+  --saffron: #f97316;
+  --turquoise: #55d6a4;
+  --lapis: #849de8;
+  --ember: #ff8f36;
+  --coral: #f04e57;
+  --iris: #b7a2e2;
+  --chart-1: #f97316;
+  --chart-2: #55d6a4;
+  --chart-3: #849de8;
+  --chart-4: #b7a2e2;
+  --chart-5: #f04e57;
+  --sidebar: #111317;
+  --sidebar-foreground: #f8f7f5;
+  --sidebar-primary: #f97316;
+  --sidebar-primary-foreground: #14100d;
+  --sidebar-accent: #202328;
+  --sidebar-accent-foreground: #f8f7f5;
+  --sidebar-border: #393e46;
+  --sidebar-ring: #ff9d59;
   --shadow-rest: 0 1px 2px rgb(2 4 16 / 0.5), 0 2px 8px rgb(2 4 16 / 0.3);
   --shadow-raised: 0 6px 20px rgb(2 4 16 / 0.5), 0 2px 4px rgb(2 4 16 / 0.35);
   --shadow-float: 0 20px 56px rgb(2 4 16 / 0.6), 0 4px 12px rgb(2 4 16 / 0.4);
-  --glow-primary: 0 0 28px rgb(255 200 61 / 0.28);
-  --glow-mint: 0 0 28px rgb(255 200 61 / 0.28);
-  --glass-bg: rgb(10 16 40 / 0.62);
-  --hero-graphite: radial-gradient(120% 90% at 85% 0%, #17215a 0%, #0b1231 45%, #070b1f 100%);
+  --glow-primary: 0 0 26px rgb(249 115 22 / 0.2);
+  --glow-mint: 0 0 26px rgb(249 115 22 / 0.16);
+  --glass-bg: rgb(21 23 27 / 0.75);
+  --hero-graphite: radial-gradient(95% 100% at 75% 8%, #25201b 0%, #111316 47%, #0b0d10 100%);
   --card-sheen: rgb(255 255 255 / 0.045);
-  --spot: rgb(255 200 61 / 0.1);
-  --pattern-stroke: rgb(255 200 61 / 0.1);
+  --spot: rgb(249 115 22 / 0.12);
+  --pattern-stroke: rgb(249 115 22 / 0.07);
   --grain-opacity: 0.07;
   --grain-blend: overlay;
-  --aurora-a: rgb(255 200 61 / 0.16);
-  --aurora-b: rgb(127 155 255 / 0.2);
-  --aurora-c: rgb(61 224 198 / 0.12);
+  --aurora-a: rgb(249 115 22 / 0.11);
+  --aurora-b: rgb(240 78 87 / 0.09);
+  --aurora-c: rgb(85 214 164 / 0.07);
   color-scheme: dark;
 }
 
 /* ---------------- Light theme (parity) ---------------- */
 .light {
-  --background: #f1f3fb;
-  --foreground: #0b1230;
+  --background: #f5f4f0;
+  --foreground: #1b1e23;
   --surface-1: #ffffff;
-  --surface-2: #e9edf8;
-  --surface-3: #dce2f3;
-  --text-primary: #0b1230;
-  --text-secondary: #434c74;
-  --text-muted: #646d94;
+  --surface-2: #efede8;
+  --surface-3: #e5e2dc;
+  --text-primary: #1b1e23;
+  --text-secondary: #4a5059;
+  --text-muted: #5f6670;
   --card: #ffffff;
-  --card-foreground: #0b1230;
+  --card-foreground: #1b1e23;
   --popover: #ffffff;
-  --popover-foreground: #0b1230;
-  --primary: #b45f06;
+  --popover-foreground: #1b1e23;
+  --primary: #b3440f;
   --primary-foreground: #ffffff;
-  --secondary: #e9edf8;
-  --secondary-foreground: #0b1230;
-  --muted: #e9edf8;
-  --muted-foreground: #434c74;
-  --accent: #dce2f3;
-  --accent-foreground: #0b1230;
-  --destructive: #c8344b;
+  --secondary: #efede8;
+  --secondary-foreground: #1b1e23;
+  --muted: #efede8;
+  --muted-foreground: #4a5059;
+  --accent: #e5e2dc;
+  --accent-foreground: #1b1e23;
+  --destructive: #bb2834;
   --destructive-foreground: #ffffff;
-  --border: #d0d7ee;
-  --input: #d0d7ee;
-  --ring: #3556d8;
-  --focus: #3556d8;
-
-  --saffron: #b45f06;
-  --turquoise: #0a7c6b;
-  --lapis: #3556d8;
-  --ember: #b8500a;
-  --coral: #c8344b;
-  --iris: #6644d6;
-
-  --chart-1: #b45f06;
-  --chart-2: #0a7c6b;
-  --chart-3: #3556d8;
-  --chart-4: #6644d6;
-  --chart-5: #c8344b;
+  --border: #d5d0c9;
+  --input: #d5d0c9;
+  --ring: #b3440f;
+  --focus: #b3440f;
+  --saffron: #b3440f;
+  --turquoise: #087a58;
+  --lapis: #465fae;
+  --ember: #b3440f;
+  --coral: #bb2834;
+  --iris: #6e4db7;
+  --chart-1: #b3440f;
+  --chart-2: #087a58;
+  --chart-3: #465fae;
+  --chart-4: #6e4db7;
+  --chart-5: #bb2834;
   --sidebar: #ffffff;
-  --sidebar-foreground: #0b1230;
-  --sidebar-primary: #b45f06;
+  --sidebar-foreground: #1b1e23;
+  --sidebar-primary: #b3440f;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e9edf8;
-  --sidebar-accent-foreground: #0b1230;
-  --sidebar-border: #dce2f3;
-  --sidebar-ring: #3556d8;
-
+  --sidebar-accent: #efede8;
+  --sidebar-accent-foreground: #1b1e23;
+  --sidebar-border: #d5d0c9;
+  --sidebar-ring: #b3440f;
   --shadow-rest: 0 1px 2px rgb(11 18 48 / 0.06), 0 2px 8px rgb(11 18 48 / 0.05);
   --shadow-raised: 0 6px 20px rgb(11 18 48 / 0.1), 0 2px 4px rgb(11 18 48 / 0.06);
   --shadow-float: 0 20px 56px rgb(11 18 48 / 0.16), 0 4px 12px rgb(11 18 48 / 0.08);
-  --glow-primary: 0 0 28px rgb(180 95 6 / 0.22);
-  --glow-mint: 0 0 28px rgb(180 95 6 / 0.22);
-  --glass-bg: rgb(255 255 255 / 0.74);
-  --hero-graphite: radial-gradient(120% 90% at 85% 0%, #dfe6ff 0%, #eef1fb 50%, #f1f3fb 100%);
+  --glow-primary: 0 0 24px rgb(179 68 15 / 0.16);
+  --glow-mint: 0 0 24px rgb(179 68 15 / 0.12);
+  --glass-bg: rgb(255 255 255 / 0.78);
+  --hero-graphite: radial-gradient(120% 95% at 76% 6%, #fff0df 0%, #faf8f4 55%, #f5f4f0 100%);
   --card-sheen: rgb(255 255 255 / 0.6);
-  --spot: rgb(180 95 6 / 0.08);
-  --pattern-stroke: rgb(53 86 216 / 0.09);
+  --spot: rgb(179 68 15 / 0.07);
+  --pattern-stroke: rgb(179 68 15 / 0.065);
   --grain-opacity: 0.05;
   --grain-blend: multiply;
-  --aurora-a: rgb(255 200 61 / 0.3);
-  --aurora-b: rgb(127 155 255 / 0.3);
-  --aurora-c: rgb(61 224 198 / 0.2);
+  --aurora-a: rgb(249 115 22 / 0.14);
+  --aurora-b: rgb(240 78 87 / 0.07);
+  --aurora-c: rgb(85 214 164 / 0.08);
   color-scheme: light;
 }
 
@@ -381,7 +374,7 @@ body::after {
 
 /* Signature gradient: saffron → ember, like a flame catching */
 .esi-gradient-brand {
-  background: linear-gradient(135deg, #ffd45e 0%, #ffb02e 52%, #ff8a3d 100%);
+  background: linear-gradient(135deg, #ff9b4a 0%, #f97316 55%, #eb5122 100%);
 }
 .esi-gradient-brand-text {
   background: linear-gradient(120deg, #ffd45e 0%, #ffa42e 60%, #ff7e4a 100%);
@@ -784,4 +777,134 @@ body::after {
   background: var(--text-primary);
   border: 5px solid var(--primary);
   box-shadow: 0 2px 10px rgb(0 0 0 / 0.35);
+}
+
+/* --------------------------------------------------------------------------
+   Editorial landing hero: Fitness/Gym palette from UI/UX Pro Max adapted to
+   EsiFit's existing semantic system. The hero remains dark in light mode
+   as a deliberate photographic brand canvas; controls keep AA contrast.
+   -------------------------------------------------------------------------- */
+.esi-campaign-hero {
+  --hero-orange: #ff8c35;
+  --hero-text: #f8f7f5;
+  --hero-muted: #cbd0d5;
+  --hero-faint: #9aa0aa;
+  --hero-hairline: rgb(255 255 255 / 0.17);
+  --hero-strip: #111316;
+  color: var(--hero-text);
+  background:
+    radial-gradient(circle at 77% 40%, rgb(245 80 29 / 0.17), transparent 35%),
+    linear-gradient(122deg, #171312 0%, #101114 42%, #0a0b0d 100%);
+}
+.esi-campaign-grid {
+  opacity: 0.45;
+  background-image:
+    linear-gradient(90deg, transparent calc(100% - 1px), rgb(255 255 255 / 0.045) 100%);
+  background-size: 20% 100%;
+}
+.esi-campaign-noise {
+  opacity: 0.13;
+  background-image: radial-gradient(rgb(255 255 255 / 0.25) 0.5px, transparent 0.5px);
+  background-size: 5px 5px;
+}
+.esi-campaign-side-label {
+  position: absolute;
+  inset-inline-end: 14px;
+  top: 51%;
+  transform: rotate(-90deg) translateY(-50%);
+  transform-origin: center;
+  color: rgb(255 255 255 / 0.21);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.22em;
+  font-size: 10px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.esi-campaign-title {
+  color: var(--hero-text);
+  font-size: clamp(3.7rem, 8.2vw, 7.75rem);
+  line-height: 0.99;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+.esi-campaign-word { color: var(--hero-orange); }
+.esi-campaign-period { color: #f04e57; margin-inline-start: 0.035em; }
+.esi-campaign-signal {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 999px;
+  background: var(--hero-orange);
+  box-shadow: 0 0 0 4px rgb(255 140 53 / 0.12);
+}
+.esi-campaign-stage { aspect-ratio: 1.16; }
+.esi-campaign-orbit {
+  width: 77%;
+  aspect-ratio: 1;
+  right: 9%;
+  top: 4%;
+  border-radius: 50%;
+  border: 1px solid rgb(255 140 53 / 0.26);
+  box-shadow: 0 0 0 24px rgb(255 140 53 / 0.045);
+}
+.esi-campaign-photo-shell {
+  width: 100%;
+  height: 100%;
+  clip-path: polygon(10% 0, 100% 0, 100% 88%, 90% 100%, 0 100%, 0 12%);
+  background: #25282b;
+}
+.esi-campaign-photo {
+  object-position: center 45%;
+  filter: grayscale(0.45) saturate(0.85) contrast(1.17) brightness(0.76);
+}
+.esi-campaign-photo-shade {
+  background:
+    linear-gradient(to top, rgb(7 8 10 / 0.76), transparent 46%),
+    linear-gradient(115deg, rgb(231 64 24 / 0.32), transparent 47%);
+}
+.esi-campaign-photo-index { color: #f8f7f5; text-shadow: 0 1px 4px #000; }
+.esi-campaign-photo-corner {
+  width: 74px;
+  height: 74px;
+  border-top: 3px solid var(--hero-orange);
+  border-right: 3px solid var(--hero-orange);
+}
+.esi-campaign-side-tag {
+  border: 1px solid var(--hero-hairline);
+  border-radius: 8px;
+  color: #f8f7f5;
+  background: #17191d;
+}
+.esi-campaign-cta {
+  background: #f97316;
+  color: #14100d;
+  border: 1px solid #f97316;
+}
+.esi-campaign-cta:hover { background: #ff9b4a; border-color: #ff9b4a; }
+.esi-campaign-secondary {
+  border-color: rgb(255 255 255 / 0.37);
+  background: transparent;
+  color: #f8f7f5;
+}
+.esi-campaign-secondary:hover {
+  border-color: var(--hero-orange);
+  background: rgb(255 255 255 / 0.075);
+  color: #f8f7f5;
+}
+.esi-campaign-cta:focus-visible,
+.esi-campaign-secondary:focus-visible {
+  outline: 3px solid var(--hero-orange);
+  outline-offset: 4px;
+}
+@media (max-width: 1023px) {
+  .esi-campaign-title { font-size: clamp(3.7rem, 11vw, 6.4rem); }
+  .esi-campaign-side-label { display: none; }
+}
+@media (max-width: 480px) {
+  .esi-campaign-title { font-size: clamp(3.65rem, 13.3vw, 5.2rem); }
+  .esi-campaign-stage { aspect-ratio: 1.22; margin-top: 8px; }
+  .esi-campaign-photo-index { font-size: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .esi-campaign-hero * { scroll-behavior: auto; }
 }
