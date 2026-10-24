@@ -57,7 +57,7 @@ export const CALCULATOR_CONFIGS: CalculatorConfig[] = [
         { value: "female", label: "زن" },
         { value: "undisclosed", label: "ترجیح می‌دهم نگویم" },
       ], defaultValue: "male" },
-      { key: "birthYear", label: "سال تولد (شمسی)", type: "number", min: 1320, max: 1420, step: 1, placeholder: "۱۳۷۴" },
+      { key: "birthYear", label: "سال تولد (شمسی)", type: "number", min: 1320, max: 1420, step: 1, placeholder: "۱۳۷۴", hint: "محاسبه برای افراد ۱۸ سال به بالا" },
       { key: "weightKg", label: "وزن", unit: "کیلوگرم", type: "number", min: 30, max: 300, step: 0.5, placeholder: "۸۲" },
       { key: "heightCm", label: "قد", unit: "سانتی‌متر", type: "number", min: 100, max: 230, step: 1, placeholder: "۱۷۸" },
       { key: "activityLevel", label: "سطح فعالیت", type: "select", options: [
@@ -84,7 +84,7 @@ export const CALCULATOR_CONFIGS: CalculatorConfig[] = [
         { value: "female", label: "زن" },
         { value: "undisclosed", label: "ترجیح می‌دهم نگویم" },
       ], defaultValue: "male" },
-      { key: "birthYear", label: "سال تولد (شمسی)", type: "number", min: 1320, max: 1420, step: 1, placeholder: "۱۳۷۴" },
+      { key: "birthYear", label: "سال تولد (شمسی)", type: "number", min: 1320, max: 1420, step: 1, placeholder: "۱۳۷۴", hint: "محاسبه برای افراد ۱۸ سال به بالا" },
       { key: "weightKg", label: "وزن", unit: "کیلوگرم", type: "number", min: 30, max: 300, step: 0.5, placeholder: "۸۲" },
       { key: "heightCm", label: "قد", unit: "سانتی‌متر", type: "number", min: 100, max: 230, step: 1, placeholder: "۱۷۸" },
       { key: "activityLevel", label: "سطح فعالیت", type: "select", options: [
@@ -117,7 +117,7 @@ export const CALCULATOR_CONFIGS: CalculatorConfig[] = [
       { key: "reps", label: "تعداد تکرار", type: "number", min: 1, max: 15, step: 1, placeholder: "۵" },
     ],
     disclaimer: "تخمین ۱RM جایگزین تکنیک صحیح نیست؛ حتماً حامل یا ایمنی دستگاه داشته باشید.",
-    methodNote: "اپلی: وزن × (۱ + تکرار/۳۰). بژیتکی: وزن × ۳۶/(۳۷ − تکرار). میانگین دو فرمول در بازه ۲–۱۰ تکرار.",
+    methodNote: "یک تکرار = وزنه واقعی ثبت‌شده؛ برای ۲ تا ۱۰ تکرار میانگین اپلی و بژیتکی، و بالاتر از ۱۰ فقط اپلی با دقت کمتر.",
   },
   {
     slug: "ideal-weight",
@@ -132,10 +132,10 @@ export const CALCULATOR_CONFIGS: CalculatorConfig[] = [
         { value: "female", label: "زن" },
         { value: "undisclosed", label: "ترجیح می‌دهم نگویم" },
       ], defaultValue: "male" },
-      { key: "heightCm", label: "قد", unit: "سانتی‌متر", type: "number", min: 100, max: 230, step: 1, placeholder: "۱۷۸" },
+      { key: "heightCm", label: "قد", unit: "سانتی‌متر", type: "number", min: 153, max: 230, step: 1, placeholder: "۱۷۸" },
     ],
     disclaimer: "«وزن ایده‌آل» یک بازه آماری است، نه هدف قطعی؛ ترکیب بدن و سلامت متابولیک مهم‌تر از عدد روی ترازو است.",
-    methodNote: "دیواین (1974) و رابینسون با تطبیق اینچ بر فراتر از ۱۵۲٫۴ سانتی‌متر.",
+    methodNote: "دیواین (۱۹۷۴) و رابینسون برای قدهای بالاتر از ۱۵۲٫۴ سانتی‌متر؛ تخمین آماری، نه وزن الزام‌آور.",
   },
   {
     slug: "whtr",
@@ -168,7 +168,7 @@ export const CALCULATOR_CONFIGS: CalculatorConfig[] = [
   {
     slug: "body-fat-navy",
     title: "درصد چربی بدن",
-    tagline: "روش دورهای بدن (ازماینده نیروی دریایی آمریکا)",
+    tagline: "برآورد درصد چربی با اندازه‌گیری دورهای بدن",
     metaTitle: "محاسبه درصد چربی بدن",
     metaDescription: "درصد چربی بدن با روش دورهای استاندارد نیروی دریایی آمریکا — با متر و بدون دستگاه.",
     emoji: "📊",
@@ -179,10 +179,10 @@ export const CALCULATOR_CONFIGS: CalculatorConfig[] = [
       ], defaultValue: "male" },
       { key: "heightCm", label: "قد", unit: "سانتی‌متر", type: "number", min: 100, max: 230, step: 1, placeholder: "۱۷۸" },
       { key: "neckCm", label: "دور گردن", unit: "سانتی‌متر", type: "number", min: 20, max: 60, step: 0.5, placeholder: "۳۸" },
-      { key: "waistCm", label: "دور کمر", unit: "سانتی‌متر", type: "number", min: 40, max: 200, step: 0.5, placeholder: "۸۸", hint: "زنان: دور باسن به‌جای کمر" },
-      { key: "hipCm", label: "دور باسن (فقط زنان)", unit: "سانتی‌متر", type: "number", min: 0, max: 200, step: 0.5, placeholder: "۰" },
+      { key: "waistCm", label: "دور کمر", unit: "سانتی‌متر", type: "number", min: 40, max: 200, step: 0.5, placeholder: "۸۸", hint: "برای زنان دور کمر و دور باسن هر دو لازم‌اند." },
+      { key: "hipCm", label: "دور باسن (فقط زنان)", unit: "سانتی‌متر", type: "number", min: 40, max: 200, step: 0.5, placeholder: "۱۰۰" },
     ],
     disclaimer: "روش دورها خطای ±۳–۴٪ دارد؛ برای روند پیشرفت خوب است، نه عدد دقیق آزمایشگاهی.",
-    methodNote: "فرمول استاندارد U.S. Navy: مردان ۴۹۵/(۱٫۰۳۲−۰٫۱۹۰۷×log(کمر−گردن)+۰٫۱۵۴۸×log(قد))−۴۵۰؛ زنان با باسن.",
+    methodNote: "تخمین چگالی بدن با فرمول U.S. Navy و اندازه‌های متریک؛ برای زنان مجموع دور کمر و باسن منهای دور گردن استفاده می‌شود.",
   },
 ];
