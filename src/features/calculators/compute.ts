@@ -8,6 +8,7 @@ import {
 } from "@/lib/domain/body-math";
 
 export type CalcResult = {
+  invalid?: boolean;
   headline: string;
   headlineValue: string;
   gauge?: { value: number; min: number; max: number; tone: "primary" | "blue" | "amber" | "red" | "violet"; label: string };
@@ -159,7 +160,7 @@ export function computeCalculator(slug: string, v: Record<string, string>): Calc
         bf = 495 / (1.29579 - 0.35004 * Math.log10(waist + hip - neck) + 0.221 * Math.log10(h)) - 450;
       }
       if (bf == null || !Number.isFinite(bf) || bf < 3 || bf > 60) {
-        return { headline: "درصد چربی بدن", headlineValue: "—", rows: [{ label: "وضعیت", value: "دوره‌های واردشده معتبر نیستند" }] };
+        return { invalid: true, headline: "درصد چربی بدن", headlineValue: "قابل محاسبه نیست", rows: [{ label: "وضعیت", value: "اندازه‌های واردشده را بررسی کنید" }] };
       }
       const value = Math.round(bf * 10) / 10;
       // Age- and sex-specific labels need demographic inputs; do not misclassify.
