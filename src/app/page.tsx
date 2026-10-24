@@ -9,7 +9,6 @@ import { LandingHero } from "@/components/landing/hero";
 import { FeatureBento } from "@/components/landing/bento";
 import { DayFlow } from "@/components/landing/day-flow";
 import { BmiPlayground } from "@/components/landing/bmi-playground";
-import { KhatamStar } from "@/components/motion/khatam";
 import { ScrollProgress } from "@/components/motion/scroll-progress";
 import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 import { formatRelative } from "@/lib/dates/jalali";
@@ -118,28 +117,23 @@ export default async function LandingPage() {
         </section>
       )}
 
-      {/* ============ FINAL CTA ============ */}
-      <section className="mx-auto max-w-6xl px-4 lg:px-8 pb-4">
-        <RevealOnScroll>
-          <div className="esi-hero-graphite relative isolate overflow-hidden rounded-[32px] border border-border px-6 py-16 text-center lg:px-16 lg:py-24">
-            <div aria-hidden className="esi-aurora -z-10" />
-            <div aria-hidden className="absolute inset-0 -z-10 [mask-image:radial-gradient(60%_80%_at_50%_50%,black,transparent)]">
-              <div className="esi-pattern" />
-            </div>
-            <KhatamStar size={420} strokeWidth={0.4} spin className="pointer-events-none absolute -bottom-40 -start-24 text-primary/30" />
-            <KhatamStar size={320} strokeWidth={0.4} spin="reverse" className="pointer-events-none absolute -top-32 -end-16 text-turquoise/30" />
-            <div className="relative">
-              <h2 className="font-display text-4xl leading-[1.3] lg:text-6xl">امروز اولین روز ثبت‌شده شماست</h2>
-              <p className="mx-auto mt-5 max-w-lg text-sm leading-7 text-esi-text-secondary lg:text-base">
-                فقط با شماره موبایل وارد شوید؛ برنامه شروع به‌طور خودکار ساخته می‌شود و جلسه اول همین امروز می‌تواند باشد.
-              </p>
-              <Button asChild size="lg" className="esi-sheen esi-glow mt-9 h-14 px-10 text-base">
-                <Link href={session ? "/dashboard" : "/auth/login"}>{session ? "رفتن به داشبورد" : "ساخت رایگان حساب"}</Link>
-              </Button>
-              <p className="mt-4 text-xs text-esi-text-muted">بدون کارت بانکی — پلن رایگان همیشه رایگان می‌ماند.</p>
-            </div>
-          </div>
-        </RevealOnScroll>
+      {/* Minimal final action — hero above remains the only editorial art section. */}
+      <section className="mx-auto max-w-6xl px-4 pb-6 lg:px-8">
+        <div className="rounded-2xl border border-border bg-surface-1 px-6 py-12 text-center sm:py-16">
+          <p className="text-xs font-bold text-primary">از همین امروز</p>
+          <h2 className="mt-3 font-display text-3xl leading-tight sm:text-4xl">
+            قدم اول رو بردار
+          </h2>
+          <p className="mx-auto mt-3 max-w-lg text-sm leading-7 text-esi-text-secondary">
+            برنامه تمرین و تغذیه‌ات رو در یک جای ساده و منظم داشته باش؛ پیشرفت واقعی از ثبت قدم‌های کوچیک شروع می‌شه.
+          </p>
+          <Button asChild size="lg" className="mt-6 min-h-12 px-8">
+            <Link href={session ? "/dashboard" : "/auth/login"}>
+              {session ? "رفتن به داشبورد" : "شروع رایگان"}
+            </Link>
+          </Button>
+          <p className="mt-3 text-xs text-esi-text-muted">بدون نیاز به کارت بانکی</p>
+        </div>
       </section>
 
       <InstallPrompt />

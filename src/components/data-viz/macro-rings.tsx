@@ -57,7 +57,7 @@ export function MacroRingGroup({
                   strokeWidth={strokeWidth}
                   strokeLinecap="round"
                   strokeDasharray={c}
-                  style={{ filter: pct > 0 ? `drop-shadow(0 0 5px color-mix(in srgb, ${color} 50%, transparent))` : undefined }}
+                  
                   initial={{ strokeDashoffset: reduced ? c * (1 - pct) : c }}
                   animate={{ strokeDashoffset: c * (1 - pct) }}
                   transition={{ duration: reduced ? 0 : 0.9, ease: [0.22, 1, 0.36, 1] }}

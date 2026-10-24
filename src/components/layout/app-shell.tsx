@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { AppSidebar, MobileBottomNav, BrandMark } from "@/components/layout/navigation";
 import { MobileHeaderActions } from "@/components/layout/header-actions";
 import { SessionProvider } from "@/lib/client/use-session";
@@ -13,7 +12,6 @@ import { OfflineIndicator } from "@/components/features/offline-sync-indicator";
 import type { FeatureFlag } from "@/lib/feature-flags/registry";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { MOTION } from "@/lib/motion/motion";
 
 /** Primary member destinations — these do not need a back chip (nav is present). */
 const PRIMARY_MEMBER_ROUTES = new Set([
@@ -42,7 +40,6 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const reduce = useReducedMotion();
   const isLiveWorkout = pathname.startsWith("/workout/live");
   const isAuthFlow = variant === "auth" || pathname.startsWith("/auth/");
   const showMemberChrome = Boolean(session) && !isAuthFlow && !isLiveWorkout;
@@ -59,29 +56,12 @@ export function AppShell({
   return (
     <FeatureFlagProvider flags={flags}>
       <SessionProvider initial={session}>
-        <div className="relative min-h-dvh flex">
-          {/* faint khatam lattice, fading out toward the bottom — felt more than seen */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] overflow-hidden [mask-image:linear-gradient(to_bottom,black,transparent)]"
-          >
-            <div className="esi-pattern opacity-60" />
-          </div>
+        <div className="esi-flat-app relative flex min-h-dvh bg-background">
           {showMemberChrome && <AppSidebar />}
           <div className="flex-1 flex flex-col min-w-0">
             {showMobileHeader && <MobileAppHeader />}
             <main className={cn("flex-1 app-main-content", mainPadBottom)}>
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={pathname}
-                  initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: reduce ? 0.01 : MOTION.duration.smooth, ease: MOTION.ease }}
-                >
-                  {children}
-                </motion.div>
-              </AnimatePresence>
+              {children}
             </main>
           </div>
           {session?.role === "member" && <OfflineIndicator />}
@@ -95,7 +75,7 @@ export function AppShell({
 function MobileAppHeader() {
   const router = useRouter();
   return (
-    <header className="lg:hidden sticky top-0 z-30 h-14 esi-glass border-b border-border safe-top">
+    <header className="sticky top-0 z-30 h-14 border-b border-border bg-surface-1 safe-top lg:hidden">
       <div className="h-14 flex items-center justify-between px-4">
         <BrandMark />
         <MobileHeaderActions onBellClick={() => router.push("/notifications")} />

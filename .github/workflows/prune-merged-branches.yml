@@ -1,0 +1,41 @@
+name: Prune safely merged feature branches
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Scope write access to this branch-cleanup job only.
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  prune:
+    name: Remove fully merged, unchanged feature branches
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Delete only matching merged PR branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Only the exact head commit of a merged PR is eligible.
+          # If someone has committed more work since merge, it stays.
+          gh api --paginate "repos/$REPO/pulls?state=closed&per_page=100" \
+            --jq '.[] | select(.merged_at != null) | [.head.ref, .head.sha] | @tsv' |
+          while IFS=$'\t' read -r branch merged_sha; do
+            case "$branch" in
+              feat/*|fix/*|chore/*) ;;
+              *) continue ;;
+            esac
+            if [[ "$branch" == "main" || -z "$merged_sha" ]]; then continue; fi
+            current_sha=$(gh api "repos/$REPO/git/ref/heads/$branch" --jq '.object.sha' 2>/dev/null || true)
+            if [[ "$current_sha" != "$merged_sha" ]]; then continue; fi
+            # Ref may have moved or already been deleted; fail open (preserve).
+            echo "Pruning already-merged branch: $branch"
+            gh api --method DELETE "repos/$REPO/git/refs/heads/$branch" || true
+          done
