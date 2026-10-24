@@ -1,3 +1,5 @@
+import { toJalali } from "@/lib/dates/jalali";
+
 /**
  * Body & energy math — established, citable formulas only.
  * - BMR: Mifflin-St Jeor (1990), the ADA-preferred equation.
@@ -48,7 +50,7 @@ export function bmrMifflinStJeor(input: {
 /** Age from birth year — accepts Jalali (1300–1420) or Gregorian years. */
 export function ageFromBirthYear(birthYear: number): number {
   const nowGy = new Date().getUTCFullYear();
-  const nowJy = nowGy - 621;
+  const nowJy = toJalali(new Date()).jy;
   const isJalaliYear = birthYear >= 1300 && birthYear <= 1420;
   const age = isJalaliYear ? nowJy - birthYear : nowGy - birthYear;
   return Math.min(Math.max(age, 10), 100);
