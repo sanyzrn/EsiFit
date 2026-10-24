@@ -88,15 +88,9 @@ export function KhatamDial({
       role="img"
       aria-label={label}
     >
-      {/* warm bloom behind the ring */}
-      <div
-        aria-hidden
-        className="absolute inset-[12%] rounded-full blur-2xl opacity-40"
-        style={{ background: `radial-gradient(circle, ${color}, transparent 70%)` }}
-      />
       <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full" fill="none" aria-hidden>
         {/* two counter-rotating stars: the "machinery" behind the number */}
-        <g className="esi-spin-slow" style={{ transformOrigin: "100px 100px", color: "var(--border)" }}>
+        <g style={{ transformOrigin: "100px 100px", color: "var(--border)" }}>
           <path d={starPath(100, 100, 74, 74 * OCTAGRAM_INNER)} stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
         </g>
         {Array.from({ length: TICKS }, (_, i) => {
@@ -110,7 +104,6 @@ export function KhatamDial({
           const x2 = Number((100 + Math.cos(angle) * r2).toFixed(2));
           const y2 = Number((100 + Math.sin(angle) * r2).toFixed(2));
           const on = i < lit;
-          const isHead = on && i === lit - 1;
           return (
             <motion.line
               key={i}
@@ -126,7 +119,6 @@ export function KhatamDial({
               transition={{ duration: 0.35, delay: reduce ? 0 : delay + i * 0.016, ease: [0.22, 1, 0.36, 1] }}
               style={{
                 transformOrigin: "100px 100px",
-                filter: isHead ? `drop-shadow(0 0 5px ${color})` : undefined,
               }}
             />
           );
@@ -139,19 +131,10 @@ export function KhatamDial({
 
 /** Logo glyph: saffron khatam with a lapis dumbbell at its heart. */
 export function KhatamMark({ size = 36, className }: { size?: number; className?: string }) {
-  // Unique per instance: a duplicate gradient id would resolve to the first copy,
-  // which is dead when that copy lives inside a display:none subtree (desktop sidebar).
-  const gid = `khatam-mark-${React.useId().replace(/:/g, "")}`;
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" className={className} aria-hidden>
-      <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#ffd45e" />
-          <stop offset="100%" stopColor="#ff8a3d" />
-        </linearGradient>
-      </defs>
-      <path d={starPath(24, 24, 23, 23 * OCTAGRAM_INNER)} fill={`url(#${gid})`} />
-      <g stroke="#101a4a" strokeWidth="2.6" strokeLinecap="round">
+      <path d={starPath(24, 24, 23, 23 * OCTAGRAM_INNER)} fill="var(--primary)" />
+      <g stroke="var(--primary-foreground)" strokeWidth="2.6" strokeLinecap="round">
         <path d="M14 20v8M18 17v14M30 17v14M34 20v8M18 24h12" />
       </g>
     </svg>
