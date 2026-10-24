@@ -29,7 +29,7 @@ export function computeCalculator(slug: string, v: Record<string, string>): Calc
       const range = healthyWeightRange(h);
       return {
         headline: "شاخص توده بدنی شما",
-        headlineValue: formatNumber(value, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+        headlineValue: formatNumber(value, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
         gauge: { value, min: 12, max: 40, tone, label: BMI_FA[cat] },
         rows: [
           { label: "دسته‌بندی", value: BMI_FA[cat], tone },
