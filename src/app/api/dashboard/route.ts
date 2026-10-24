@@ -11,6 +11,7 @@ import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 import { adaptiveCoach, type ReadinessState } from "@/lib/domain/adaptive-coach";
 import { computeGoalProgress } from "@/lib/domain/goals";
 import { currentValueForGoal } from "@/lib/goal-values";
+import { formatWorkoutDayTitle } from "@/lib/workout/plan-titles";
 
 export async function GET() {
   try {
@@ -175,7 +176,7 @@ export async function GET() {
             estimatedMinutes: Math.round(planDay.exercises.reduce((a, e) => a + e.targetSets * (e.restSeconds + 60), 0) / 60),
           }
         : null,
-      activeSession: todaySession ? { id: todaySession.id, name: todaySession.name } : null,
+      activeSession: todaySession ? { id: todaySession.id, name: formatWorkoutDayTitle(todaySession.name) } : null,
       nutrition: {
         totals: {
           calories: Math.round(mealTotals.calories),
