@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CALCULATOR_CONFIGS } from "@/features/calculators/registry";
 import { computeCalculator } from "@/features/calculators/compute";
-import { isApplicableCalculatorField, validateCalculatorInputs } from "@/features/calculators/validation";
+import { isApplicableCalculatorField, parseCalculatorNumber, validateCalculatorInputs } from "@/features/calculators/validation";
 import {
   bmi, bmiCategory, whtr, whtrCategory, oneRepMax, computeMacroTargets, idealWeightRange,
 } from "@/lib/domain/body-math";
@@ -31,6 +31,15 @@ describe("all eight public calculators", () => {
     expect(result).not.toBeNull();
     expect(result?.headlineValue).toBeTruthy();
     expect(result?.headlineValue).not.toMatch(/NaN|Infinity|undefined/);
+  });
+
+  it("parses Persian decimals, decimal commas, and thousand groups consistently", () => {
+    expect(parseCalculatorNumber("۸۰٫۵")).toBe(80.5);
+    expect(parseCalculatorNumber("80,5")).toBe(80.5);
+    expect(parseCalculatorNumber("1,234")).toBe(1234);
+    expect(parseCalculatorNumber("10foo")).toBeNull();
+    expect(computeCalculator("bmi", { weightKg: "80,5", heightCm: "175" })?.headlineValue)
+      .toBe(computeCalculator("bmi", { weightKg: "80.5", heightCm: "175" })?.headlineValue);
   });
 
   it("rejects out-of-range, negative, malformed and fractional integer inputs", () => {
