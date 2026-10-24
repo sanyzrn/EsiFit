@@ -3,16 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useSession } from "@/lib/client/use-session";
 import { Button } from "@/components/ui/button";
 
-/** Header actions for mobile: notifications + theme. Desktop sidebar shows profile. */
+/** Header actions for mobile: notifications and account. Theme switch is temporarily hidden. */
 export function MobileHeaderActions({ onBellClick }: { onBellClick?: () => void }) {
   const session = useSession();
   return (
     <div className="flex items-center gap-1.5">
-      <ThemeToggle />
       {session ? (
         <>
           <Link
