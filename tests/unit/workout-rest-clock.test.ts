@@ -29,3 +29,22 @@ describe("guided workout rest clock", () => {
     expect(restClockLabel(125)).toBe("2:05");
   });
 });
+
+describe("active-set clock persistence", () => {
+  it("uses real elapsed time and excludes an explicit pause, including after reload", async () => {
+    const { startSetClock, pauseSetClock, resumeSetClock, setElapsedSeconds, restoreSetClock } = await import("@/lib/workout/rest-clock");
+    const started = startSetClock(100000);
+    expect(setElapsedSeconds(started, 130000)).toBe(30);
+    const held = pauseSetClock(started, 130500);
+    const restored = restoreSetClock(JSON.stringify(held), 200000);
+    expect(setElapsedSeconds(restored, 999000)).toBe(30);
+    expect(setElapsedSeconds(resumeSetClock(restored, 200000), 215000)).toBe(45);
+  });
+  it("recovers safely from corrupted, future and invalid saved clocks", async () => {
+    const { restoreSetClock, startSetClock } = await import("@/lib/workout/rest-clock");
+    const now = 500000;
+    for (const raw of ["broken", "null", '{"accumulatedMs":-3,"startedAt":0}', '{"accumulatedMs":0,"startedAt":600000}']) {
+      expect(restoreSetClock(raw, now)).toEqual(startSetClock(now));
+    }
+  });
+});

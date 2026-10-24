@@ -8,7 +8,7 @@ import {
   MessageCircle, MessagesSquare, Mic, Moon, Mountain, PersonStanding, Plus, Rocket, ScrollText,
   Search, SendHorizontal, Settings, Shield, ShoppingBag, ShoppingCart, Shuffle, Smartphone,
   Sparkles, Sun, Sunrise, Target, Timer, Trash2, TriangleAlert, Trophy, Undo2, User, UserPlus,
-  Users, X, Zap, RefreshCw, ShieldCheck, UserRound,
+  Users, X, Zap, RefreshCw, ShieldCheck, UserRound, Play, Pause, List, Maximize2, Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +25,7 @@ const REGISTRY = {
   MessageCircle, MessagesSquare, Mic, Moon, Mountain, PersonStanding, Plus, Rocket, ScrollText,
   Search, SendHorizontal, Settings, Shield, ShoppingBag, ShoppingCart, Shuffle, Smartphone,
   Sparkles, Sun, Sunrise, Target, Timer, Trash2, TriangleAlert, Trophy, Undo2, User, UserPlus,
-  Users, X, Zap, RefreshCw, ShieldCheck, UserRound,
+  Users, X, Zap, RefreshCw, ShieldCheck, UserRound, Play, Pause, List, Maximize2, Share2,
 } as const;
 
 export type IconName = keyof typeof REGISTRY;

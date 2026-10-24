@@ -17,10 +17,13 @@ export async function POST(req: NextRequest) {
     const body = likeSchema.parse(await req.json());
 
     const post = await db.post.findUnique({ where: { id: body.postId } });
-    if (!post) return NextResponse.json({ ok: false, code: "not_found", message: "پست یافت نشد." }, { status: 404 });
+    if (!post || post.visibility !== "public") return NextResponse.json({ ok: false, code: "not_found", message: "پست یافت نشد." }, { status: 404 });
 
     if (body.liked) {
-      await db.postLike.create({ data: { postId: body.postId, userId: session.id } }).catch(() => undefined);
+      await db.postLike.upsert({
+        where: { postId_userId: { postId: body.postId, userId: session.id } },
+        create: { postId: body.postId, userId: session.id }, update: {},
+      });
     } else {
       await db.postLike.deleteMany({ where: { postId: body.postId, userId: session.id } });
     }

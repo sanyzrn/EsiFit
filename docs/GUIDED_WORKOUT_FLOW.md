@@ -1,11 +1,11 @@
 # Guided workout flow — EsiFit
 
-Updated 2026-10-23. Reference: [openGym](https://github.com/DuarteSantos8/openGym) interaction research. **Independent implementation; no copied AGPL code.**
+Updated 2026-10-24. Reference: [openGym](https://github.com/DuarteSantos8/openGym) interaction research. **Independent implementation; no copied AGPL code.**
 
 ## Actual member flow
 1. On **Workouts**, show **Start** for new sessions and **Continue workout** for an existing owned session, not multiple starts. A resumed session reopens at its first unfinished exercise.
-2. Show one focused exercise and its planned/recorded sets. The current set can only be recorded once; local offline persistence happens before the UI marks it done.
-3. Start the programmed rest on a completed intermediate working set. The **bottom-docked** timer stays visible while scrolling and never obscures the set form, with a slim progress bar and stable control positions. It runs on wall-clock time.
+2. Open the fullscreen focus canvas by default, with looping start/peak teaching frames, an active-set count-up clock and actual set capture in a Sheet. Detail view remains available. Show one focused exercise and its planned/recorded sets. The current set can only be recorded once; local offline persistence happens before the UI marks it done.
+3. Start the programmed rest between sets and movements, except after the last planned set of the session. Focus mode uses a full-screen rest phase with a next-step preview; detail mode retains the **bottom-docked** timer with a slim progress bar and stable control positions. It runs on wall-clock time.
 4. Expose **−15 / +15**, **Pause / Resume**, and **Skip (two-step confirmation)**. When the timer reaches zero, display **Ready** rather than abruptly removing the bar. Athletes may explicitly dismiss it or add 15 s. A tab going to the background does not freeze the clock; pause is intentional.
 5. When all planned sets for a movement are recorded, show a clear **next exercise** action; after the last movement, ask to finish the workout.
 6. **Exit** to library preserves the session for continuation. **Finish** opens a confirmation with actual sets, percentage, elapsed session time and an unfinished-workout warning. Zero-set sessions may only be left active (prevents bogus completed 0-set workouts); completed sets stay intact.
@@ -28,3 +28,5 @@ This comparison documents **user-facing behavior**, not a translation of source 
 - Finish early with some sets; warnings appear. Exit without finishing; session remains active.
 - Try finishing without any sets; no XP should be awarded.
 - Mobile portrait, RTL, 320px and 390px widths; no keyboard/timer occlusion.
+
+See `COMMUNITY_AND_FOCUS_WORKOUT.md` and `COMPONENT_INVENTORY.md` for the current presentation and API contracts.

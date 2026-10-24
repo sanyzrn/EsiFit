@@ -27,6 +27,7 @@ export type LiveSessionExercise = {
   note: string;
   /** Present on live payloads: equipment drives increments/plates; history drives pre-fill. */
   equipment?: string;
+  instructions?: string;
   history?: ExerciseHistory;
 };
 
@@ -49,6 +50,7 @@ async function shapeExercisesRaw(session: { id: string; planDayId: string | null
         exerciseId: e.exerciseId,
         name: e.exercise.nameFa,
         slug: e.exercise.slug,
+        instructions: e.exercise.instructionsFa,
         targetSets: e.targetSets,
         targetRepsMin: e.targetRepsMin,
         targetRepsMax: e.targetRepsMax,
@@ -68,6 +70,7 @@ async function shapeExercisesRaw(session: { id: string; planDayId: string | null
     exerciseId: l.exerciseId,
     name: l.exercise.nameFa,
     slug: l.exercise.slug,
+    instructions: l.exercise.instructionsFa,
     targetSets: 3,
     targetRepsMin: 8,
     targetRepsMax: 12,
@@ -136,6 +139,7 @@ export async function POST(req: NextRequest) {
         exerciseId: e.exerciseId,
         name: e.exercise.nameFa,
         slug: e.exercise.slug,
+        instructions: e.exercise.instructionsFa,
         targetSets: e.targetSets,
         targetRepsMin: e.targetRepsMin,
         targetRepsMax: e.targetRepsMax,
@@ -154,6 +158,7 @@ export async function POST(req: NextRequest) {
           exerciseId: e.exerciseId,
           name: e.exercise.nameFa,
           slug: e.exercise.slug,
+        instructions: e.exercise.instructionsFa,
           targetSets: e.targetSets,
           targetRepsMin: e.targetRepsMin,
           targetRepsMax: e.targetRepsMax,

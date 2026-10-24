@@ -74,6 +74,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         exerciseId: exercise.id,
         name: exercise.nameFa,
         slug: exercise.slug,
+        instructions: exercise.instructionsFa,
+        equipment: exercise.equipment,
         ...prescription,
         sets: [],
       },
