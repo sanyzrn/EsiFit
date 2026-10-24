@@ -23,6 +23,9 @@ export type QueuedOperation = {
 const DB_NAME = "esifit-offline";
 const STORE_OPS = "ops";
 const STORE_CACHE = "cache";
+// Survives a mobile browser killing the page mid-logout. The next DB open
+// must clear all records before any cached workout or queued mutation is read.
+const PURGE_PENDING_KEY = "esifit:offline-purge-pending";
 /** Transient failures (offline, 5xx) never burn attempts; only server-reported op failures do. */
 const MAX_ATTEMPTS = 20;
 
@@ -44,7 +47,35 @@ function openDb(): Promise<IDBDatabase> {
           db.createObjectStore(STORE_CACHE, { keyPath: "key" });
         }
       };
-      req.onsuccess = () => resolve(req.result);
+      req.onsuccess = () => {
+        const db = req.result;
+        db.onversionchange = () => {
+          db.close();
+          dbPromise = null;
+        };
+        let pendingPurge = false;
+        try {
+          pendingPurge = localStorage.getItem(PURGE_PENDING_KEY) === "1";
+        } catch {
+          // Storage may be disabled; the logout path already attempted cleanup.
+        }
+        if (!pendingPurge) return resolve(db);
+
+        // Make sign-out crash-safe: never give a new session old account data.
+        try {
+          const purgeTx = db.transaction([STORE_OPS, STORE_CACHE], "readwrite");
+          purgeTx.objectStore(STORE_OPS).clear();
+          purgeTx.objectStore(STORE_CACHE).clear();
+          purgeTx.oncomplete = () => {
+            try { localStorage.removeItem(PURGE_PENDING_KEY); } catch { /* storage unavailable */ }
+            resolve(db);
+          };
+          purgeTx.onerror = () => reject(purgeTx.error ?? new Error("offline-purge-failed"));
+          purgeTx.onabort = () => reject(purgeTx.error ?? new Error("offline-purge-aborted"));
+        } catch (error) {
+          reject(error);
+        }
+      };
       req.onerror = () => reject(req.error ?? new Error("idb-open-failed"));
     });
   }
@@ -259,6 +290,15 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
  * previous user's unsynced sets and read their cached dashboard.
  */
 export async function clearLocalUserData(): Promise<void> {
+  // Mark synchronously, before IndexedDB promises that can hang on Android.
+  // A future openDb() finishes any interrupted purge before returning data.
+  try { localStorage.setItem(PURGE_PENDING_KEY, "1"); } catch { /* unavailable */ }
+  // Clear personalized navigation caches first as the DB deletion may stall.
+  try {
+    navigator.serviceWorker?.controller?.postMessage({ type: "esifit:clear-private-cache" });
+  } catch {
+    // No service worker on this device.
+  }
   // Clear both stores before deleting the database: another open tab can block
   // deleteDatabase, but must never preserve the previous user's private data.
   try {
