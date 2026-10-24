@@ -48,7 +48,7 @@ export function AppShell({
 
   // Bottom nav only when it exists — avoid empty reserved padding.
   const mainPadBottom = showBottomNav
-    ? "pb-24 lg:pb-10"
+    ? "pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-10"
     : isLiveWorkout
       ? "pb-[calc(4rem+env(safe-area-inset-bottom))]"
       : "pb-10";
@@ -75,7 +75,7 @@ export function AppShell({
 function MobileAppHeader() {
   const router = useRouter();
   return (
-    <header className="sticky top-0 z-30 h-14 border-b border-border bg-surface-1 safe-top lg:hidden">
+    <header className="sticky top-0 z-30 border-b border-border bg-surface-1 safe-top lg:hidden">
       <div className="h-14 flex items-center justify-between px-4">
         <BrandMark />
         <MobileHeaderActions onBellClick={() => router.push("/notifications")} />
@@ -117,8 +117,8 @@ export function PageHeader({
             بازگشت
           </Link>
         )}
-        <h1 className="font-display text-3xl lg:text-4xl leading-tight">{title}</h1>
-        {description && <p className="text-sm text-esi-text-secondary mt-1">{description}</p>}
+        <h1 className="text-2xl font-extrabold tracking-tight leading-snug sm:text-3xl lg:text-4xl">{title}</h1>
+        {description && <p className="mt-2 max-w-2xl text-sm leading-6 text-esi-text-secondary">{description}</p>}
       </div>
       {action ? <div className="flex flex-wrap items-center gap-2 shrink-0">{action}</div> : null}
     </div>

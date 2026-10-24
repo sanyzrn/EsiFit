@@ -32,12 +32,9 @@ const GROUPS = [
 
 export function Footer() {
   return (
-    <footer className="relative mt-24 overflow-hidden border-t border-border bg-surface-1 safe-bottom">
-      <div aria-hidden className="absolute inset-0 [mask-image:linear-gradient(to_bottom,black,transparent_60%)]">
-        <div className="esi-pattern" />
-      </div>
-      <div className="relative mx-auto max-w-6xl px-4 lg:px-8 py-12">
-        <div className="grid gap-10 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+    <footer className="mt-16 border-t border-border bg-surface-1 safe-bottom">
+      <div className="mx-auto max-w-6xl px-4 py-10 lg:px-8">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-[1.6fr_repeat(3,1fr)]">
           <div className="space-y-4">
             <BrandMark />
             <p className="text-sm leading-6 text-esi-text-secondary max-w-xs">
@@ -47,7 +44,7 @@ export function Footer() {
           </div>
           {GROUPS.map((g) => (
             <nav key={g.title} aria-label={g.title}>
-              <h3 className="font-display text-xl mb-3">{g.title}</h3>
+              <h3 className="mb-3 text-sm font-bold">{g.title}</h3>
               <ul className="space-y-2">
                 {g.links.map((l) => (
                   <li key={l.href + l.label}>
@@ -65,13 +62,6 @@ export function Footer() {
           <p>محتوای آموزشی اسی‌فیت جایگزین تشخیص یا درمان پزشکی نیست.</p>
         </div>
       </div>
-      {/* oversized wordmark, cropped by the page edge */}
-      <p
-        aria-hidden
-        className="font-display pointer-events-none relative -mb-[0.28em] select-none text-center text-[26vw] leading-[0.9] text-surface-2 sm:text-[18vw] lg:text-[200px]"
-      >
-        اسی‌فیت
-      </p>
     </footer>
   );
 }

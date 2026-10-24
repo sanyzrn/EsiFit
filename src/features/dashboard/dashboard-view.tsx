@@ -56,7 +56,7 @@ const GUIDANCE_LABELS: Record<string, string> = {
   return: "بازگشت به تمرین",
 };
 
-const sectionClass = "rounded-2xl border border-border bg-surface-1 p-4 sm:p-5";
+const sectionClass = "rounded-2xl border border-border bg-surface-1 p-4 sm:p-6";
 
 /** Clear content hierarchy: Greeting → Today → Progress → Actions → History.
  * The old decorative glow/orb/water wave has been replaced by readable numbers.
@@ -135,22 +135,25 @@ export function DashboardView() {
   const readinessScore = data?.readiness ? Math.max(0, Math.min(100, data.readiness.score)) : 0;
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-5 px-4 pb-6 pt-5 lg:px-8 lg:pt-8">
-      {/* Greeting */}
-      <header className="flex flex-wrap items-end justify-between gap-4 pb-1">
-        <div>
-          <p className="text-xs font-medium text-esi-text-muted">{formatJalaliWeekdayDay(new Date())}</p>
-          <h1 className="mt-2 text-2xl font-bold leading-snug tracking-tight sm:text-3xl lg:text-4xl">
+    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 pb-8 pt-6 sm:space-y-8 lg:px-8 lg:pt-10">
+      {/* Greeting — editorial type and a compact, non-decorative status line. */}
+      <header className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between sm:pb-6">
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-xs font-medium text-esi-text-secondary">
+            <span className="size-1.5 rounded-full bg-primary" aria-hidden />
+            {formatJalaliWeekdayDay(new Date())}
+          </p>
+          <h1 className="mt-2 text-2xl font-extrabold leading-snug tracking-tight sm:text-3xl lg:text-4xl">
             {greeting}، <span className="text-primary">{data?.greetingName ?? session?.displayName ?? "ورزشکار"}</span>
           </h1>
-          <p className="mt-1 text-sm text-esi-text-secondary">امروز یک قدم به هدف خودت نزدیک‌تر شو.</p>
+          <p className="mt-1 text-sm leading-7 text-esi-text-secondary">برنامه امروزت، بدون شلوغی.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <span className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-border bg-surface-1 px-3 text-xs text-esi-text-secondary">
-            <Icon name="Flame" size={16} className="text-primary" />
-            {toPersianDigits(data?.gamification.streakDays ?? 0)} روز متوالی
+          <span className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border bg-surface-1 px-3 text-xs font-medium text-esi-text-secondary">
+            <Icon name="Flame" size={17} className="text-primary" />
+            <strong className="tabular-nums text-esi-text-primary">{toPersianDigits(data?.gamification.streakDays ?? 0)}</strong> روز استمرار
           </span>
-          <span className="inline-flex min-h-9 items-center rounded-xl border border-border bg-surface-1 px-3 text-xs font-medium text-esi-text-secondary">
+          <span className="inline-flex min-h-10 items-center rounded-xl border border-border bg-surface-1 px-3 text-xs font-semibold text-esi-text-primary">
             {TIER_LABELS[(session?.tier ?? "free") as UserTier] ?? "رایگان"}
           </span>
         </div>
@@ -166,22 +169,22 @@ export function DashboardView() {
       {!data ? <DashboardSkeleton /> : (
         <>
           {/* Today: only one prominent action, with rest/resume states intact. */}
-          <section aria-label="تمرین امروز" className="overflow-hidden rounded-2xl border border-border bg-surface-1">
-            <div className="h-1 bg-primary" aria-hidden />
-            <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <section aria-label="تمرین امروز" className="overflow-hidden rounded-2xl border border-border bg-surface-2">
+            <div className="h-1 w-20 bg-primary" aria-hidden />
+            <div className="grid gap-6 p-5 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
               <div className="min-w-0">
-                <div className="mb-3 flex items-center gap-2">
+                <div className="mb-4 flex items-center gap-2">
                   <Icon name="CalendarCheck" size={17} className="text-primary" />
-                  <span className="text-xs font-semibold text-primary">برنامه امروز</span>
+                  <span className="text-xs font-bold tracking-wide text-primary">امروز / برنامه تمرین</span>
                 </div>
-                <h2 className="text-xl font-bold leading-snug sm:text-2xl lg:text-3xl">
+                <h2 className="max-w-xl text-2xl font-extrabold leading-snug sm:text-3xl lg:text-4xl">
                   {data.activeSession
                     ? "تمرینت منتظر ادامه است"
                     : data.todayWorkout?.isRest
                       ? "امروز برای ریکاوریه"
                       : data.todayWorkout?.name ?? "برای حرکت آماده‌ای؟"}
                 </h2>
-                <p className="mt-2 text-sm leading-7 text-esi-text-secondary">
+                <p className="mt-3 max-w-xl text-sm leading-7 text-esi-text-secondary">
                   {data.activeSession
                     ? `جلسه «${data.activeSession.name}» ذخیره شده؛ از همان‌جا ادامه بده.`
                     : data.todayWorkout?.isRest
@@ -206,7 +209,7 @@ export function DashboardView() {
                   </div>
                 )}
               </div>
-              <div className="flex flex-wrap gap-2 lg:flex-col">
+              <div className="flex flex-wrap gap-2 lg:min-w-44 lg:flex-col">
                 {data.activeSession ? (
                   <Button asChild size="lg" className="min-w-36">
                     <Link href={`/workout/live?session=${data.activeSession.id}`}>
@@ -225,10 +228,19 @@ export function DashboardView() {
             </div>
           </section>
 
-          {/* Progress: readable and complete, with a compact static status bar. */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Progress: useful at a glance, visually separate from actions. */}
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold text-primary">نگاه سریع</p>
+              <h2 className="mt-1 text-lg font-extrabold sm:text-xl">وضعیت امروز</h2>
+            </div>
+            <Link href="/analytics" className="inline-flex min-h-11 items-center gap-1 rounded-xl px-2 text-xs font-semibold text-esi-text-secondary transition-colors hover:bg-surface-2 hover:text-esi-text-primary">
+              جزئیات <Icon name="ChevronLeft" size={15} />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
             {readinessFlag && (
-              <section aria-label="آمادگی امروز" className={sectionClass}>
+              <section aria-label="آمادگی امروز" className={cn(sectionClass, "min-w-0")}>
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="text-sm font-semibold">آمادگی امروز</h2>
                   <Icon name="HeartPulse" size={18} className="text-primary" />
@@ -236,11 +248,11 @@ export function DashboardView() {
                 {data.readiness ? (
                   <>
                     <div className="mt-4 flex items-baseline gap-2">
-                      <span className="text-4xl font-bold tabular-nums">{toPersianDigits(readinessScore)}</span>
+                      <span className="text-3xl font-bold tabular-nums sm:text-4xl">{toPersianDigits(readinessScore)}</span>
                       <span className="text-xs text-esi-text-muted">از ۱۰۰</span>
                     </div>
                     <Progress value={readinessScore} aria-label="امتیاز آمادگی امروز" className="mt-3 h-2" />
-                    <p className="mt-3 text-xs text-esi-text-secondary">{READINESS_LABELS[data.readiness.state] ?? "آمادگی روزانه"}{data.readiness.isEstimated ? " · تخمینی" : ""}</p>
+                    <p className="mt-3 text-xs leading-6 text-esi-text-secondary">{READINESS_LABELS[data.readiness.state] ?? "آمادگی روزانه"}{data.readiness.isEstimated ? " · تخمینی" : ""}</p>
                     {data.readiness.factors.length > 0 && (
                       <details className="mt-3 text-xs">
                         <summary className="cursor-pointer font-medium text-primary">عوامل مؤثر بر آمادگی</summary>
@@ -258,13 +270,13 @@ export function DashboardView() {
               </section>
             )}
 
-            <section aria-label="روند تمرین" className={sectionClass}>
+            <section aria-label="روند تمرین" className={cn(sectionClass, "min-w-0")}>
               <div className="flex items-center justify-between gap-2">
                 <h2 className="text-sm font-semibold">روند فعالیت</h2>
                 <Icon name="ChartLine" size={18} className="text-primary" />
               </div>
               <div className="mt-4 flex items-baseline gap-2">
-                <span className="text-4xl font-bold tabular-nums">{toPersianDigits(data.gamification.level)}</span>
+                <span className="text-3xl font-bold tabular-nums sm:text-4xl">{toPersianDigits(data.gamification.level)}</span>
                 <span className="text-xs text-esi-text-muted">سطح فعلی</span>
               </div>
               <Progress value={data.gamification.levelProgress} aria-label="پیشرفت سطح فعلی" className="mt-3 h-2" />
@@ -276,13 +288,13 @@ export function DashboardView() {
               </Link>
             </section>
 
-            <section aria-label="کالری امروز" className={cn(sectionClass, readinessFlag ? "sm:col-span-2 lg:col-span-1" : "")}>
+            <section aria-label="کالری امروز" className={cn(sectionClass, readinessFlag ? "col-span-2 lg:col-span-1" : "min-w-0")}>
               <div className="flex items-center justify-between gap-2">
                 <h2 className="text-sm font-semibold">کالری امروز</h2>
                 <Icon name="Apple" size={18} className="text-primary" />
               </div>
               <div className="mt-4 flex items-baseline gap-2">
-                <span className="text-4xl font-bold tabular-nums">{formatNumber(data.nutrition.totals.calories)}</span>
+                <span className="text-3xl font-bold tabular-nums sm:text-4xl">{formatNumber(data.nutrition.totals.calories)}</span>
                 <span className="text-xs text-esi-text-muted">کیلوکالری</span>
               </div>
               <Progress value={nutritionPct} aria-label="درصد کالری امروز" className="mt-3 h-2" />
@@ -298,7 +310,11 @@ export function DashboardView() {
           </div>
 
           {/* Daily actions: macros and drinking remain fully functional. */}
-          <div className="grid gap-3 lg:grid-cols-2">
+          <div>
+            <p className="text-xs font-semibold text-primary">ثبت روزانه</p>
+            <h2 className="mt-1 text-lg font-extrabold sm:text-xl">تغذیه و آب</h2>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
             <section aria-label="تغذیه و درشت‌مغذی‌ها" className={sectionClass}>
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
@@ -332,7 +348,7 @@ export function DashboardView() {
                 })}
               </div>
               {!data.nutrition.entryCount && (
-                <p className="mt-4 rounded-xl bg-surface-2 p-3 text-xs text-esi-text-secondary">
+                <p className="mt-4 rounded-xl border border-border bg-surface-2 p-3 text-xs leading-6 text-esi-text-secondary">
                   اولین وعده رو ثبت کن تا روند تغذیه اینجا نمایش داده بشه.
                 </p>
               )}
@@ -347,7 +363,7 @@ export function DashboardView() {
                 <Icon name="Droplets" size={19} className="text-lapis" />
               </div>
               <div className="mt-6 flex items-baseline gap-2">
-                <span className="text-4xl font-bold tabular-nums">{formatNumber(data.water.ml / 1000, { maximumFractionDigits: 2 })}</span>
+                <span className="text-3xl font-bold tabular-nums sm:text-4xl">{formatNumber(data.water.ml / 1000, { maximumFractionDigits: 2 })}</span>
                 <span className="text-xs text-esi-text-muted">لیتر از {formatNumber(data.water.targetMl / 1000, { maximumFractionDigits: 1 })} لیتر</span>
               </div>
               <div className="mt-4 h-2 overflow-hidden rounded-full bg-surface-3" role="progressbar" aria-valuenow={waterPct} aria-valuemin={0} aria-valuemax={100} aria-label="درصد آب مصرفی">
@@ -359,15 +375,19 @@ export function DashboardView() {
                   <button
                     key={ml} type="button" disabled={waterBusy}
                     onClick={() => void addWater(ml)}
-                    className="flex min-h-11 items-center justify-center rounded-xl border border-border bg-surface-2 text-sm font-semibold tabular-nums transition-colors hover:border-primary/60 disabled:opacity-50"
+                    className="flex min-h-12 items-center justify-center rounded-xl border border-border bg-surface-2 px-1 text-xs font-semibold tabular-nums transition-colors hover:bg-surface-3 focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50 sm:text-sm"
                   >+{toPersianDigits(ml)} <span className="ms-1 text-[11px] font-normal">میلی‌لیتر</span></button>
                 ))}
               </div>
             </section>
           </div>
 
-          {/* History lives last. */}
-          <div className="grid gap-3 lg:grid-cols-2">
+          {/* Historical trends come last, after today's priorities. */}
+          <div>
+            <p className="text-xs font-semibold text-primary">مسیر تو</p>
+            <h2 className="mt-1 text-lg font-extrabold sm:text-xl">تغییرات و هدف‌ها</h2>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
             {goalFlag && data.goals.length > 0 && (
               <section aria-label="اهداف من" className={sectionClass}>
                 <div className="mb-5 flex items-center justify-between gap-2">
@@ -396,7 +416,7 @@ export function DashboardView() {
               {data.weight ? (
                 <>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold tabular-nums">{formatNumber(data.weight.current, { maximumFractionDigits: 1 })}</span>
+                    <span className="text-3xl font-bold tabular-nums sm:text-4xl">{formatNumber(data.weight.current, { maximumFractionDigits: 1 })}</span>
                     <span className="text-xs text-esi-text-muted">کیلوگرم</span>
                   </div>
                   <p className={cn("mt-3 text-xs font-medium", data.weight.deltaFromStart <= 0 ? "text-turquoise" : "text-esi-text-secondary")}>
@@ -417,15 +437,15 @@ export function DashboardView() {
 function DashboardSkeleton() {
   return (
     <div className="space-y-3" role="status" aria-label="در حال بارگذاری داشبورد">
-      <Skeleton className="h-52 rounded-2xl" />
+      <Skeleton className="h-52 rounded-2xl border border-border" />
       <div className="grid gap-3 sm:grid-cols-3">
         <Skeleton className="h-40 rounded-2xl" />
         <Skeleton className="h-40 rounded-2xl" />
         <Skeleton className="h-40 rounded-2xl" />
       </div>
-      <div className="grid gap-3 lg:grid-cols-2">
-        <Skeleton className="h-52 rounded-2xl" />
-        <Skeleton className="h-52 rounded-2xl" />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Skeleton className="h-52 rounded-2xl border border-border" />
+        <Skeleton className="h-52 rounded-2xl border border-border" />
       </div>
     </div>
   );

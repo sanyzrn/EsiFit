@@ -18,14 +18,14 @@ export function MobileHeaderActions({ onBellClick }: { onBellClick?: () => void 
           <Link
             href="/notifications"
             aria-label="اعلان‌ها"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full text-esi-text-secondary hover:text-esi-text-primary hover:bg-surface-2 transition-colors"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-esi-text-secondary hover:bg-surface-2 hover:text-esi-text-primary transition-colors"
           >
             <Icon name="Bell" size={20} />
           </Link>
           <Link
             href="/settings"
             aria-label="حساب کاربری"
-            className="h-9 w-9 rounded-full esi-gradient-brand flex items-center justify-center text-primary-foreground text-sm font-bold"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface-2 text-sm font-bold text-esi-text-primary"
           >
             {session.displayName.trim()[0] ?? "؟"}
           </Link>

@@ -58,10 +58,9 @@ export function PublicNavbar() {
               <Link
                 key={l.href}
                 href={l.href}
-                className="group/link relative rounded-lg px-3 py-2 text-sm text-esi-text-secondary hover:text-esi-text-primary transition-colors min-h-11 inline-flex items-center"
+                className="inline-flex min-h-11 items-center rounded-xl px-3 py-2 text-sm text-esi-text-secondary transition-colors hover:bg-surface-2 hover:text-esi-text-primary"
               >
                 {l.label}
-                <span aria-hidden className="absolute inset-x-3 bottom-1.5 h-px origin-right scale-x-0 bg-primary transition-transform duration-300 ease-[var(--ease-smooth)] group-hover/link:scale-x-100" />
               </Link>
             ))}
           </nav>
@@ -78,7 +77,7 @@ export function PublicNavbar() {
             )}
             <button
               type="button"
-              className="md:hidden inline-flex h-11 w-11 items-center justify-center rounded-full text-esi-text-secondary transition-colors hover:bg-surface-2"
+              className="md:hidden inline-flex h-11 w-11 items-center justify-center rounded-xl text-esi-text-secondary transition-colors hover:bg-surface-2"
               aria-label={open ? "بستن منو" : "باز کردن منو"}
               aria-expanded={open}
               aria-controls="public-mobile-menu"

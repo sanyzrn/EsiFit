@@ -77,9 +77,9 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
       href={item.href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex min-h-11 items-center gap-3 rounded-xl border border-transparent px-3 text-sm transition-colors duration-150",
+        "flex min-h-11 items-center gap-3 rounded-xl border-s-2 border-transparent px-3 text-sm transition-colors duration-150",
         active
-          ? "border-primary/20 bg-primary/10 font-semibold text-esi-text-primary"
+          ? "border-s-primary bg-surface-2 font-semibold text-esi-text-primary"
           : "text-esi-text-secondary hover:bg-surface-2 hover:text-esi-text-primary",
       )}
     >
@@ -123,18 +123,18 @@ export function AppSidebar({ className }: { className?: string }) {
   );
 }
 
-/** Flat, edge-to-edge mobile navigation. No glass, floating dock, glow or animation. */
+/** Edge-to-edge mobile tab bar: flat surfaces, no dock, shadow or glow. */
 export function MobileBottomNav() {
   const pathname = usePathname();
   const nav = useMemberNav();
-  const items = React.useMemo(() => nav.filter((item) => item.mobile).slice(0, 5), [nav]);
+  const items = nav.filter((item) => item.mobile).slice(0, 5);
 
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface-1 lg:hidden"
       aria-label="ناوبری موبایل"
     >
-      <div className="mx-auto grid h-16 max-w-lg" style={{ gridTemplateColumns: `repeat(${items.length || 1}, minmax(0, 1fr))` }}>
+      <div className="mx-auto grid h-[68px] max-w-xl items-stretch px-2" style={{ gridTemplateColumns: `repeat(${items.length || 1}, minmax(0, 1fr))` }}>
         {items.map((item) => {
           const active = isCurrentPath(pathname, item.href);
           return (
@@ -143,13 +143,17 @@ export function MobileBottomNav() {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 px-1 text-xs transition-colors duration-150",
-                active ? "font-semibold text-primary" : "text-esi-text-muted hover:text-esi-text-primary",
+                "flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] leading-tight transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-primary active:bg-surface-2",
+                active ? "font-bold text-primary" : "font-medium text-esi-text-secondary hover:text-esi-text-primary",
               )}
             >
-              {active && <span className="absolute inset-x-5 top-0 h-0.5 rounded-b bg-primary" aria-hidden />}
-              <Icon name={item.icon} size={21} strokeWidth={active ? 2 : 1.75} />
-              <span className="truncate text-center leading-tight">{item.label}</span>
+              <span className={cn(
+                "flex h-8 w-12 items-center justify-center rounded-xl transition-colors duration-150",
+                active ? "bg-primary/12" : "bg-transparent",
+              )}>
+                <Icon name={item.icon} size={21} strokeWidth={active ? 2 : 1.75} />
+              </span>
+              <span className="max-w-full truncate text-center">{item.label}</span>
             </Link>
           );
         })}
