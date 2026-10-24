@@ -63,6 +63,14 @@ describe("all eight public calculators", () => {
     expect(isApplicableCalculatorField(fields.find((f) => f.key === "hipCm")!, { sex: "male" })).toBe(false);
   });
 
+  it("does not treat an impossible Navy estimate as a savable result", () => {
+    const result = computeCalculator("body-fat-navy", {
+      sex: "male", heightCm: "178", neckCm: "40", waistCm: "45",
+    });
+    expect(result?.invalid).toBe(true);
+    expect(result?.headlineValue).toBe("قابل محاسبه نیست");
+  });
+
   it("preserves multi-number headline ranges instead of coercing to a single number", () => {
     const result = computeCalculator("ideal-weight", fixtures["ideal-weight"]);
     expect(result?.headlineValue).toContain("تا");
