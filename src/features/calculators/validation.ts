@@ -1,4 +1,5 @@
 import { toLatinDigits } from "@/lib/formatting/numbers";
+import { toJalali } from "@/lib/dates/jalali";
 import type { CalculatorField } from "@/features/calculators/registry";
 
 /** Input validation for the eight public calculators (text inputs do not honor HTML min/max). */
@@ -39,7 +40,7 @@ export function validateCalculatorInputs(
       errors[field.key] = "عدد معتبر وارد کنید.";
       continue;
     }
-    const currentJalaliYear = new Date().getUTCFullYear() - 621;
+    const currentJalaliYear = toJalali(new Date()).jy;
     const max = field.key === "birthYear"
       ? Math.min(field.max ?? Infinity, currentJalaliYear - 18)
       : field.max;
