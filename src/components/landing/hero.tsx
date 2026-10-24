@@ -128,7 +128,6 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
               fill
               preload
               sizes="(min-width: 1024px) 570px, (min-width: 640px) 80vw, 100vw"
-              quality={80}
               alt="ورزشکار در حال آماده‌شدن برای بلندکردن هالتر در باشگاه"
               className="esi-campaign-photo object-cover"
             />
