@@ -7,7 +7,7 @@
    Update flow: waiting SW is activated immediately; clients reload when idle
    (never mid-workout — see client listener guard). */
 
-const VERSION = "esifit-v4";
+const VERSION = "esifit-v5";
 /* Personalized HTML lives in its own cache so signing out can drop it without
    throwing away the static shell. */
 const PAGES_CACHE = `${VERSION}-pages`;

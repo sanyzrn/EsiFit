@@ -11,7 +11,7 @@ import { TIER_LABELS, type UserTier } from "@/lib/entitlements/entitlements";
 import { ROLE_LABELS, type Role } from "@/lib/auth/session-types";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
-import { KhatamMark } from "@/components/motion/khatam";
+import Image from "next/image";
 
 /** One source of navigation truth. Role gates are enforced at the API as well. */
 export type NavItem = {
@@ -193,11 +193,10 @@ export function MobileBottomNav() {
 }
 
 /** Branding preserved while motion effects are removed from app chrome. */
-export function BrandMark({ compact = false }: { compact?: boolean }) {
+export function BrandMark() {
   return (
-    <Link href="/" className="flex items-center gap-2" aria-label="اسی‌فیت — صفحه اصلی">
-      <KhatamMark size={34} />
-      {!compact && <span className="pt-1 font-display text-2xl leading-none">اسی<span className="text-primary">‌فیت</span></span>}
+    <Link href="/" className="inline-flex items-center justify-center" aria-label="اسی‌فیت — صفحه اصلی">
+      <Image src="/icons/logo-mark.svg" alt="" width={42} height={42} priority />
     </Link>
   );
 }
