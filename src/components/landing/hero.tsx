@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowUpLeft, Check, Dumbbell, Flame, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -121,16 +122,15 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
         >
           <span className="esi-campaign-orbit pointer-events-none absolute" aria-hidden="true" />
           <div className="esi-campaign-photo-shell relative overflow-hidden">
-            {/* The real image may be replaced without touching copy or layout. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            {/* Replaceable licensed photo, served through Next.js optimization. */}
+            <Image
               src={HERO_IMAGE}
-              width={1000}
-              height={1200}
-              fetchPriority="high"
-              decoding="async"
+              fill
+              preload
+              sizes="(min-width: 1024px) 570px, (min-width: 640px) 80vw, 100vw"
+              quality={80}
               alt="ورزشکار در حال آماده‌شدن برای بلندکردن هالتر در باشگاه"
-              className="esi-campaign-photo h-full w-full object-cover"
+              className="esi-campaign-photo object-cover"
             />
             <div className="esi-campaign-photo-shade pointer-events-none absolute inset-0" aria-hidden="true" />
             <p className="esi-campaign-photo-index pointer-events-none absolute bottom-5 start-5 font-mono text-[10px] tracking-[0.25em]" dir="ltr">
