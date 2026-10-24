@@ -96,10 +96,11 @@ export function healthyWeightRange(heightCm: number): { min: number; max: number
 /** One-rep max: Epley primary, Brzycki cross-check (valid ≲12 reps). */
 export function oneRepMax(weightKg: number, reps: number): { epley: number; brzycki: number; recommended: number } {
   if (reps <= 0 || weightKg <= 0) return { epley: 0, brzycki: 0, recommended: 0 };
+  // A successfully lifted single is the observed 1RM, not an extrapolation.
+  if (reps === 1) return { epley: weightKg, brzycki: weightKg, recommended: weightKg };
   const epley = weightKg * (1 + reps / 30);
-  // Brzycki is undefined/unstable above ~12 reps — do not surface a garbage value.
-  const brzyckiReps = Math.min(reps, 12);
-  const brzycki = weightKg * (36 / (37 - brzyckiReps));
+  // Brzycki is unsuitable for high-repetition sets; don't invent a capped result.
+  const brzycki = reps <= 10 ? weightKg * (36 / (37 - reps)) : 0;
   const recommended = reps <= 10 ? (epley + brzycki) / 2 : epley;
   return {
     epley: Math.round(epley * 10) / 10,
@@ -126,7 +127,7 @@ export function oneRepMaxTable(oneRm: number): Array<{ pct: number; reps: number
 export type WhtRCategory = "slim" | "healthy" | "elevated" | "high";
 export function whtr(waistCm: number, heightCm: number): number {
   if (heightCm <= 0) return 0;
-  return Math.round((waistCm / heightCm) * 100) / 100;
+  return Math.round((waistCm / heightCm) * 1000) / 1000;
 }
 export function whtrCategory(value: number): WhtRCategory {
   if (value < 0.4) return "slim";
@@ -210,10 +211,15 @@ export function computeMacroTargets(input: {
 
   const proteinPerKg =
     input.goal === "build_muscle" ? 2.0 : input.goal === "lose_weight" ? 2.2 : input.goal === "recomp" ? 2.0 : 1.6;
-  const proteinG = Math.round(input.weightKg * proteinPerKg);
-  const fatG = Math.round((calories * 0.25) / 9);
+  const desiredProteinG = Math.round(input.weightKg * proteinPerKg);
+  const fatG = Math.ceil((calories * 0.25) / 9);
+  // Huge weight / low activity combinations can demand more protein calories
+  // than the entire daily budget. Keep the energy equation internally consistent.
+  const proteinCapacityG = Math.max(0, Math.floor((calories - fatG * 9 - 50 * 4) / 4));
+  const proteinG = Math.min(desiredProteinG, proteinCapacityG);
   const carbsG = Math.max(50, Math.round((calories - proteinG * 4 - fatG * 9) / 4));
-  const fiberG = Math.round(Math.max(25, (calories / 1000) * 14));
+  if (proteinG < desiredProteinG) strategyLabel += " — پروتئین با کالری تنظیم شد";
+  const fiberG = Math.round(Math.min(45, Math.max(25, (calories / 1000) * 14)));
 
   return { calories, proteinG, carbsG, fatG, fiberG, strategyLabel };
 }
