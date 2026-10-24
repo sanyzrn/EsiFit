@@ -1,185 +1,164 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
-import { motion, useMotionValue, useReducedMotion, useSpring, useTransform, type MotionValue } from "framer-motion";
+import Image from "next/image";
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowLeft, ArrowUpLeft, Check, Dumbbell, Flame, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { KhatamDial, KhatamStar } from "@/components/motion/khatam";
-import { Magnetic } from "@/components/motion/magnetic";
-import { AnimatedCounter } from "@/components/ui/animated-counter";
-import { toPersianDigits } from "@/lib/formatting/numbers";
 
 /**
- * Landing hero. One orchestrated moment: the headline lifts out of its masks,
- * the khatam dial ignites tick by tick, then the live-data chips drop in.
- * Pointer movement tilts the whole scene slightly; chips sit at different depths.
+ * EsiFit campaign hero — editorial, action-first, Persian/RTL native.
+ * Source photo is a temporary, replaceable Unsplash Free image.
+ * Replace HERO_IMAGE with a first-party portrait when brand photography is ready.
  */
+const HERO_IMAGE =
+  "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1100&q=80";
 
-type ChipProps = {
-  mx: MotionValue<number>;
-  my: MotionValue<number>;
-  depth: number;
-  delay: number;
-  className: string;
-  children: React.ReactNode;
-  index: number;
-};
-
-function FloatChip({ mx, my, depth, delay, className, children, index }: ChipProps) {
-  const reduce = useReducedMotion();
-  const x = useTransform(mx, (v) => v * depth);
-  const y = useTransform(my, (v) => v * depth);
-  return (
-    <motion.div style={{ x, y }} className={`absolute ${className}`}>
-      <motion.div
-        initial={reduce ? false : { opacity: 0, scale: 0.7, y: 18 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ delay: reduce ? 0 : delay, type: "spring", stiffness: 260, damping: 20 }}
-      >
-        <div className="esi-float esi-glass rounded-2xl border border-border px-4 py-3 shadow-[var(--shadow-float)]" style={{ "--i": index } as React.CSSProperties}>
-          {children}
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
+const strengths = [
+  { label: "ثبت تمرین و ست‌ها", Icon: Dumbbell },
+  { label: "تغذیه با غذاهای ایرانی", Icon: HeartPulse },
+  { label: "پیشرفت قابل اندازه‌گیری", Icon: Flame },
+];
 
 export function LandingHero({ signedIn }: { signedIn: boolean }) {
   const reduce = useReducedMotion();
-  const mx = useMotionValue(0);
-  const my = useMotionValue(0);
-  const smx = useSpring(mx, { stiffness: 90, damping: 18 });
-  const smy = useSpring(my, { stiffness: 90, damping: 18 });
-  const rotateY = useTransform(smx, (v) => v / -30);
-  const rotateX = useTransform(smy, (v) => v / 30);
-
-  const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (reduce || e.pointerType !== "mouse") return;
-    const r = e.currentTarget.getBoundingClientRect();
-    mx.set(e.clientX - (r.left + r.width / 2));
-    my.set(e.clientY - (r.top + r.height / 2));
-  };
-  const onLeave = () => {
-    mx.set(0);
-    my.set(0);
-  };
+  const entry = reduce
+    ? undefined
+    : { duration: 0.62, ease: [0.22, 1, 0.36, 1] as const };
 
   return (
-    <section className="relative isolate overflow-hidden esi-hero-graphite pt-28 pb-20 lg:pt-40 lg:pb-28">
-      <div aria-hidden className="esi-aurora -z-10" />
-      <div
-        aria-hidden
-        className="absolute inset-0 -z-10 [mask-image:radial-gradient(70%_70%_at_30%_40%,black,transparent)]"
-      >
-        <div className="esi-pattern" />
-      </div>
+    <section
+      aria-labelledby="esi-landing-headline"
+      className="esi-campaign-hero relative isolate overflow-hidden"
+    >
+      <div className="esi-campaign-noise pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div className="esi-campaign-grid pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div aria-hidden="true" className="esi-campaign-side-label">ESIFIT · MOVE FORWARD</div>
 
-      <div className="relative mx-auto max-w-6xl px-4 lg:px-8 grid lg:grid-cols-[1.05fr_0.95fr] gap-14 lg:gap-8 items-center">
-        {/* ---------- copy ---------- */}
-        <div>
-          <h1 className="font-display text-[42px] sm:text-6xl lg:text-[66px] xl:text-[72px] leading-[1.25] text-esi-text-primary">
-            <span className="esi-line" style={{ "--i": 0 } as React.CSSProperties}>
-              <span>تمرین هوشمند،</span>
-            </span>
-            <span className="esi-line text-primary" style={{ "--i": 1 } as React.CSSProperties}>
-              <span>پیشرفت قابل</span>
-            </span>
-            <span className="esi-line text-primary" style={{ "--i": 2 } as React.CSSProperties}>
-              <span>اندازه‌گیری</span>
-            </span>
-          </h1>
-
-          <p
-            className="esi-rise mt-7 max-w-xl text-base lg:text-lg leading-8 text-esi-text-secondary"
-            style={{ "--i": 4 } as React.CSSProperties}
-          >
-            اسی‌فیت همه‌چیز را در یک تجربه فارسی و موبایل‌پسند جمع کرده: برنامه تمرین زنده با ثبت آفلاین،
-            تغذیه با غذاهای ایرانی، امتیاز آمادگی روزانه، تحلیل عضلانی و دستیار هوشمند.
-          </p>
-
-          <div className="esi-rise mt-9 flex flex-wrap items-center gap-3" style={{ "--i": 5 } as React.CSSProperties}>
-            <Magnetic>
-              <Button asChild size="lg" className="esi-sheen esi-glow h-14 px-8 text-base">
-                <Link href={signedIn ? "/dashboard" : "/auth/login"}>
-                  {signedIn ? "ادامه در داشبورد" : "شروع رایگان — فقط شماره موبایل"}
-                </Link>
-              </Button>
-            </Magnetic>
-            <Button asChild variant="secondary" size="lg" className="h-14 px-6">
-              <Link href="/calculators">محاسبه شاخص‌های بدنی</Link>
-            </Button>
-          </div>
-
-          <dl
-            className="esi-rise mt-12 flex max-w-lg items-stretch divide-x divide-x-reverse divide-border"
-            style={{ "--i": 6 } as React.CSSProperties}
-          >
-            {[
-              { v: 94, l: "غذای ایرانی در پایگاه داده" },
-              { v: 71, l: "حرکت با راهنمای فارسی" },
-              { v: 8, l: "ماشین‌حساب تخصصی" },
-            ].map((s, i) => (
-              <div key={s.l} className={i === 0 ? "pe-6" : "px-6"}>
-                <dt className="sr-only">{s.l}</dt>
-                <dd className="font-display text-4xl lg:text-5xl text-esi-text-primary tabular-nums leading-none">
-                  <AnimatedCounter value={s.v} duration={1.4} />
-                </dd>
-                <dd className="mt-2 text-[11px] leading-4 text-esi-text-muted max-w-[7.5rem]">{s.l}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-
-        {/* ---------- scene ---------- */}
-        <div
-          className="relative mx-auto w-full max-w-[520px] aspect-square"
-          onPointerMove={onMove}
-          onPointerLeave={onLeave}
-        >
-          <KhatamStar size={520} strokeWidth={0.5} spin className="absolute inset-0 h-full w-full text-primary/15" />
-
+      <div className="relative mx-auto grid max-w-7xl items-center gap-5 px-5 pb-9 pt-28 sm:px-8 sm:pb-12 lg:min-h-[690px] lg:grid-cols-[1.05fr_0.95fr] lg:gap-5 lg:px-10 lg:pb-12 lg:pt-36">
+        {/* Primary message is first in reading order, and in the top viewport on mobile. */}
+        <div className="relative z-20 max-w-[680px] pb-2 lg:pb-12">
           <motion.div
-            className="absolute inset-0 flex items-center justify-center [perspective:900px]"
-            style={reduce ? undefined : { rotateX, rotateY }}
+            initial={reduce ? false : { opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={entry}
+            className="mb-6 inline-flex items-center gap-2.5 text-[11px] font-bold tracking-wide text-[var(--hero-muted)] sm:mb-7"
           >
-            <KhatamDial value={86} size={320} color="var(--primary)" label="امتیاز آمادگی ۸۶ از ۱۰۰" delay={0.7} className="max-w-[78%] max-h-[78%] aspect-square !h-auto !w-full">
-              <span className="font-display text-[88px] sm:text-[104px] leading-none tabular-nums text-esi-text-primary">
-                <AnimatedCounter value={86} duration={1.6} />
-              </span>
-              <span className="mt-1 text-sm text-turquoise">آماده تمرین</span>
-            </KhatamDial>
+            <span aria-hidden="true" className="esi-campaign-signal" />
+            تجربه متفاوت تمرین، از همین‌جا
+            <span className="h-px w-7 bg-[var(--hero-hairline)]" aria-hidden="true" />
+            <span dir="ltr" className="font-mono text-[10px] tracking-[0.19em]">EST. ESIFIT</span>
           </motion.div>
 
-          <FloatChip mx={smx} my={smy} depth={0.05} delay={1.9} index={0} className="top-[6%] start-[2%]">
-            <p className="text-[11px] text-esi-text-muted">زنجیره فعالیت</p>
-            <p className="mt-0.5 flex items-center gap-1.5 text-sm font-bold">
-              <span className="esi-flame text-lg" aria-hidden>🔥</span>
-              {toPersianDigits(12)} روز
-            </p>
-          </FloatChip>
-          <FloatChip mx={smx} my={smy} depth={0.09} delay={2.1} index={1} className="top-[30%] end-[-2%]">
-            <p className="text-[11px] text-esi-text-muted">تمرین امروز</p>
-            <p className="mt-0.5 text-sm font-bold">پرس و زیربغل</p>
-          </FloatChip>
-          <FloatChip mx={smx} my={smy} depth={0.07} delay={2.3} index={2} className="bottom-[16%] start-[-3%]">
-            <p className="text-[11px] text-esi-text-muted">آب امروز</p>
-            <div className="mt-1.5 h-1.5 w-28 overflow-hidden rounded-full bg-surface-3">
-              <motion.div
-                className="h-full rounded-full bg-lapis"
-                initial={{ width: 0 }}
-                animate={{ width: "75%" }}
-                transition={{ delay: 2.6, duration: 1, ease: [0.22, 1, 0.36, 1] }}
-              />
-            </div>
-            <p className="mt-1 text-sm font-bold">{toPersianDigits(75)}٪ هدف</p>
-          </FloatChip>
-          <FloatChip mx={smx} my={smy} depth={0.11} delay={2.5} index={3} className="bottom-[2%] end-[8%]">
-            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-primary">
-              <span aria-hidden>✦</span> رکورد جدید
-            </p>
-            <p className="mt-0.5 text-sm font-bold">اسکوات {toPersianDigits(140)} کیلو</p>
-          </FloatChip>
+          <motion.h1
+            id="esi-landing-headline"
+            initial={reduce ? false : { opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...entry, delay: reduce ? 0 : 0.09 }}
+            className="esi-campaign-title font-display"
+          >
+            <span className="block">هر روز،</span>
+            <span className="block">
+              <span className="esi-campaign-word">قوی‌تر</span>
+              <span className="esi-campaign-period" aria-hidden="true">.</span>
+            </span>
+            <span className="block">از دیروز.</span>
+          </motion.h1>
+
+          <motion.p
+            initial={reduce ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...entry, delay: reduce ? 0 : 0.18 }}
+            className="mt-5 max-w-md text-[13px] leading-7 text-[var(--hero-muted)] sm:mt-6 sm:text-base sm:leading-8"
+          >
+            برنامه تمرین، ثبت هوشمند ست‌ها و تغذیه در یک مسیر ساده.
+            اسی‌فیت کمکت می‌کند پیشرفتت را ببینی، نه فقط درباره‌اش فکر کنی.
+          </motion.p>
+
+          <motion.div
+            initial={reduce ? false : { opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...entry, delay: reduce ? 0 : 0.26 }}
+            className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center"
+          >
+            <Button
+              asChild size="lg"
+              className="esi-campaign-cta min-h-13 w-full justify-between gap-6 rounded-xl px-6 text-base font-bold sm:w-auto sm:justify-center"
+            >
+              <Link href={signedIn ? "/dashboard" : "/auth/login"}>
+                <span>{signedIn ? "ادامه مسیر من" : "شروع رایگان"}</span>
+                <ArrowUpLeft size={19} aria-hidden="true" />
+              </Link>
+            </Button>
+            <Button
+              asChild variant="outline" size="lg"
+              className="esi-campaign-secondary min-h-13 w-full rounded-xl px-6 text-sm sm:w-auto"
+            >
+              <Link href="/calculators">
+                ابزارهای رایگان
+                <ArrowLeft size={17} aria-hidden="true" />
+              </Link>
+            </Button>
+          </motion.div>
+
+          <motion.div
+            initial={reduce ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: reduce ? 0 : 0.45 }}
+            className="mt-7 flex items-center gap-2 text-[11px] text-[var(--hero-muted)]"
+          >
+            <Check size={15} className="text-[var(--hero-orange)]" aria-hidden="true" />
+            بدون کارت بانکی · با شماره موبایل
+          </motion.div>
         </div>
+
+        {/* Portrait art: intentionally image-forward rather than a dashboard mockup. */}
+        <motion.div
+          initial={reduce ? false : { opacity: 0, x: -28, scale: 0.98 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          transition={{ duration: 0.8, delay: reduce ? 0 : 0.16, ease: [0.22, 1, 0.36, 1] }}
+          className="esi-campaign-stage relative isolate mx-auto w-full max-w-[570px]"
+          aria-label="تصویر ورزشی از تمرین با وزنه"
+        >
+          <span className="esi-campaign-orbit pointer-events-none absolute" aria-hidden="true" />
+          <div className="esi-campaign-photo-shell relative overflow-hidden">
+            {/* Replaceable licensed photo, served through Next.js optimization. */}
+            <Image
+              src={HERO_IMAGE}
+              fill
+              preload
+              sizes="(min-width: 1024px) 570px, (min-width: 640px) 80vw, 100vw"
+              alt="ورزشکار در حال آماده‌شدن برای بلندکردن هالتر در باشگاه"
+              className="esi-campaign-photo object-cover"
+            />
+            <div className="esi-campaign-photo-shade pointer-events-none absolute inset-0" aria-hidden="true" />
+            <p className="esi-campaign-photo-index pointer-events-none absolute bottom-5 start-5 font-mono text-[10px] tracking-[0.25em]" dir="ltr">
+              PUSH / PROGRESS / REPEAT
+            </p>
+          </div>
+          <div className="esi-campaign-side-tag absolute bottom-[13%] end-[-3%] flex items-center gap-2 px-3 py-2.5 text-[11px] font-semibold sm:end-[-1%]">
+            <span className="inline-block size-2 rounded-full bg-[var(--hero-orange)]" aria-hidden="true" />
+            حرکت رو شروع کن
+          </div>
+          <span className="esi-campaign-photo-corner pointer-events-none absolute right-0 top-0" aria-hidden="true" />
+        </motion.div>
+      </div>
+
+      <div className="relative z-10 border-y border-[var(--hero-hairline)] bg-[var(--hero-strip)]">
+        <ul className="mx-auto grid max-w-7xl grid-cols-1 gap-0 px-5 sm:grid-cols-3 sm:px-8 lg:px-10">
+          {strengths.map(({ label, Icon }, index) => (
+            <li
+              key={label}
+              className="flex min-h-16 items-center gap-3 border-b border-[var(--hero-hairline)] py-3 last:border-b-0 sm:min-h-19 sm:border-b-0 sm:py-4"
+            >
+              <Icon size={20} strokeWidth={1.7} className="shrink-0 text-[var(--hero-orange)]" aria-hidden="true" />
+              <span className="text-xs font-semibold text-[var(--hero-text)] sm:text-[13px]">{label}</span>
+              <span className="ms-auto font-mono text-[11px] text-[var(--hero-faint)]" dir="ltr">
+                0{index + 1}
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );
