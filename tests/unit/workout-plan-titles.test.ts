@@ -28,7 +28,7 @@ describe("Persian workout template titles", () => {
     expect(formatWorkoutDayTitle("پا — پایه — هفته ۲")).toBe("تمرین پا | هفته دوم");
     expect(formatWorkoutDayTitle("پا — پایه — هفته ۳")).toBe("تمرین پا | هفته سوم");
     expect(formatWorkoutDayTitle("پا — پایه — هفته ۴ (دی‌لود)")).toBe("تمرین پا | هفته چهارم (کاهش فشار)");
-    expect(formatWorkoutDayTitle("استراحت — هفته ۴ (دی‌لود)")).toBe("روز استراحت | هفته چهارم (کاهش فشار)");
+    expect(formatWorkoutDayTitle("استراحت — هفته ۴ (دی‌لود)")).toBe("روز استراحت | هفته چهارم");
     expect(formatWorkoutDayTitle("پا — پایه — هفته 1")).toBe("تمرین پا | هفته اول");
   });
 
