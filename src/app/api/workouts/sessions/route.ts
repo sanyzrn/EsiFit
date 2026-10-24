@@ -5,6 +5,7 @@ import { appErrorResponse } from "@/lib/errors/respond";
 import { z } from "zod";
 import { attachHistory, type ExerciseHistory } from "@/lib/workout/history";
 import { getTodayPlanDay } from "@/features/workouts/data/plan-templates";
+import { formatWorkoutDayTitle } from "@/lib/workout/plan-titles";
 
 const startSchema = z.object({
   planDayId: z.string().optional(),
@@ -97,7 +98,7 @@ export async function POST(req: NextRequest) {
       if (requested) {
         return NextResponse.json({
           ok: true,
-          session: { ...requested, exercises: await shapeExercisesFor(requested, session) },
+          session: { ...requested, name: formatWorkoutDayTitle(requested.name), exercises: await shapeExercisesFor(requested, session) },
           resumed: true,
         });
       }
@@ -111,7 +112,7 @@ export async function POST(req: NextRequest) {
       },
     });
     if (existing) {
-      return NextResponse.json({ ok: true, session: { ...existing, exercises: await shapeExercisesFor(existing, session) }, resumed: true });
+      return NextResponse.json({ ok: true, session: { ...existing, name: formatWorkoutDayTitle(existing.name), exercises: await shapeExercisesFor(existing, session) }, resumed: true });
     }
 
     let planDayId: string | null = null;
@@ -130,7 +131,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: false, code: "not_found", message: "برنامه یافت نشد." }, { status: 404 });
       }
       planDayId = day.id;
-      name = day.name;
+      name = formatWorkoutDayTitle(day.name);
       exercises = day.exercises.map((e) => ({
         exerciseId: e.exerciseId,
         name: e.exercise.nameFa,
@@ -148,7 +149,7 @@ export async function POST(req: NextRequest) {
       // live HUD is never an empty dead-end.
       if (today) {
         planDayId = today.id;
-        name = today.name;
+        name = formatWorkoutDayTitle(today.name);
         exercises = today.exercises.map((e) => ({
           exerciseId: e.exerciseId,
           name: e.exercise.nameFa,
@@ -198,7 +199,7 @@ export async function GET() {
       },
     });
     if (!active) return NextResponse.json({ ok: true, session: null });
-    return NextResponse.json({ ok: true, session: { ...active, exercises: await shapeExercisesFor(active, session) } });
+    return NextResponse.json({ ok: true, session: { ...active, name: formatWorkoutDayTitle(active.name), exercises: await shapeExercisesFor(active, session) } });
   } catch (error) {
     return appErrorResponse(error);
   }
