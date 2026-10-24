@@ -23,4 +23,4 @@ existing `Exercise.instructionsFa` field. Add/swap responses retain equipment.
 ## HamPa AI (2026-10-24)
 - `features/admin/ai-management-tab.tsx`: connection probe/save, private credential edit, paged per-user grants/usage, action audit.
 - `features/ai/ai-assistant-view.tsx`: role-aware chat, history, quotas and reviewed action cards; reuses shared alert dialog and shell.
-- `lib/ai/{provider-config,provider,transport,secrets,access,quota,prompt,actions,athlete-context}.ts`: canonical provider, role and execution boundary. See `docs/HAMPA_AI.md` before extending tools.
+- `lib/ai/{provider-config,provider,transport,secrets,access,quota,prompt,actions,athlete-context,tool-contracts}.ts`: canonical provider, role and execution boundary. See `docs/HAMPA_AI.md` before extending tools.

@@ -2,7 +2,7 @@
 
 ## Setup and product behavior
 
-Admin → هوش مصنوعی (or `/admin?tab=ai`): add Gemini or Custom, enter a key privately, select a model, and use **آزمایش و ذخیره**. Saving performs an actual SDK completion with a required function call. HTTP 200 or a prose “OK” is insufficient. The key, URL and model are tested together on every save. A failed test preserves the saved configuration. Existing keys can be retained during edits; keys cannot be read back. Deactivate a connection to stop all its grants while preserving accounting/history.
+Admin → هوش مصنوعی (or `/admin?tab=ai`): add Gemini or Custom, enter a key privately, select a model, and use **آزمایش و ذخیره**. Saving submits the exact HamPa tool schemas (without write executors) and performs an actual SDK completion with a required check function call. HTTP 200 or a prose “OK” is insufficient. The key, URL and model are tested together on every save. A failed test preserves the saved configuration. Existing keys can be retained during edits; keys cannot be read back. Deactivate a connection to stop all its grants while preserving accounting/history.
 
 Gemini uses native Google JSON and `x-goog-api-key`. Its optional gateway accepts a root, `/v1beta`, or `/v1beta/models`; gateway path prefixes survive normalization. Custom uses OpenAI-compatible Chat Completions and bearer authentication, accepting a base URL or full `/chat/completions` URL. Both require a public HTTPS endpoint. This ports the protocol/address behavior reviewed in `sanyzrn/DbsNex` at `6a653a3620c18e68af37fdf3bcce3c7d78ae052a`, `packages/ai/lib/src/cloud/ai_provider.dart` and the “Gemini through a gateway” tests in `capability_check_test.dart`. EsiFit uses the version-matched AI SDK (rather than copying Flutter code).
 

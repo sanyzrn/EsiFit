@@ -7,6 +7,7 @@ import type { AiProvider } from "@prisma/client";
 import { normalizeProviderUrl, type ProviderInput } from "./provider-config";
 import { decryptProviderKey } from "./secrets";
 import { providerFetch } from "./transport";
+import { readInput, proposalInput } from "./tool-contracts";
 
 export function configuredModel(
   config: Pick<AiProvider, "kind" | "baseUrl" | "model" | "encryptedKey">,
@@ -35,6 +36,15 @@ export async function probeProvider(
 ) {
   let called = false;
   const tools = {
+    // Validate the exact schemas used by HamPa, with no mutating executors.
+    read_esifit: tool({
+      description: "Read EsiFit data",
+      inputSchema: readInput,
+    }),
+    propose_change: tool({
+      description: "Propose a reviewed EsiFit change",
+      inputSchema: proposalInput,
+    }),
     connection_check: tool({
       description: "Verify this connection",
       inputSchema: z.object({ token: z.literal("ESIFIT_OK") }),

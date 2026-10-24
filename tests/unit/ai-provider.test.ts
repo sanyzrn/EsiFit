@@ -106,6 +106,8 @@ describe("provider protocol contracts", () => {
     async (kind) => {
       const mockFetch = vi.fn<typeof fetch>(async (_url, init) => {
         const body = JSON.parse(String(init?.body));
+        expect(JSON.stringify(body.tools)).toContain("propose_change");
+        expect(JSON.stringify(body.tools)).toContain("read_esifit");
         if (kind === "gemini") {
           expect(new Headers(init?.headers).get("x-goog-api-key")).toBe(
             "fixture-only",
