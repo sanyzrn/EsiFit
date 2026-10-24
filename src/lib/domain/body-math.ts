@@ -70,7 +70,7 @@ export type BmiCategory = "underweight" | "normal" | "overweight" | "obese";
 export function bmi(weightKg: number, heightCm: number): number {
   const h = heightCm / 100;
   if (h <= 0) return 0;
-  return Math.round((weightKg / (h * h)) * 10) / 10;
+  return Math.round((weightKg / (h * h)) * 100) / 100;
 }
 
 export function bmiCategory(value: number): BmiCategory {
@@ -152,7 +152,8 @@ export function idealWeightRange(heightCm: number, sex: SexAtBirth): { min: numb
   const robinsonSlope = sex === "male" ? 1.9 : sex === "female" ? 1.7 : 1.8;
   const robinson = robinsonBase + robinsonSlope * inchesOver5ft;
   const low = Math.round(Math.min(devine, robinson));
-  const high = Math.round(Math.max(devine, robinson) * 1.08);
+  // Both endpoints come from the two published formula estimates, no arbitrary padding.
+  const high = Math.round(Math.max(devine, robinson));
   return { min: low, max: high, formulaLabel: "دیواین و رابینسون" };
 }
 
