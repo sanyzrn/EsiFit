@@ -15,6 +15,7 @@ import { api, errorMessage } from "@/lib/client/api";
 import type { AthleteDetail } from "@/lib/coach/data";
 import { toPersianDigits, formatNumber, formatDelta } from "@/lib/formatting/numbers";
 import { formatRelative, formatJalaliLong } from "@/lib/dates/jalali";
+import { formatWorkoutPlanTitle, PLAN_TEMPLATE_LABELS } from "@/lib/workout/plan-titles";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 
 const PAIN_REGION_FA: Record<string, string> = {
@@ -24,8 +25,8 @@ const PAIN_REGION_FA: Record<string, string> = {
 };
 
 const TEMPLATES = [
-  { key: "ppl", label: "پوش/پول/پا — ۳ روز" },
-  { key: "upper_lower", label: "بالاتنه/پایین‌تنه — ۴ روز" },
+  { key: "ppl", label: PLAN_TEMPLATE_LABELS.ppl },
+  { key: "upper_lower", label: PLAN_TEMPLATE_LABELS.upper_lower },
 ] as const;
 
 export function AthleteDetailView({ detail, backHref }: { detail: AthleteDetail; backHref: string }) {
@@ -62,7 +63,7 @@ export function AthleteDetailView({ detail, backHref }: { detail: AthleteDetail;
     <div className="max-w-6xl mx-auto w-full pb-6">
       <PageHeader
         title={detail.athlete.displayName}
-        description={detail.planName ?? "بدون برنامه فعال"}
+        description={detail.planName ? formatWorkoutPlanTitle(detail.planName) : "بدون برنامه فعال"}
         backHref={backHref}
         action={
           <Badge variant="tier" className="h-7 px-3">
