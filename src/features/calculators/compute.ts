@@ -1,5 +1,6 @@
 /** Pure calculator equations, separated from display for regression testing. */
-import { parseLocaleNumber, formatNumber, toPersianDigits } from "@/lib/formatting/numbers";
+import { formatNumber, toPersianDigits } from "@/lib/formatting/numbers";
+import { parseCalculatorNumber } from "./validation";
 import {
   bmi, bmiCategory, BMI_FA, bmrMifflinStJeor, tdee, computeMacroTargets, oneRepMax,
   oneRepMaxTable, idealWeightRange, whtr, whtrCategory, WHTR_FA, dailyWaterMl, ageFromBirthYear,
@@ -15,7 +16,7 @@ export type CalcResult = {
 };
 
 export function computeCalculator(slug: string, v: Record<string, string>): CalcResult | null {
-  const num = (k: string) => parseLocaleNumber(v[k] ?? "");
+  const num = (k: string) => parseCalculatorNumber(v[k] ?? "");
   const sex = (v.sex ?? "male") as SexAtBirth;
 
   switch (slug) {
