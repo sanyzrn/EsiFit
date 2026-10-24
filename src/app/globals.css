@@ -726,11 +726,38 @@ body::after { display: none; }
   --hero-faint: #9aa0aa;
   --hero-hairline: rgb(255 255 255 / 0.17);
   --hero-strip: #111316;
+  --hero-cta: #f97316;
+  --hero-cta-hover: #ff9b4a;
+  --hero-alert: #f04e57;
+  --hero-section-height: clamp(720px, 100svh, 900px);
+  --hero-art-height: 400px;
+  --hero-art-width: 400px;
+  --hero-display-size: clamp(3.25rem, 13.3vw, 4rem);
+  --hero-art-wash: radial-gradient(ellipse at 50% 65%, rgb(249 115 22 / 0.09), transparent 65%);
   color: var(--hero-text);
   background:
     radial-gradient(circle at 77% 40%, rgb(245 80 29 / 0.17), transparent 35%),
     linear-gradient(122deg, #171312 0%, #101114 42%, #0a0b0d 100%);
 }
+.esi-campaign-enter {
+  animation: esi-campaign-enter var(--duration-smooth) var(--ease-smooth) both;
+}
+@keyframes esi-campaign-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.esi-campaign-layout {
+  grid-template-columns: minmax(0, 1fr);
+  padding-top: 112px;
+}
+.esi-campaign-copy { text-align: center; min-width: 0; }
+.esi-campaign-eyebrow { margin-bottom: 24px; }
+.esi-campaign-description { max-width: 28rem; margin: 16px auto 0; }
+.esi-campaign-actions { justify-content: center; margin-top: 24px; }
+.esi-campaign-trust { justify-content: center; margin-top: 16px; }
+.esi-campaign-line { display: inline; }
+.esi-campaign-line:first-child { margin-inline-end: 0.16em; }
+.esi-campaign-last-line { display: block; }
 .esi-campaign-grid {
   opacity: 0.45;
   background-image:
@@ -757,13 +784,13 @@ body::after { display: none; }
 }
 .esi-campaign-title {
   color: var(--hero-text);
-  font-size: clamp(3.7rem, 8.2vw, 7.75rem);
-  line-height: 0.99;
+  font-size: var(--hero-display-size);
+  line-height: 1.08;
   letter-spacing: -0.015em;
   text-wrap: balance;
 }
 .esi-campaign-word { color: var(--hero-orange); }
-.esi-campaign-period { color: #f04e57; margin-inline-start: 0.035em; }
+.esi-campaign-period { color: var(--hero-alert); margin-inline-start: 0.035em; }
 .esi-campaign-signal {
   width: 8px;
   height: 8px;
@@ -772,50 +799,30 @@ body::after { display: none; }
   background: var(--hero-orange);
   box-shadow: 0 0 0 4px rgb(255 140 53 / 0.12);
 }
-.esi-campaign-stage { aspect-ratio: 1.16; }
-.esi-campaign-orbit {
-  width: 77%;
-  aspect-ratio: 1;
-  right: 9%;
-  top: 4%;
-  border-radius: 50%;
-  border: 1px solid rgb(255 140 53 / 0.26);
-  box-shadow: 0 0 0 24px rgb(255 140 53 / 0.045);
-}
-.esi-campaign-photo-shell {
+.esi-campaign-stage {
   width: 100%;
-  height: 100%;
-  clip-path: polygon(10% 0, 100% 0, 100% 88%, 90% 100%, 0 100%, 0 12%);
-  background: #25282b;
+  max-width: var(--hero-art-width);
+  height: var(--hero-art-height);
+  margin: 24px auto 0;
+  background: var(--hero-art-wash);
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
 }
-.esi-campaign-photo {
-  object-position: center 45%;
-  filter: grayscale(0.45) saturate(0.85) contrast(1.17) brightness(0.76);
+.esi-campaign-athlete {
+  object-position: center top;
+  /* Keep the face prominent on phones; crop only the lower trousers. */
+  height: auto !important;
+  aspect-ratio: 2 / 3;
 }
-.esi-campaign-photo-shade {
-  background:
-    linear-gradient(to top, rgb(7 8 10 / 0.76), transparent 46%),
-    linear-gradient(115deg, rgb(231 64 24 / 0.32), transparent 47%);
-}
-.esi-campaign-photo-index { color: #f8f7f5; text-shadow: 0 1px 4px #000; }
-.esi-campaign-photo-corner {
-  width: 74px;
-  height: 74px;
-  border-top: 3px solid var(--hero-orange);
-  border-right: 3px solid var(--hero-orange);
-}
-.esi-campaign-side-tag {
-  border: 1px solid var(--hero-hairline);
-  border-radius: 8px;
-  color: #f8f7f5;
-  background: #17191d;
+.esi-campaign-strengths > li + li {
+  border-inline-start: 1px solid var(--hero-hairline);
 }
 .esi-campaign-cta {
-  background: #f97316;
+  background: var(--hero-cta);
   color: #14100d;
-  border: 1px solid #f97316;
+  border: 1px solid var(--hero-cta);
 }
-.esi-campaign-cta:hover { background: #ff9b4a; border-color: #ff9b4a; }
+.esi-campaign-cta:hover { background: var(--hero-cta-hover); border-color: var(--hero-cta-hover); }
 .esi-campaign-secondary {
   border-color: rgb(255 255 255 / 0.37);
   background: transparent;
@@ -831,17 +838,57 @@ body::after { display: none; }
   outline: 3px solid var(--hero-orange);
   outline-offset: 4px;
 }
+@media (max-width: 359px) {
+  .esi-campaign-actions { flex-direction: column; }
+  .esi-campaign-actions > a { width: 100%; flex: none; }
+  .esi-campaign-eyebrow { flex-wrap: wrap; justify-content: center; }
+}
 @media (max-width: 1023px) {
-  .esi-campaign-title { font-size: clamp(3.7rem, 11vw, 6.4rem); }
   .esi-campaign-side-label { display: none; }
 }
-@media (max-width: 480px) {
-  .esi-campaign-title { font-size: clamp(3.65rem, 13.3vw, 5.2rem); }
-  .esi-campaign-stage { aspect-ratio: 1.22; margin-top: 8px; }
-  .esi-campaign-photo-index { font-size: 8px; }
+@media (min-width: 640px) {
+  .esi-campaign-hero {
+    --hero-art-height: 520px;
+    --hero-art-width: 440px;
+    --hero-display-size: clamp(4.5rem, 11vw, 6.4rem);
+  }
+  .esi-campaign-line { display: block; }
+  .esi-campaign-line:first-child { margin-inline-end: 0; }
+  .esi-campaign-description { margin-top: 24px; }
+  .esi-campaign-actions { margin-top: 32px; }
+  .esi-campaign-strengths > li + li { padding-inline-start: 24px; }
+}
+@media (min-width: 1024px) {
+  .esi-campaign-hero { --hero-display-size: clamp(5.75rem, 8.2vw, 7.75rem); }
+  .esi-campaign-layout {
+    min-height: var(--hero-section-height);
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    column-gap: 48px;
+    padding-top: 112px;
+    padding-bottom: 64px;
+  }
+  .esi-campaign-copy { text-align: start; }
+  .esi-campaign-eyebrow { margin-bottom: 32px; }
+  .esi-campaign-description { margin-inline: 0; }
+  .esi-campaign-actions, .esi-campaign-trust { justify-content: start; }
+  .esi-campaign-trust { margin-top: 24px; }
+  .esi-campaign-stage {
+    align-self: stretch;
+    height: auto;
+    max-width: none;
+    margin: -96px 0 -64px;
+    mask-image: none;
+  }
+  .esi-campaign-athlete {
+    height: 100% !important;
+    aspect-ratio: auto;
+    object-position: center bottom;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .esi-campaign-hero * { scroll-behavior: auto; }
+  .esi-campaign-enter { animation: none; }
 }
 
 /* Flat shared surfaces in the authenticated app and non-hero public sections.
