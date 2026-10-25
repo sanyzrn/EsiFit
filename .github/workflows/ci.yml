@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   build-and-smoke:
-    name: Build & essential tests
+    name: Build & complete tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
 

@@ -159,6 +159,6 @@ bunx tsc --noEmit   # تایپ‌چک کامل (strict)
 
 ## Audit hardening and remaining product boundaries
 
-CI runs the complete unit/API suite and production dependency audit. Node 22.19+ (22 LTS) or 24+ is required; Bun 1.3.4+ remains optional for seed tasks. `db:push` no longer includes `--accept-data-loss`; deliberate destructive resets belong only to disposable test databases.
+CI runs the complete unit/API suite and a dependency audit including development tooling. Node 22.19+ (22 LTS) or 24+ is required; Bun 1.3.4+ remains optional for seed tasks. `db:push` no longer includes `--accept-data-loss`; deliberate destructive resets belong only to disposable test databases.
 
 The repository has not selected an application open-source license. No MIT/Apache grant is implied; third-party asset licenses and attribution remain in their existing documents. Web Push is not implemented: notifications are in-app only. A future push system needs explicit opt-in, subscription revocation, VAPID configuration, permission UX and delivery testing. Real payments/refunds, account erasure and competition scoring remain unavailable; do not market those as shipped.

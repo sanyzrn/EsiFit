@@ -29,3 +29,13 @@ All confirmed repairs were implemented before the scratch workspace was automati
 Before pruning, 319 tests passed; real-browser flows at 390×844/1280×800 had zero page errors, keyboard skip focused main, themes persisted, and new-member onboarding returned to the requested settings page. Twelve settled axe checks across six public pages × dark/light had zero violations. Mobile Lighthouse measured landing 78/100/100/100 and store 84/100/100/100 (performance/accessibility/best-practices/SEO). These were measured facts, not a 95+ performance pass.
 
 The rebuilt source is being validated again with patched dependencies in phase 7. Exact old local commit/tree identity is not claimed. Performance remains below 95 and needs a separate measured public-bundle/LCP improvement before a claim of meeting that target. Caching personalized HTML is deliberately avoided to preserve privacy and current prices. No real-device install/offline or live-provider success is inferred from UI checks.
+
+## Revalidated reconstructed release candidate
+
+- Strict standalone production build passed on Next 16.4.3. ESLint is now zero-error/zero-warning.
+- Complete API/unit suite: 322/322, 33 files, disposable PostgreSQL 17.9. After the test-tool security patch, the six targeted URL/body-parser checks also passed on Vitest 4.1.12; CI runs the entire suite on that toolchain.
+- The reusable local browser runner passed both viewports, persistent light theme, keyboard skip, member OTP destination, new-member onboarding with Persian numeric input, visible no-JavaScript catalog, 413 oversized-body rejection and real production service-worker offline fallback/API network-only behavior, with zero page errors. This does not establish physical-device installation or live-provider behavior.
+- Latest mobile Lighthouse on this runner: landing performance 75 and store 70; accessibility, best-practices and SEO all 100 on both. Earlier busy-run performance scores varied considerably. The 95+ performance target is not claimed. Editorial data caching, lighter public dependency boundaries, on-demand interface fonts and viewport-deferred decorative studies are implemented; a further measured LCP/bundle optimization is explicitly deferred.
+
+### Documented performance exception
+For the existing test/demo release, keep the interactive product surfaces and session-aware rendering while protecting private data and live stock/discount correctness. Shared full-page caching would be unsafe for these responses. This is a documented exception to the 95+ target, not a performance pass or a commercial-production-readiness assertion. Real payments/refunds, erasure, competition settlement and push remain unavailable.
