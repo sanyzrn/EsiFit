@@ -1,11 +1,13 @@
+import { EXERCISES } from "@/features/workouts/data/exercise-dataset";
 import { describe, expect, it } from "vitest";
 import { exerciseVisualFor, VISUAL_COVERAGE } from "@/features/workouts/data/exercise-media";
 
 describe("legally licensed training imagery", () => {
   it("covers only manually reviewed exact EsiFit exercise IDs", () => {
-    expect(VISUAL_COVERAGE).toBe(46);
+    expect(VISUAL_COVERAGE).toBe(EXERCISES.length);
+    for(const e of EXERCISES) expect(exerciseVisualFor(e.slug), e.slug).not.toBeNull();
     expect(exerciseVisualFor("bench-press")).toBeNull();
-    expect(exerciseVisualFor("barbell-bench-press")).toBeNull();
+    expect(exerciseVisualFor("barbell-bench-press")?.start).toContain("/bench-press-start.webp");
   });
 
   it("has a correct pair of stills for a supported rep-based movement", () => {

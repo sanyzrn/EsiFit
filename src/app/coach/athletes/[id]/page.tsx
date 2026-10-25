@@ -1,3 +1,5 @@
+import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
+import { loadExerciseCatalog } from "@/lib/workout/catalog";
 import { redirect } from "next/navigation";
 import { requireRolePage } from "@/lib/auth/page-guard";
 import { AppShell } from "@/components/layout/app-shell";
@@ -13,19 +15,21 @@ export default async function CoachAthletePage({ params }: { params: Promise<{ i
   const session = await requireRolePage(`/coach/athletes/${encodeURIComponent(id)}`, "coach_or_admin");
 
   // Ownership: coaches only see their own athletes (admin supervises all).
+  let coachNote = "";
   if (session.role !== "admin") {
     const link = await db.coachClient.findUnique({
       where: { coachId_athleteId: { coachId: session.id, athleteId: id } },
     });
     if (!link || link.status !== "active") redirect("/coach");
+    coachNote = link.note;
   }
 
-  const detail = await getCoachAthleteDetail(id);
+  const [detail, catalog] = await Promise.all([getCoachAthleteDetail(id), loadExerciseCatalog()]);
   if (!detail) redirect("/coach");
 
   return (
-    <AppShell session={session}>
-      <AthleteDetailView detail={detail} backHref="/coach" />
+    <AppShell session={session} flags={resolveEnabledFlags()}>
+      <AthleteDetailView detail={detail} backHref={session.role === "admin" ? "/admin" : "/coach"} catalog={catalog.map(({id,slug,nameFa,equipment})=>({id,slug,nameFa,equipment}))} coachNote={coachNote} canManage={session.role === "coach"} />
     </AppShell>
   );
 }

@@ -65,3 +65,14 @@ existing `Exercise.instructionsFa` field. Add/swap responses retain equipment.
 - No schema, flags, API behavior or dependencies changed.
 
 - Branded route suspense is scoped to authenticated/auth flows, not the root layout. Public pages retain visible server-rendered content when JavaScript is disabled; no global fallback hides the catalog/landing page.
+
+## Coach/catalog/engagement revision — 2026-10-25
+- `ProgramEditor({ athleteId, activePlan, catalog, equipment })`: shared UI primitives, eight starting presets, current-plan copy, seven-day editable review, bounded prescriptions, equipment validation, concurrency baseline, confirmation/loading/error/success. One presentation family; no parallel inputs/modals.
+- `CoachNote({ athleteId, initialNote })`: independent private note save/clear, pending/error/status. Keyed by athlete to prevent stale state crossing profiles.
+- `CoachWorkspaceView`: normalized name search and all/attention/no-program filters; existing roster aggregate/cards retained.
+- `AthleteDetailView`: active prescription disclosure, profile/nutrition/readiness review, ProgramEditor and CoachNote only for the assigned coach; administrators retain read-only supervision.
+- `InstallPrompt`: one root listener and nonmodal promotion; browser eligibility, visible engagement, critical-flow suppression, cooldown and approved BrandLogo. Native prompt is triggered only by its button.
+- `PublicPageShell`/landing: signed-in footer and acquisition demos/CTA hidden; role-aware useful continuation links, published education retained.
+- `ExerciseVisual`: all 100 canonical IDs mapped, source-specific credit, 96 reviewed RepDB visuals plus four independent schematics. Error/offline compact states retain consistent geometry rather than disappearing.
+- Foods: 140 catalog entries including 46 record-linked USDA additions; normalized half-space/Arabic-keyboard search and serving/provenance labels.
+- No dependencies, entities, fields or feature flags added. Existing WorkoutPlan, WorkoutPlanDay, PlannedExercise, CoachClient and UserProfile are reused.

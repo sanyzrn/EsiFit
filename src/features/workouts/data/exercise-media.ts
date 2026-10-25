@@ -1,42 +1,112 @@
-/**
- * Reviewed, exact-ID links from EsiFit's original curated movements to
- * RepDB Free Tier illustrations (2026-10-23 snapshot).
- *
- * No openGym/Gym visual media are copied or referenced here.
- * RepDB Free Tier permits in-app use with visible attribution.
- * https://github.com/RepDB/exercise-dataset/blob/main/LICENSE-DATA.md
- * These are remote trial assets; self-host for production reliability.
- */
-const EXACT_REPDB_IDS = new Set([
-  "incline-bench-press", "push-up", "dips", "dumbbell-shoulder-press",
-  "lateral-raise", "face-pull", "arnold-press", "deadlift",
-  "romanian-deadlift", "pull-up", "lat-pulldown", "barbell-row",
-  "seated-cable-row", "shrug", "hammer-curl", "wrist-curl",
-  "goblet-squat", "leg-press", "hack-squat", "lunge",
-  "bulgarian-split-squat", "leg-extension", "leg-curl", "hip-thrust",
-  "plank", "hanging-leg-raise", "russian-twist", "cable-crunch",
-  "side-plank", "cycling", "rowing-machine", "jump-rope",
-  "kettlebell-swing", "upright-row", "front-squat", "glute-kickback",
-  "band-pull-apart", "preacher-curl", "smith-machine-squat",
-  "seated-calf-raise", "good-morning", "stair-climber", "sled-push",
-  "chest-press-machine", "pec-deck", "back-extension",
-]);
-
-const STATIC_ONLY = new Set([
-  "plank", "side-plank", "cycling", "jump-rope", "stair-climber", "sled-push",
-]);
-
+/** Exact movement AND equipment mapping, reviewed at RepDB b407c5951a.
+ * Four variants absent from the source use independent first-party schematics.
+ * No image-to-image derivation. See docs/EXERCISE_MEDIA_LICENSES.md. */
+export type ExerciseVisualData = { start: string; finish: string | null; creditLabel: string; creditHref: string | null };
+const REPDB_IDS: Record<string, string> = {
+  "barbell-bench-press": "bench-press",
+  "incline-bench-press": "incline-bench-press",
+  "dumbbell-bench-press": "db-bench-press",
+  "dumbbell-incline-fly": "incline-dumbbell-fly",
+  "push-up": "push-up",
+  "dips": "dips",
+  "dumbbell-shoulder-press": "dumbbell-shoulder-press",
+  "lateral-raise": "lateral-raise",
+  "face-pull": "face-pull",
+  "arnold-press": "arnold-press",
+  "deadlift": "deadlift",
+  "romanian-deadlift": "romanian-deadlift",
+  "pull-up": "pull-up",
+  "lat-pulldown": "lat-pulldown",
+  "barbell-row": "barbell-row",
+  "dumbbell-row": "single-arm-db-row",
+  "seated-cable-row": "seated-cable-row",
+  "shrug": "db-shrug",
+  "biceps-curl": "barbell-curl",
+  "dumbbell-curl": "bicep-curl",
+  "hammer-curl": "hammer-curl",
+  "triceps-pushdown": "tricep-pushdown",
+  "overhead-triceps-extension": "overhead-tricep-extension",
+  "wrist-curl": "wrist-curl",
+  "barbell-squat": "squat",
+  "goblet-squat": "goblet-squat",
+  "leg-press": "leg-press",
+  "hack-squat": "hack-squat",
+  "lunge": "db-lunge",
+  "bulgarian-split-squat": "bulgarian-split-squat",
+  "leg-extension": "leg-extension",
+  "leg-curl": "leg-curl",
+  "hip-thrust": "hip-thrust",
+  "calf-raise": "standing-calf-raise",
+  "plank": "plank",
+  "hanging-leg-raise": "hanging-leg-raise",
+  "russian-twist": "russian-twist",
+  "cable-crunch": "cable-crunch",
+  "side-plank": "side-plank",
+  "ab-wheel": "ab-wheel-rollout",
+  "treadmill-run": "treadmill-running",
+  "cycling": "cycling",
+  "rowing-machine": "rowing-machine",
+  "jump-rope": "jump-rope",
+  "burpee": "burpees",
+  "kettlebell-swing": "kettlebell-swing",
+  "farmers-walk": "dumbbell-farmers-walk",
+  "chest-supported-row": "chest-supported-machine-row",
+  "reverse-fly": "dumbbell-reverse-fly",
+  "upright-row": "upright-row",
+  "front-squat": "front-squat",
+  "glute-kickback": "cable-kickback",
+  "band-pull-apart": "band-pull-apart",
+  "incline-dumbbell-press": "incline-db-press",
+  "preacher-curl": "machine-preacher-curl",
+  "leg-raise-machine": "captains-chair-leg-raise",
+  "smith-machine-squat": "smith-machine-squat",
+  "assisted-pull-up": "assisted-pull-ups",
+  "seated-calf-raise": "seated-calf-raise",
+  "good-morning": "good-morning",
+  "elliptical": "elliptical-trainer",
+  "stair-climber": "stair-climber",
+  "sled-push": "sled-push",
+  "trap-bar-deadlift": "hex-bar-deadlift",
+  "chest-press-machine": "chest-press-machine",
+  "pec-deck": "pec-deck",
+  "back-extension": "back-extension",
+  "bodyweight-squat": "bodyweight-squat",
+  "incline-push-up": "incline-push-ups",
+  "knee-push-up": "knee-push-ups",
+  "glute-bridge": "glute-bridge",
+  "bird-dog": "bird-dog",
+  "dead-bug": "dead-bug",
+  "superman": "superman",
+  "reverse-plank": "reverse-plank",
+  "reverse-lunge": "bodyweight-reverse-lunge",
+  "dumbbell-squat": "db-squat",
+  "dumbbell-romanian-deadlift": "dumbbell-romanian-deadlift",
+  "bodyweight-calf-raise": "bodyweight-calf-raise",
+  "dumbbell-calf-raise": "dumbbell-calf-raise",
+  "banded-good-morning": "banded-good-morning",
+  "banded-lateral-walk": "banded-lateral-walk",
+  "banded-squat": "banded-squat",
+  "banded-standing-hip-abduction": "banded-standing-hip-abduction",
+  "hip-abduction-machine": "hip-abduction",
+  "machine-shoulder-press": "machine-shoulder-press",
+  "cable-lateral-raise": "cable-lateral-raise",
+  "cable-biceps-curl": "cable-curl",
+  "lying-leg-raise": "lying-leg-raise",
+  "bicycle-crunch": "bicycle-crunch",
+  "mountain-climber": "mountain-climbers",
+  "jumping-jack": "jumping-jacks",
+  "incline-treadmill-walk": "incline-treadmill-walk",
+  "single-leg-glute-bridge": "single-leg-glute-bridge",
+  "wall-sit": "wall-sit",
+  "reverse-crunch": "reverse-crunches",
+};
+const SINGLE_FRAME = new Set(["plank", "side-plank", "treadmill-running", "cycling", "jump-rope", "burpees", "dumbbell-farmers-walk", "elliptical-trainer", "stair-climber", "sled-push", "reverse-plank", "incline-treadmill-walk", "wall-sit"]);
+const ORIGINAL = new Set(["overhead-press", "cable-adduction", "step-up", "cable-woodchopper"]);
 const CDN = "https://exercise-dataset.com/images/flat";
-
-export type ExerciseVisualData = { start: string; finish: string | null };
-
 export function exerciseVisualFor(slug: string): ExerciseVisualData | null {
-  if (!EXACT_REPDB_IDS.has(slug)) return null;
-  if (STATIC_ONLY.has(slug)) return { start: `${CDN}/${slug}-main.webp`, finish: null };
-  return {
-    start: `${CDN}/${slug}-start.webp`,
-    finish: `${CDN}/${slug}-peak.webp`,
-  };
+  if (ORIGINAL.has(slug)) return { start: `/media/exercises/${slug}-start.svg`, finish: `/media/exercises/${slug}-finish.svg`, creditLabel: "اسی‌فیت · نمای شماتیک مستقل", creditHref: null };
+  const id = REPDB_IDS[slug];
+  if (!id) return null;
+  return { start: `${CDN}/${id}-${SINGLE_FRAME.has(id) ? "main" : "start"}.webp`, finish: SINGLE_FRAME.has(id) ? null : `${CDN}/${id}-peak.webp`, creditLabel: "Exercise data by RepDB (repdb.co)", creditHref: "https://repdb.co" };
 }
-
-export const VISUAL_COVERAGE = EXACT_REPDB_IDS.size;
+export const VISUAL_COVERAGE = Object.keys(REPDB_IDS).length + ORIGINAL.size;

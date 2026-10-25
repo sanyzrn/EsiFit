@@ -51,6 +51,7 @@ type FoodResult = {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  source?: { label: string; url?: string };
 };
 
 const SLOTS = [
@@ -453,6 +454,7 @@ function FoodPicker({
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{f.nameFa}</p>
+                  {f.source && <p className="mt-1 text-[10px] text-esi-text-muted">{f.source.label}</p>}
                   <p className="text-[11px] text-esi-text-muted tabular-nums">
                     {toPersianDigits(f.servingAmount)} {f.servingUnit} • پ {toPersianDigits(f.proteinG)} / ک {toPersianDigits(f.carbsG)} / چ {toPersianDigits(f.fatG)}
                   </p>

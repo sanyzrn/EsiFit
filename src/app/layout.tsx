@@ -5,6 +5,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { ServiceWorkerRegistrar } from "@/components/layout/service-worker-registrar";
+import { InstallPrompt } from "@/components/features/install-prompt";
 import { SpotlightProvider } from "@/components/motion/spotlight-provider";
 
 const vazir = localFont({
@@ -110,6 +111,7 @@ export default function RootLayout({
           {children}
           <Toaster position="top-center" dir="rtl" richColors closeButton />
           <ServiceWorkerRegistrar />
+          <InstallPrompt />
           <SpotlightProvider />
         </ThemeProvider>
       </body>

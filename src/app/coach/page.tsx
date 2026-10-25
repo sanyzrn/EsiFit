@@ -1,9 +1,7 @@
 import { requireRolePage } from "@/lib/auth/page-guard";
 import { AppShell } from "@/components/layout/app-shell";
-import { PageHeader } from "@/components/layout/page-header";
 import { CoachWorkspaceView } from "@/features/coach/coach-workspace-view";
 import { getCoachRoster } from "@/lib/coach/data";
-import { db } from "@/lib/db";
 import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 
 export const dynamic = "force-dynamic";
@@ -14,9 +12,7 @@ export default async function CoachPage() {
 
   // Admins supervise every linked roster (read-only console entry point).
   const roster = await getCoachRoster(session.id);
-  const pendingAssignments = await db.workoutPlan.count({
-    where: { user: { coachClients: { some: { coachId: session.id } } }, status: "active" },
-  });
+  const pendingAssignments = roster.filter(athlete => athlete.planName).length;
 
   return (
     <AppShell session={session} flags={resolveEnabledFlags()}>
