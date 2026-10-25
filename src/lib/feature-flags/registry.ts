@@ -73,7 +73,7 @@ export const FLAG_REGISTRY: Record<FeatureFlag, FeatureFlagConfig> = {
   OFFLINE_TRACKERS: { label: "ردیابی آفلاین", default: true },
   GAMIFICATION: { label: "امتیاز و نشان‌ها", default: true },
   COMMUNITY: { label: "انجمن", default: true },
-  CHALLENGES: { label: "چالش‌ها", default: true },
+  CHALLENGES: { label: "چالش‌ها", default: false },
   SHOP: { label: "فروشگاه", default: true },
   NOTIFICATIONS: { label: "اعلان‌ها", default: true },
   WEEKLY_RECAP: { label: "گزارش هفتگی", default: true, dependsOn: ["ANALYTICS"] },
@@ -92,7 +92,7 @@ export const FLAG_REGISTRY: Record<FeatureFlag, FeatureFlagConfig> = {
   GOAL_ENGINE: { label: "موتور هدف", default: true, dependsOn: ["DASHBOARD"] },
   FOOD_PHOTO_LOGGING: { label: "ثبت غذا با عکس", default: false, requiresMember: true, dependsOn: ["NUTRITION", "AI_INSIGHTS"] },
   WEARABLES: { label: "اتصال ساعت هوشمند", default: false },
-  PRIVATE_CHALLENGES: { label: "چالش خصوصی", default: true, dependsOn: ["CHALLENGES"] },
+  PRIVATE_CHALLENGES: { label: "چالش خصوصی", default: false, dependsOn: ["CHALLENGES"] },
   COACH_MARKETPLACE: { label: "بازار مربیان", default: false, requiresMember: true },
   AI_CREDITS: { label: "اعتبارات هوش مصنوعی", default: false, requiresMember: true },
 };

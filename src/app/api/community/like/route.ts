@@ -1,3 +1,4 @@
+import { rateLimit } from "@/lib/http/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -18,6 +19,9 @@ export async function POST(req: NextRequest) {
 
     const post = await db.post.findUnique({ where: { id: body.postId } });
     if (!post || post.visibility !== "public") return NextResponse.json({ ok: false, code: "not_found", message: "پست یافت نشد." }, { status: 404 });
+
+    const limit = await rateLimit(`community:like:${session.id}`, 60, 60_000);
+    if (!limit.ok) return NextResponse.json({ ok: false, code: "rate_limit", message: "پسندهای زیادی ثبت کرده‌اید؛ کمی بعد تلاش کنید.", retryAfterSeconds: limit.retryAfterSeconds }, { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } });
 
     if (body.liked) {
       await db.postLike.upsert({

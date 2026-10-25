@@ -1,3 +1,6 @@
+import { refreshDerivedMissions } from "@/lib/domain/gamification-engine";
+import { isoDateOnly } from "@/lib/dates/jalali";
+import { db } from "@/lib/db";
 import { withSessionLock } from "@/lib/workout/session-lock";
 import { NextRequest, NextResponse } from "next/server";
 import { requireMember } from "@/lib/auth/session";
@@ -47,10 +50,11 @@ export async function POST(req: NextRequest) {
       // permanently on a transient DB blip.
       try {
         const result = await withSessionLock(op.sessionId, async tx => {
-          const session = await tx.workoutSession.findUnique({ where: { id: op.sessionId }, select: { userId: true } });
+          const session = await tx.workoutSession.findUnique({ where: { id: op.sessionId }, select: { userId: true, status: true } });
           if (!session || session.userId !== user.id) return false;
           const existing = await tx.setLog.findUnique({ where: { userId_clientId: { userId: user.id, clientId: op.clientId } } });
           if (existing) return true;
+          if (session.status !== "active" && session.status !== "paused") return false;
           // Order can change after swaps; exercise identity is canonical.
           let log = await tx.exerciseLog.findFirst({ where: { sessionId: op.sessionId, exerciseId: op.exerciseId }, orderBy: { orderIndex: "asc" } });
           if (!log) {
@@ -62,7 +66,7 @@ export async function POST(req: NextRequest) {
             exerciseLogId: log.id, userId: user.id, setNumber: op.setNumber,
             weightKg: op.weightKg ?? null, reps: op.reps ?? null, rpe: op.rpe ?? null,
             durationSeconds: op.durationSeconds ?? null, isWarmup: op.isWarmup,
-            completedAt: op.completedAt ? new Date(op.completedAt) : new Date(), clientId: op.clientId,
+            completedAt: new Date(Math.min(op.completedAt ? new Date(op.completedAt).getTime() : Date.now(), Date.now())), clientId: op.clientId,
           } });
           return true;
         });
@@ -80,6 +84,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    if (synced > 0) {
+      const persisted = await db.setLog.findMany({ where: { userId: user.id, clientId: { in: body.sets.map(op => op.clientId) } }, select: { completedAt: true } });
+      for (const day of new Set(persisted.map(set => isoDateOnly(set.completedAt, user.timezone)))) {
+        await refreshDerivedMissions(user.id, user.timezone, day);
+      }
+    }
     return NextResponse.json({ ok: true, synced, conflicts, failed });
   } catch (error) {
     return appErrorResponse(error);

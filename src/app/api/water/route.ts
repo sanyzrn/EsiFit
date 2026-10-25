@@ -1,3 +1,4 @@
+import { evaluateBadges, refreshDerivedMissions } from "@/lib/domain/gamification-engine";
 import { NextRequest, NextResponse } from "next/server";
 import { requireMember } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -56,20 +57,8 @@ export async function POST(req: NextRequest) {
     });
     const profile = await db.userProfile.findUnique({ where: { userId: session.id } });
 
-    // Daily water mission progress — compare against the mission target,
-    // store progress against that same target (never profile ≠ mission mix).
-    const mission = await db.mission.findUnique({ where: { slug: "daily-water" } });
-    const dayMl = dayTotal._sum.ml ?? 0;
-    if (mission && dayMl >= mission.target) {
-      await db.userMissionProgress.upsert({
-        where: { userId_missionId_periodKey: { userId: session.id, missionId: mission.id, periodKey: logDate } },
-        create: {
-          userId: session.id, missionId: mission.id, periodKey: logDate,
-          progress: dayMl, target: mission.target, completedAt: new Date(),
-        },
-        update: { progress: dayMl },
-      }).catch(() => undefined);
-    }
+    await refreshDerivedMissions(session.id, session.timezone, logDate);
+    await evaluateBadges(session.id);
 
     return NextResponse.json({
       ok: true,

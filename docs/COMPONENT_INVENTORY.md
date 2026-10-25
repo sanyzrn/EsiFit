@@ -29,3 +29,9 @@ existing `Exercise.instructionsFa` field. Add/swap responses retain equipment.
 - `WorkoutSessionHUD`: existing capture form includes a labeled warmup checkbox, persisted in the same offline set payload; resumed sets preserve classification. Warmups do not advance prescribed working-set progress.
 - Auth response: `needsOnboarding` names the existing routing behavior; `isNewUser` remains a compatibility alias.
 - Added server-only `RateLimitBucket` (hashed key/count/expiry); no feature flags or new UI primitives.
+
+## Audit phase 4 (2026-10-25)
+- `AchievementsView`: existing mission cards now identify their period; outstanding completed historical periods remain claimable. Claims are keyed by mission and period, with existing loading/toast/error handling retained.
+- `WorkoutSessionHUD`: completion waits for all queued sets from its own session. Transient failures keep it open. Terminal rejections show a separate explicit action to finish only the saved sets; rejected local records remain preserved.
+- Existing challenge tab is hidden by the server-resolved CHALLENGES flag, default off until scoring/settlement is implemented.
+- Shared `activity-streak` helpers provide current and longest calendar-day streaks; no new visual components or database entities.

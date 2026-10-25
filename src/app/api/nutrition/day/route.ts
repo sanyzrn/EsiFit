@@ -1,3 +1,4 @@
+import { evaluateBadges, refreshDerivedMissions } from "@/lib/domain/gamification-engine";
 import { NextRequest, NextResponse } from "next/server";
 import { requireMember } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -127,6 +128,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    await refreshDerivedMissions(session.id, session.timezone, date);
+    await evaluateBadges(session.id);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return appErrorResponse(error);
@@ -147,6 +150,8 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ ok: false, code: "not_found", message: "یافت نشد." }, { status: 404 });
     }
     await db.mealEntry.delete({ where: { id: entry.id } });
+    await refreshDerivedMissions(session.id, session.timezone, entry.nutritionDay.logDate);
+    await evaluateBadges(session.id);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return appErrorResponse(error);

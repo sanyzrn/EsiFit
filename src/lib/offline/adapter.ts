@@ -204,7 +204,7 @@ async function drainQueue(): Promise<{ synced: number; failed: number }> {
   let failed = 0;
   try {
     const ops = await getQueuedOperations();
-    // Group water ops into one idempotent batch; workout sets sync one endpoint.
+    // Replay each durable operation individually; workout endpoints accept a one-set batch.
     for (const op of ops) {
       if (op.attempts >= MAX_ATTEMPTS) {
         await markOpStatus(op.clientId, "conflict");
@@ -220,7 +220,7 @@ async function drainQueue(): Promise<{ synced: number; failed: number }> {
           cache: "no-store",
         });
         if (res.ok) {
-          const json = (await res.json().catch(() => null)) as { synced?: number; conflicts?: number; failed?: number } | null;
+          const json = (await res.json().catch(() => null)) as { ok?: boolean; synced?: number; conflicts?: number; failed?: number } | null;
           // Server reports per-op outcome in the batch response. Transient
           // failures must stay queued; conflicts are terminal.
           if (json && typeof json.failed === "number" && json.failed > 0) {
@@ -229,9 +229,13 @@ async function drainQueue(): Promise<{ synced: number; failed: number }> {
           } else if (json && typeof json.conflicts === "number" && json.conflicts > 0 && (json.synced ?? 0) === 0) {
             await markOpStatus(op.clientId, "conflict");
             failed++;
-          } else {
+          } else if (json?.ok === true && (op.kind !== "workout_set" || json.synced === 1)) {
             synced++;
             await removeOp(op.clientId);
+          } else {
+            // A malformed 200 response is not proof that a real set was stored.
+            await markOpStatus(op.clientId, "failed", { countAttempt: false });
+            failed++;
           }
         } else if (res.status === 401) {
           // Session expired: nothing will succeed until the user signs in again, and
@@ -239,12 +243,12 @@ async function drainQueue(): Promise<{ synced: number; failed: number }> {
           await markOpStatus(op.clientId, "local", { countAttempt: false });
           failed++;
           break;
-        } else if (res.status === 404 || res.status === 410) {
-          // Target no longer exists — will not fix itself, park as conflict
+        } else if (res.status >= 400 && res.status < 500 && ![408, 425, 429].includes(res.status)) {
+          // Invalid payload, denied ownership or deleted target cannot fix themselves.
           await markOpStatus(op.clientId, "conflict");
           failed++;
         } else {
-          // 5xx / 429 / anything transient: retry later without burning attempts.
+          // 5xx / 408 / 425 / 429: retry later without burning attempts.
           await markOpStatus(op.clientId, "failed", { countAttempt: false });
           failed++;
         }
@@ -259,6 +263,21 @@ async function drainQueue(): Promise<{ synced: number; failed: number }> {
     window.dispatchEvent(new CustomEvent("esifit:queue-changed"));
   }
   return { synced, failed };
+}
+
+/** Completion must wait for this workout, including terminal conflicts. A strict
+ * store read deliberately throws if persistence is unavailable: an empty fallback
+ * would otherwise falsely declare the session safe to finish. */
+export async function syncWorkoutBeforeComplete(sessionId: string, finishSavedSetsOnly = false): Promise<void> {
+  await syncQueue();
+  const all = await tx<QueuedOperation[]>(STORE_OPS, "readonly", store => store.getAll() as IDBRequest<QueuedOperation[]>);
+  const unsaved = all.filter(op => op.kind === "workout_set" && op.payload.sessionId === sessionId && op.status !== "synced");
+  const pending = unsaved.some(op => op.status !== "conflict");
+  if (pending || (unsaved.length && !finishSavedSetsOnly)) {
+    throw { code: "conflict", status: 409, canFinishSavedSets: !pending, message: pending
+      ? "ثبت بعضی ست‌های این جلسه هنوز کامل نشده است؛ جلسه حفظ شد. پس از اتصال دوباره تلاش کنید."
+      : "بعضی ست‌ها قابل ثبت نبودند؛ جلسه باز ماند. می‌توانید فقط با ست‌های ثبت‌شده پایان دهید." };
+  }
 }
 
 /** Cache-friendly local read-through for dashboard hydration while offline. */

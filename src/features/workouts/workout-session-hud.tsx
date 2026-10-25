@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { api, errorMessage, isApiError } from "@/lib/client/api";
-import { enqueueOperation, newClientId, syncQueue } from "@/lib/offline/adapter";
+import { enqueueOperation, newClientId, syncQueue, syncWorkoutBeforeComplete } from "@/lib/offline/adapter";
 import { useFeatureFlag } from "@/lib/feature-flags/flag-provider";
 import { formatClock, parseLocaleNumber, toPersianDigits } from "@/lib/formatting/numbers";
 import { cn } from "@/lib/utils";
@@ -104,6 +104,7 @@ export function WorkoutSessionHUD({
   const [rest, setRest] = React.useState<RestPhase | null>(null);
   const [restClock, setRestClock] = React.useState(() => Date.now());
   const alertedRestRef = React.useRef<string | null>(null);
+  const [finishSavedSetsOnly, setFinishSavedSetsOnly] = React.useState(false);
   const [finishConfirm, setFinishConfirm] = React.useState(false);
   const [confirmSkipRest, setConfirmSkipRest] = React.useState(false);
   const [allowExtraSet, setAllowExtraSet] = React.useState(false);
@@ -404,11 +405,12 @@ export function WorkoutSessionHUD({
     }
   };
 
-  const finish = async () => {
+  const finish = async (acknowledgeConflicts = false) => {
+    setFinishSavedSetsOnly(false);
     setBusy(true);
     setError(null);
     try {
-      await syncQueue();
+      await syncWorkoutBeforeComplete(session.id, acknowledgeConflicts);
       const res = await api<{ summary: CompleteSummary }>("/api/workouts/complete", {
         method: "POST",
         json: { sessionId: session.id, durationSeconds: elapsed },
@@ -418,6 +420,7 @@ export function WorkoutSessionHUD({
       saveRest(null);
       setCompleted(true);
     } catch (e) {
+      if (isApiError(e) && "canFinishSavedSets" in e && e.canFinishSavedSets === true) setFinishSavedSetsOnly(true);
       if (isApiError(e) && e.code === "network") {
         // Offline: keep session active; completion retries later — never lose the workout.
         setError("آفلاین هستید — جلسه حفظ شد. با اتصال دوباره، پایان تمرین را بزنید.");
@@ -965,6 +968,11 @@ export function WorkoutSessionHUD({
                 >
                   {busy ? "در حال ثبت نتیجه…" : "تأیید و پایان تمرین"}
                 </Button>
+                {finishSavedSetsOnly && (
+                  <Button variant="secondary" className="h-11" onClick={() => void finish(true)} disabled={busy}>
+                    پایان فقط با ست‌های ثبت‌شده
+                  </Button>
+                )}
                 <Button variant="secondary" className="h-11" onClick={() => setFinishConfirm(false)} disabled={busy}>
                   ادامه تمرین
                 </Button>

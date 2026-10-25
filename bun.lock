@@ -75,6 +75,7 @@
         "zustand": "^5.0.6",
       },
       "devDependencies": {
+        "fake-indexeddb": "6.2.6",
         "@tailwindcss/postcss": "^4",
         "@types/react": "^19",
         "@types/react-dom": "^19",
@@ -89,6 +90,8 @@
     },
   },
   "packages": {
+    "fake-indexeddb": ["fake-indexeddb@6.2.6", "https://registry.npmjs.org/fake-indexeddb/-/fake-indexeddb-6.2.6.tgz", {}, "sha512-ihhmr0KoET51jT8R4YhbUYuLLvr1qqO6INISygtN16i8loR8kAxtAUr4+EKHTSMjL+lggaAn4OC7DRqzrNgnuQ=="],
+
     "@alloc/quick-lru": ["@alloc/quick-lru@5.2.0", "https://registry.npmjs.com/@alloc/quick-lru/-/quick-lru-5.2.0.tgz", {}, "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw=="],
 
     "@babel/code-frame": ["@babel/code-frame@7.28.6", "https://registry.npmjs.com/@babel/code-frame/-/code-frame-7.28.6.tgz", { "dependencies": { "@babel/helper-validator-identifier": "^7.28.5", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-JYgintcMjRiCvS8mMECzaEn+m3PfoQiyqukOMCCVQtoJGYJw8j/8LBJEiqkHLkfwCcs74E3pbAUFNg7d9VNJ+Q=="],

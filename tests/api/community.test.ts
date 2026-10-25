@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createUser, db, ensureSeed } from "../helpers/db";
 import { clearCookies } from "../helpers/session-mock";
 import { nextReq } from "../helpers/next-request";
@@ -32,6 +32,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   await db.challenge.deleteMany();
 });
 
@@ -134,7 +135,8 @@ describe("community interactions", () => {
     expect(await db.postLike.count({ where: { postId: p.id } })).toBe(0);
   });
 
-  it("keeps challenge membership visible below the top ten", async () => {
+  it("keeps challenge membership visible below the top ten when explicitly enabled", async () => {
+    vi.stubEnv("ESIFIT_FLAG_CHALLENGES", "on");
     const today = todayISO();
     const ch = await db.challenge.create({
       data: {

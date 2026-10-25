@@ -1,3 +1,4 @@
+import { withSessionLock } from "@/lib/workout/session-lock";
 import { NextRequest, NextResponse } from "next/server";
 import { requireMember } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -18,61 +19,67 @@ export async function POST(req: NextRequest) {
     const user = await requireMember();
     const body = schema.parse(await req.json());
 
-    const session = await db.workoutSession.findUnique({
-      where: { id: body.sessionId },
-      include: {
-        exerciseLogs: { include: { exercise: true, sets: true } },
-      },
+    const finalized = await withSessionLock(body.sessionId, async tx => {
+      const session = await tx.workoutSession.findUnique({
+        where: { id: body.sessionId },
+        include: {
+          exerciseLogs: { include: { exercise: true, sets: true } },
+        },
+      });
+      if (!session || session.userId !== user.id) {
+        return NextResponse.json({ ok: false, code: "not_found", message: "جلسه تمرین یافت نشد." }, { status: 404 });
+      }
+
+      const allSets = session.exerciseLogs.flatMap((l) => l.sets);
+      const volume = sessionVolume(allSets);
+      const elapsedSeconds =
+        body.durationSeconds ??
+        Math.round(((session.endedAt ?? new Date()).getTime() - session.startedAt.getTime()) / 1000);
+      const durationSeconds = Math.max(60, session.durationSeconds || elapsedSeconds);
+
+      const existingSummary = {
+        volume: Math.round(session.totalVolumeKg || volume),
+        durationMinutes: Math.max(1, Math.round(durationSeconds / 60)),
+        setCount: allSets.length,
+        prs: [] as Array<{ exerciseName: string; value: number; unit: string }>,
+        xpAwarded: 0,
+        newBadges: [] as string[],
+      };
+
+      if (session.status === "completed") {
+        return NextResponse.json({ ok: true, alreadyCompleted: true, summary: existingSummary });
+      }
+
+      if (session.status !== "active" && session.status !== "paused") {
+        return NextResponse.json({ ok: false, code: "conflict", message: "جلسه فعال نیست." }, { status: 409 });
+      }
+      const workingSets = allSets.filter(s => !s.isWarmup && ((s.reps ?? 0) > 0 || (s.durationSeconds ?? 0) > 0));
+      if (workingSets.length === 0) {
+        return NextResponse.json({ ok: false, code: "validation", message: "برای پایان تمرین، حداقل یک ست اصلی با تکرار یا زمان ثبت کنید." }, { status: 400 });
+      }
+
+      // Atomic completion: only one concurrent complete wins.
+      // One write claims the completion AND stores its results: a crash between two
+      // writes would otherwise leave a "completed" session with no volume/duration.
+      const claimed = await tx.workoutSession.updateMany({
+        where: { id: session.id, status: { in: ["active", "paused"] } },
+        data: {
+          status: "completed",
+          endedAt: session.endedAt ?? new Date(),
+          durationSeconds,
+          totalVolumeKg: volume,
+          syncStatus: "synced",
+          note: body.note ?? session.note,
+        },
+      });
+      if (claimed.count === 0) {
+        return NextResponse.json({ ok: true, alreadyCompleted: true, summary: existingSummary });
+      }
+
+      return { session, allSets, volume, durationSeconds };
     });
-    if (!session || session.userId !== user.id) {
-      return NextResponse.json({ ok: false, code: "not_found", message: "جلسه تمرین یافت نشد." }, { status: 404 });
-    }
-
-    const allSets = session.exerciseLogs.flatMap((l) => l.sets);
-    const volume = sessionVolume(allSets);
-    const elapsedSeconds =
-      body.durationSeconds ??
-      Math.round(((session.endedAt ?? new Date()).getTime() - session.startedAt.getTime()) / 1000);
-    const durationSeconds = Math.max(60, session.durationSeconds || elapsedSeconds);
-
-    const existingSummary = {
-      volume: Math.round(session.totalVolumeKg || volume),
-      durationMinutes: Math.max(1, Math.round(durationSeconds / 60)),
-      setCount: allSets.length,
-      prs: [] as Array<{ exerciseName: string; value: number; unit: string }>,
-      xpAwarded: 0,
-      newBadges: [] as string[],
-    };
-
-    if (session.status === "completed") {
-      return NextResponse.json({ ok: true, alreadyCompleted: true, summary: existingSummary });
-    }
-
-    if (session.status !== "active" && session.status !== "paused") {
-      return NextResponse.json({ ok: false, code: "conflict", message: "جلسه فعال نیست." }, { status: 409 });
-    }
-    const workingSets = allSets.filter(s => !s.isWarmup && ((s.reps ?? 0) > 0 || (s.durationSeconds ?? 0) > 0));
-    if (workingSets.length === 0) {
-      return NextResponse.json({ ok: false, code: "validation", message: "برای پایان تمرین، حداقل یک ست اصلی با تکرار یا زمان ثبت کنید." }, { status: 400 });
-    }
-
-    // Atomic completion: only one concurrent complete wins.
-    // One write claims the completion AND stores its results: a crash between two
-    // writes would otherwise leave a "completed" session with no volume/duration.
-    const claimed = await db.workoutSession.updateMany({
-      where: { id: session.id, status: { in: ["active", "paused"] } },
-      data: {
-        status: "completed",
-        endedAt: session.endedAt ?? new Date(),
-        durationSeconds,
-        totalVolumeKg: volume,
-        syncStatus: "synced",
-        note: body.note ?? session.note,
-      },
-    });
-    if (claimed.count === 0) {
-      return NextResponse.json({ ok: true, alreadyCompleted: true, summary: existingSummary });
-    }
+    if (finalized instanceof Response) return finalized;
+    const { session, allSets, volume, durationSeconds } = finalized;
 
     // PR detection per exercise (best set by estimated 1RM)
     const prResults: Array<{ exerciseName: string; value: number; unit: string }> = [];

@@ -452,10 +452,10 @@ async function main() {
   // Challenge participation
   const challenges = await db.challenge.findMany();
   for (const ch of challenges) {
-    await db.challengeParticipant.create({ data: { challengeId: ch.id, userId: demo.id, score: Math.round(between(8, 20)) } });
+    await db.challengeParticipant.create({ data: { challengeId: ch.id, userId: demo.id, score: 0 } });
     for (const u of communityUsers) {
       if (rand() > 0.35) {
-        await db.challengeParticipant.create({ data: { challengeId: ch.id, userId: u.id, score: Math.round(between(2, 26)) } }).catch(() => undefined);
+        await db.challengeParticipant.create({ data: { challengeId: ch.id, userId: u.id, score: 0 } }).catch(() => undefined);
       }
     }
   }
