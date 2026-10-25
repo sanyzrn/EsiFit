@@ -76,3 +76,8 @@ existing `Exercise.instructionsFa` field. Add/swap responses retain equipment.
 - `ExerciseVisual`: all 100 canonical IDs mapped, source-specific credit, 96 reviewed RepDB visuals plus four independent schematics. Error/offline compact states retain consistent geometry rather than disappearing.
 - Foods: 140 catalog entries including 46 record-linked USDA additions; normalized half-space/Arabic-keyboard search and serving/provenance labels.
 - No dependencies, entities, fields or feature flags added. Existing WorkoutPlan, WorkoutPlanDay, PlannedExercise, CoachClient and UserProfile are reused.
+
+## Focused content/subscription follow-up — 2026-10-25
+- Signed-in landing restores the shared hero and FeatureBento; role-correct continuation, day demo/sign-up CTA/footer remain suppressed.
+- PlansView distinguishes load errors from an unconfigured catalog, retries in place, and shows unavailable payment as coming soon. API validates feature strings defensively; role-based subscription policy is unchanged.
+- Eight original editorial articles with linked primary sources, a clearly identified editorial author and five category routes; unfilled stories and disabled magazine show coming-soon states. No new UI family, flag or schema.

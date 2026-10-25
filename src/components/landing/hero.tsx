@@ -8,7 +8,7 @@ const strengths = [
   { label: "پیشرفت قابل اندازه‌گیری", Icon: Flame },
 ];
 
-export function LandingHero({ signedIn }: { signedIn: boolean }) {
+export function LandingHero({ signedIn, continueHref = "/dashboard" }: { signedIn: boolean; continueHref?: string }) {
   return (
     <section
       aria-labelledby="esi-landing-headline"
@@ -55,7 +55,7 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
               asChild size="lg"
               className="esi-campaign-cta min-h-13 flex-1 gap-3 rounded-full px-6 text-sm font-bold sm:flex-none sm:text-base"
             >
-              <Link href={signedIn ? "/dashboard" : "/auth/login"}>
+              <Link href={signedIn ? continueHref : "/auth/login"}>
                 <span>{signedIn ? "ادامه مسیر من" : "شروع رایگان"}</span>
                 <ArrowUpLeft size={19} aria-hidden="true" />
               </Link>

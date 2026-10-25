@@ -7,14 +7,13 @@ import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 import { formatJalaliLong } from "@/lib/dates/jalali";
 import { toPersianDigits } from "@/lib/formatting/numbers";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 
-export const metadata = publicMetadata("/blog", "مجله اسی‌فیت", "مقالات تمرینی، تغذیه و ریکاوری مبتنی بر شواهد علمی — با ذکر منبع و مرور تخصصی.");
+export const metadata = publicMetadata("/blog", "مجله اسی‌فیت", "مقالات تمرینی، تغذیه و ریکاوری مبتنی بر شواهد علمی — با ذکر منبع.");
 
 export default async function BlogIndexPage() {
   const session = await getSessionUser();
   const flags = resolveEnabledFlags();
-  if (!flags.BLOG) notFound();
+  if (!flags.BLOG) return <PublicPageShell session={session} flags={flags} title="مجله اسی‌فیت" description="مجله به‌زودی دوباره در دسترس قرار می‌گیرد." backHref="/"><p className="px-4 py-8 text-sm text-esi-text-secondary">محتوای مجله در حال آماده‌سازی است. <Link href="/calculators" className="text-primary">ابزارهای محاسبه</Link> در دسترس‌اند.</p></PublicPageShell>;
 
   const [articles, categories] = await Promise.all([
     getPublicArticles(),
@@ -26,7 +25,7 @@ export default async function BlogIndexPage() {
       session={session}
       flags={flags}
       title="مجله اسی‌فیت"
-      description="هر ادعا به منبع گره خورده است؛ محتوای سلامت با مرور تخصصی منتشر می‌شود."
+      description="راهنمای تمرین، تغذیه و استفاده از اسی‌فیت؛ با منابع مشخص و بدون وعده‌های اغراق‌آمیز."
       backHref={session ? "/dashboard" : undefined}
       showFooter
     >

@@ -71,7 +71,8 @@ export async function GET() {
     }) : null;
     return NextResponse.json({
       ok: true,
-      plans: plans.map((p) => ({ ...p, featuresFa: JSON.parse(p.featuresFa) as string[] })),
+      plans: plans.map((p) => ({ ...p, featuresFa: (() => { try { const value: unknown = JSON.parse(p.featuresFa); return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []; } catch { return []; } })() })),
+      paymentAvailable: mockPaymentAllowed(),
       currentTier: session?.role === "member" ? session.tier : null,
       currentSubscription,
     }, { headers: { "Cache-Control": "private, no-store" } });
