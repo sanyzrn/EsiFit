@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { PageHeader } from "@/components/layout/page-header";
+import { useAppShellFocus } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import {
@@ -79,6 +79,12 @@ const STATUS: Record<string, string> = {
 };
 
 export function AIAssistantView({ role, userId }: { role: string; userId:string }) {
+  const { focusMode, setFocusMode } = useAppShellFocus();
+  const [controlsOpen, setControlsOpen] = React.useState(false);
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const focusToggleRef = React.useRef<HTMLButtonElement>(null);
+  const controlsId = React.useId();
   const pendingRequest=React.useRef<{id:string;content:string}|null>(null);
   const [recoveryId,setRecoveryId]=React.useState<string>();
   const [online,setOnline]=React.useState(true);
@@ -95,6 +101,53 @@ export function AIAssistantView({ role, userId }: { role: string; userId:string 
   const [confirmation, setConfirmation] = React.useState<Action>();
   const [error, setError] = React.useState<string>();
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => () => setFocusMode(false), [setFocusMode]);
+  React.useEffect(() => {
+    if (!focusMode) return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    const viewport = window.visualViewport;
+    const bodyOverflow = document.body.style.overflow;
+    const rootOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    let frame = 0;
+    const resize = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        // Android/iOS keyboards shrink the visual viewport without resizing 100dvh.
+        panel.style.height = `${viewport?.height ?? window.innerHeight}px`;
+        panel.style.top = `${viewport?.offsetTop ?? 0}px`;
+        if (document.activeElement === inputRef.current) {
+          scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+        }
+      });
+    };
+    const escape = (event: KeyboardEvent) => {
+      // Let the existing confirmation dialog handle its own Escape first.
+      if (event.key === "Escape" && !document.querySelector('[role="alertdialog"]')) {
+        inputRef.current?.blur();
+        setFocusMode(false);
+        focusToggleRef.current?.focus();
+      }
+    };
+    resize();
+    viewport?.addEventListener("resize", resize);
+    viewport?.addEventListener("scroll", resize);
+    window.addEventListener("resize", resize);
+    document.addEventListener("keydown", escape);
+    return () => {
+      cancelAnimationFrame(frame);
+      viewport?.removeEventListener("resize", resize);
+      viewport?.removeEventListener("scroll", resize);
+      window.removeEventListener("resize", resize);
+      document.removeEventListener("keydown", escape);
+      document.body.style.overflow = bodyOverflow;
+      document.documentElement.style.overflow = rootOverflow;
+      panel.style.removeProperty("height");
+      panel.style.removeProperty("top");
+    };
+  }, [focusMode, setFocusMode]);
   const load = React.useCallback(async (id?: string, recover?:string) => {
     setLoading(true);
     setError(undefined);
@@ -213,26 +266,46 @@ export function AIAssistantView({ role, userId }: { role: string; userId:string 
     quota &&
     (quota.used >= quota.limit || quota.monthUsed >= quota.monthlyLimit);
   return (
-    <div className="mx-auto flex h-[calc(100dvh-9rem)] min-h-[24rem] lg:h-[calc(100dvh-3rem)] w-full max-w-4xl flex-col pb-5">
-      <PageHeader
-        title="همپا"
-        description={ROLE_TEXT[role]}
-        backHref={
-          role === "admin"
-            ? "/admin"
-            : role === "coach"
-              ? "/coach"
-              : "/dashboard"
-        }
-        action={
-          <span className="flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-2 text-xs text-primary">
-            <Icon name="Sparkles" size={15} /> اسی‌فیت
-          </span>
-        }
-      />
-      <div className="mb-5 space-y-3 px-4 lg:px-8">
+    <div
+      ref={panelRef}
+      data-chat-focus={focusMode}
+      className={cn(
+        "flex w-full min-h-0 flex-col bg-background",
+        focusMode
+          ? "fixed inset-x-0 top-0 z-40 h-dvh safe-top safe-x"
+          : "mx-auto h-[calc(100dvh-9.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-w-4xl lg:h-[calc(100dvh-2.5rem)]",
+      )}
+    >
+      <header className="shrink-0 border-b border-border px-4 py-3 lg:px-8">
+        <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-3">
+            {!focusMode && <Button variant="ghost" size="icon" asChild><Link aria-label="بازگشت از همپا" href={role === "admin" ? "/admin" : role === "coach" ? "/coach" : "/dashboard"}><Icon name="ChevronRight" className="ltr:rotate-180" /></Link></Button>}
+            <Icon name="Sparkles" className="shrink-0 text-primary" />
+            <div className="min-w-0">
+              <h1 className="font-display text-lg font-bold">همپا</h1>
+              {!focusMode && <p className="truncate text-xs text-esi-text-muted">{ROLE_TEXT[role]}</p>}
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {!focusMode && <Button variant="ghost" size="icon" aria-label="گزینه‌های گفتگو" aria-expanded={controlsOpen} aria-controls={controlsId} onClick={() => setControlsOpen(open => !open)}><Icon name="Settings" /></Button>}
+            <Button
+              ref={focusToggleRef}
+              variant="secondary"
+              className="min-h-11 px-3"
+              aria-pressed={focusMode}
+              onClick={() => {
+                if (focusMode) inputRef.current?.blur();
+                setFocusMode(focused => !focused);
+              }}
+            >
+              <Icon name={focusMode ? "X" : "Maximize2"} />
+              {focusMode ? "خروج از حالت چت" : "فقط چت"}
+            </Button>
+          </div>
+        </div>
+      </header>
+      <div id={controlsId} hidden={focusMode || !controlsOpen} className="max-h-[40dvh] shrink-0 space-y-3 overflow-y-auto border-b border-border px-4 py-3 lg:px-8">
         <div className="flex flex-wrap gap-2"><Button variant="secondary" size="sm" asChild><Link href={role === "admin" ? "/admin?tab=ai" : role === "coach" ? "/coach" : "/workouts"}>{role === "admin" ? "مدیریت برنامه‌ریز مستقل" : role === "coach" ? "برنامه‌ریز در پروندهٔ ورزشکار" : "ساخت و بازسازی برنامهٔ تمرین"}</Link></Button>{recoveryId&&<Button variant="ghost" size="sm" disabled={sending||loading||!online} onClick={()=>void load(undefined,recoveryId)}>بازیابی گفتگو</Button>}</div>
-        {!online&&<p role="status" className="rounded-2xl bg-surface-2 p-3 text-xs leading-6">اینترنت قطع است؛ متن پیام در همین صفحه حفظ می‌شود. ارسال مجدد خودکار انجام نمی‌شود.</p>}
         <div className="flex flex-wrap gap-2">
           <select
             aria-label="گفت‌وگوهای قبلی"
@@ -302,18 +375,19 @@ export function AIAssistantView({ role, userId }: { role: string; userId:string 
             </div>
           </div>
         )}
-        {state && !state.available && (
+      </div>
+      {!online && <p role="status" className="mx-4 my-2 shrink-0 text-xs leading-6 text-esi-text-secondary">اینترنت قطع است؛ متن پیام حفظ می‌شود. ارسال مجدد خودکار انجام نمی‌شود.</p>}
+      {state && !state.available && (
           <div
             role="status"
-            className="rounded-2xl border border-primary/30 bg-primary/5 p-4 text-sm leading-7"
+            className="mx-4 my-2 max-h-24 shrink-0 overflow-y-auto rounded-2xl border border-primary/30 bg-primary/5 p-3 text-xs leading-6"
           >
             {state.reason}
           </div>
         )}
-      </div>
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 lg:px-8"
+        className="mx-auto min-h-0 w-full max-w-4xl flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 lg:px-8"
         aria-live="polite"
         aria-busy={loading || sending}
       >
@@ -436,14 +510,17 @@ export function AIAssistantView({ role, userId }: { role: string; userId:string 
           </p>
         )}
       </div>
-      <div className="mt-5 border-t border-border bg-background px-4 pt-4 lg:px-8">
+      <div className="shrink-0 border-t border-border bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:px-8">
+        <div className="mx-auto w-full max-w-4xl">
         {error && (
           <div
             role="alert"
-            className="mb-3 flex items-center justify-between gap-2 text-xs leading-6 text-destructive"
+            className="mb-3 flex max-h-24 items-start justify-between gap-2 overflow-y-auto text-xs leading-6 text-destructive"
           >
             <span>{error}</span>
-            {!state && (
+            {recoveryId ? (
+              <Button variant="ghost" size="sm" disabled={sending || loading || !online} onClick={() => void load(undefined, recoveryId)}>بازیابی گفتگو</Button>
+            ) : !state && (
               <Button variant="ghost" size="sm" onClick={() => void load()}>
                 تلاش دوباره
               </Button>
@@ -464,13 +541,17 @@ export function AIAssistantView({ role, userId }: { role: string; userId:string 
           }}
         >
           <input
+            ref={inputRef}
             value={input}
+            onFocus={() => {
+              if (window.matchMedia("(max-width: 1023px)").matches) setFocusMode(true);
+            }}
             onChange={(event) => setInput(event.target.value)}
             maxLength={1200}
             aria-label="پیام به همپا"
-            placeholder="دربارهٔ اسی‌فیت بپرسید…"
+            placeholder="پیامت رو برای همپا بنویس…"
             disabled={loading || !state?.available || Boolean(exhausted)}
-            className="h-12 min-w-0 flex-1 rounded-2xl border border-border bg-surface-1 px-4 text-sm outline-none focus:border-primary disabled:opacity-50"
+            className="h-12 min-w-0 flex-1 rounded-2xl border border-border bg-surface-1 px-4 text-base outline-none focus:border-primary disabled:opacity-50"
           />
           <Button
             type="submit"
@@ -488,10 +569,11 @@ export function AIAssistantView({ role, userId }: { role: string; userId:string 
             <Icon name="SendHorizontal" size={18} className="rotate-180" />
           </Button>
         </form>
-        <p className="mt-2 text-center text-[10px] leading-5 text-esi-text-muted">
+        <p hidden={focusMode} className="mt-2 text-center text-[10px] leading-5 text-esi-text-muted">
           پاسخ‌ها جایگزین تشخیص پزشکی نیستند. تاریخچهٔ این گفت‌وگو برای ادامهٔ
           گفتگو ذخیره می‌شود.
         </p>
+        </div>
       </div>
       <AlertDialog
         open={Boolean(confirmation)}

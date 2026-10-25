@@ -28,6 +28,18 @@ const PRIMARY_MEMBER_ROUTES = new Set([
 
 export type AppShellVariant = "app" | "auth" | "public";
 
+const AppShellFocusContext = React.createContext<{
+  focusMode: boolean;
+  setFocusMode: React.Dispatch<React.SetStateAction<boolean>>;
+} | null>(null);
+
+/** Focused screens keep the same mounted content while app navigation is hidden. */
+export function useAppShellFocus() {
+  const context = React.useContext(AppShellFocusContext);
+  if (!context) throw new Error("useAppShellFocus requires AppShell");
+  return context;
+}
+
 export function AppShell({
   session,
   flags,
@@ -40,21 +52,24 @@ export function AppShell({
   variant?: AppShellVariant;
   children: React.ReactNode;
 }) {
+  const [focusMode, setFocusMode] = React.useState(false);
+  const focusContext = React.useMemo(() => ({ focusMode, setFocusMode }), [focusMode]);
   const pathname = usePathname();
   const isLiveWorkout = pathname.startsWith("/workout/live");
   const isAuthFlow = variant === "auth" || pathname.startsWith("/auth/");
-  const showMemberChrome = Boolean(session) && !isAuthFlow && !isLiveWorkout;
+  const showMemberChrome = Boolean(session) && !isAuthFlow && !isLiveWorkout && !focusMode;
   const showBottomNav = showMemberChrome;
-  const showMobileHeader = Boolean(session) && !isAuthFlow && !isLiveWorkout;
+  const showMobileHeader = showMemberChrome;
 
   // Bottom nav only when it exists — avoid empty reserved padding.
-  const mainPadBottom = showBottomNav
+  const mainPadBottom = focusMode ? "pb-0" : showBottomNav
     ? "pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-10"
     : isLiveWorkout
       ? "pb-[calc(4rem+env(safe-area-inset-bottom))]"
       : "pb-10";
 
   return (
+    <AppShellFocusContext.Provider value={focusContext}>
     <FeatureFlagProvider flags={flags}>
       <SessionProvider initial={session}>
         <div className="esi-flat-app relative flex min-h-dvh bg-background">
@@ -65,11 +80,12 @@ export function AppShell({
               {children}
             </main>
           </div>
-          {session?.role === "member" && <OfflineIndicator />}
+          {session?.role === "member" && <div hidden={focusMode}><OfflineIndicator /></div>}
         </div>
         {showBottomNav && <MobileBottomNav />}
       </SessionProvider>
     </FeatureFlagProvider>
+    </AppShellFocusContext.Provider>
   );
 }
 
