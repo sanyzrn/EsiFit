@@ -1,10 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowLeft, ArrowUpLeft, Dumbbell, Flame, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-/** First-party campaign portrait supplied by the user; true alpha, no photo frame. */
-const HERO_IMAGE = "/media/esifit-athlete.webp";
 
 const strengths = [
   { label: "ثبت تمرین و ست‌ها", Icon: Dumbbell },
@@ -77,18 +73,11 @@ export function LandingHero({ signedIn }: { signedIn: boolean }) {
 
         </div>
 
-        {/* Same cutout at every breakpoint; art stays separate from readable copy. */}
+        {/* CSS selects one transparent portrait from the persisted theme before hydration. */}
         <div
           className="esi-campaign-stage esi-campaign-enter relative isolate"
         >
-          <Image
-            src={HERO_IMAGE}
-            fill
-            preload
-            sizes="(min-width: 1280px) 580px, (min-width: 1024px) 46vw, (min-width: 640px) 440px, 92vw"
-            alt="ورزشکار اسی‌فیت با لباس نارنجی"
-            className="esi-campaign-athlete object-contain"
-          />
+          <div role="img" aria-label="ورزشکار اسی‌فیت با لباس نارنجی" className="esi-campaign-athlete absolute inset-0" />
         </div>
       </div>
 

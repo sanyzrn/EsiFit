@@ -11,7 +11,7 @@ The user supplied three mobile fitness references: clean dark cards + restrained
 - **Dark:** charcoal `#0B0D10`, solid surfaces `#15171B`/`#202328`, brand orange `#F97316`, text `#F8F7F5`.
 - **Light:** warm off-white `#F5F4F0`, solid white panels, readable charcoal text, darker contrast-appropriate orange `#B3440F`.
 - **No glass**, backdrop blur, global grain, card spotlights, exaggerated/drop shadows, decorative glow, rainbow gradients, large hover translations, or animated selection pill.
-- **Brand campaign hero excluded**: the previous campaign's athlete photo/layout and identity stay intact. Public sections below it use the same flat cards and controls.
+- **Brand campaign hero**: preserves the athlete/layout and dark campaign, with full light-theme parity (25 Oct revision below).
 
 ## Component changes
 
@@ -35,9 +35,17 @@ The user supplied three mobile fitness references: clean dark cards + restrained
 - 320, 360, 390px mobile bottom navigation: five destinations maximum, text not overlapping and 44px+ tap targets.
 - Main dashboard no horizontal scroll; easy resume session and quick water entry, offline queue remains functional.
 - Navigation after role switch: admin/coach never see athlete fitness destinations.
-- Public hero remains untouched; flat styling applies to lower marketing sections.
+- Public hero and lower marketing sections respect the selected theme.
 - Reduced motion and keyboard focus are still respected.
 - GitHub CI only. Vercel Git-based deployment disabled in `vercel.json`; one explicit production deploy on latest `main` only.
 
 ## Public social card
 The 1200×630 export uses existing dark background/text/primary tokens, the approved gradient mark, Lalezar and Vazirmatn with the existing 32/64px spacing rhythm. scripts/generate-social-card.mjs regenerates it with an optional local browser runtime. This adds no product theme or runtime dependency.
+
+## Light hero and waiting states — 25 Oct 2026
+
+- The light campaign uses the existing warm background, white strip, charcoal text and AA orange primary tokens. Dark campaign values stay intact. Secondary buttons, dividers, side label and art stage follow the same theme; light mode removes dark photo grain/glow.
+- `--hero-athlete-image` selects one local transparent WebP from the root theme class. The server-rendered semantic image keeps the original framing; CSS selection avoids client hydration switching or downloading/preloading both variants. The persisted theme is applied by the existing next-themes script. Portraits are already optimized at 960×1440; no new dependency or client island.
+- `esifit-athlete-light.webp` is a built-in image edit of the existing supplied portrait: preserve identity/pose/clothes/phone/watch and transparent silhouette, replace harsh orange rim light with soft neutral daylight and balanced natural skin. Original dark artwork is preserved. Generated source is converted to WebP with its alpha intact (141 KB).
+- Shared `BrandLoader` reuses the approved `BrandLogo`, 24/64/96px spacing/sizes and semantic palette. A subtle logo breath and three sequential progress strokes use existing motion presets. Reduced motion is static. It is connected to real Next route suspense and workout session startup; there is no artificial delay or fake percentage. Shape-specific content skeletons remain in place elsewhere.
+- Back chevrons point right in Persian; only LTR mirrors the right-pointing path. The mobile More sheet has no corner close icon: a full-width labeled dismiss action follows its links. Backdrop, Escape, focus trap/return and navigation dismissal remain provided by Radix.

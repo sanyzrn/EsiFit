@@ -6,7 +6,7 @@ import { WorkoutSessionHUD, type LiveSession } from "@/features/workouts/workout
 import { api, errorMessage } from "@/lib/client/api";
 import { syncQueue } from "@/lib/offline/adapter";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { BrandLoader } from "@/components/ui/brand-loader";
 
 /**
  * Live gate — resolves or starts the session, drains any offline queue
@@ -46,11 +46,7 @@ export function WorkoutLiveGate() {
 
   if (loading) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-10 space-y-4">
-        <Skeleton className="h-10 w-2/3" />
-        <Skeleton className="h-28 rounded-3xl" />
-        <Skeleton className="h-40 rounded-3xl" />
-      </div>
+      <BrandLoader label="در حال آماده‌سازی تمرینت…" className="min-h-[60dvh]" />
     );
   }
 

@@ -55,3 +55,11 @@ existing `Exercise.instructionsFa` field. Add/swap responses retain equipment.
 - PageHeader and BrandMark were moved, not duplicated, into presentation-only files. Existing exports remain compatible. PublicPageShell is server-rendered so anonymous pages no longer import the authenticated shell/offline/navigation through its client graph. Vazirmatn weights load on demand; the main display face retains preload. This targets measured public-page critical-path cost without caching private HTML.
 
 - Landing Tile now instantiates decorative motion studies only near the viewport; titles/descriptions remain SSR content and visual space stays reserved. ThemeToggle uses existing CSS button feedback instead of importing a motion engine solely for its icon.
+
+## Theme, navigation and loading polish — 2026-10-25
+- `BrandLogo({ size=42, className? })`: extracted the existing non-interactive logo Image from BrandMark. BrandMark retains its existing homepage link; no duplicate logo paths.
+- `BrandLoader({ label='در حال آماده‌سازی…', className? })`: accessible status, shared approved logo, theme tokens, reduced-motion-aware CSS. Root `app/loading.tsx` supplies a focusable main; WorkoutLiveGate reuses it inside the existing main during real session preparation.
+- `SheetContent`: optional `showCloseButton=true`; standard dismiss is a labeled 44px target at logical inline-end. MobileBottomNav opts out and supplies a full-width SheetClose action after navigation links, preserving keyboard/backdrop dismissal and focus restoration.
+- `PageHeader`/`MemberBackBar`: right-pointing back chevron in RTL; mirrored in LTR only.
+- `LandingHero`: server-rendered dark/light photographic treatments, one CSS-selected transparent local portrait and an accessible image label. Layout/copy/actions stay shared. Light photo has neutral studio lighting instead of the dark variant's orange rim.
+- No schema, flags, API behavior or dependencies changed.

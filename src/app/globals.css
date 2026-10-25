@@ -716,8 +716,8 @@ body::after { display: none; }
 
 /* --------------------------------------------------------------------------
    Editorial landing hero: Fitness/Gym palette from UI/UX Pro Max adapted to
-   EsiFit's existing semantic system. The hero remains dark in light mode
-   as a deliberate photographic brand canvas; controls keep AA contrast.
+   EsiFit's existing semantic system. Each theme uses its own photographic
+   lighting and contrast tokens; portrait selection does not wait for hydration.
    -------------------------------------------------------------------------- */
 .esi-campaign-hero {
   --hero-orange: #ff8c35;
@@ -728,6 +728,12 @@ body::after { display: none; }
   --hero-strip: #111316;
   --hero-cta: #f97316;
   --hero-cta-hover: #ff9b4a;
+  --hero-cta-text: #14100d;
+  --hero-secondary-border: rgb(255 255 255 / 0.37);
+  --hero-secondary-hover: rgb(255 255 255 / 0.075);
+  --hero-grid: rgb(255 255 255 / 0.045);
+  --hero-label: rgb(255 255 255 / 0.21);
+  --hero-athlete-image: url("/media/esifit-athlete.webp");
   --hero-alert: #f04e57;
   --hero-section-height: clamp(720px, 100svh, 900px);
   --hero-art-height: 400px;
@@ -739,6 +745,25 @@ body::after { display: none; }
     radial-gradient(circle at 77% 40%, rgb(245 80 29 / 0.17), transparent 35%),
     linear-gradient(122deg, #171312 0%, #101114 42%, #0a0b0d 100%);
 }
+.light .esi-campaign-hero {
+  --hero-orange: var(--primary);
+  --hero-text: var(--text-primary);
+  --hero-muted: var(--text-secondary);
+  --hero-faint: var(--text-muted);
+  --hero-hairline: var(--border);
+  --hero-strip: var(--surface-1);
+  --hero-cta: var(--primary);
+  --hero-cta-hover: var(--text-primary);
+  --hero-cta-text: var(--primary-foreground);
+  --hero-secondary-border: var(--border);
+  --hero-secondary-hover: var(--surface-2);
+  --hero-grid: var(--pattern-stroke);
+  --hero-label: var(--text-muted);
+  --hero-art-wash: none;
+  --hero-athlete-image: url("/media/esifit-athlete-light.webp");
+  background: var(--background);
+}
+.light .esi-campaign-noise { display: none; }
 .esi-campaign-enter {
   animation: esi-campaign-enter var(--duration-smooth) var(--ease-smooth) both;
 }
@@ -761,7 +786,7 @@ body::after { display: none; }
 .esi-campaign-grid {
   opacity: 0.45;
   background-image:
-    linear-gradient(90deg, transparent calc(100% - 1px), rgb(255 255 255 / 0.045) 100%);
+    linear-gradient(90deg, transparent calc(100% - 1px), var(--hero-grid) 100%);
   background-size: 20% 100%;
 }
 .esi-campaign-noise {
@@ -775,7 +800,7 @@ body::after { display: none; }
   top: 51%;
   transform: rotate(-90deg) translateY(-50%);
   transform-origin: center;
-  color: rgb(255 255 255 / 0.21);
+  color: var(--hero-label);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: 0.22em;
   font-size: 10px;
@@ -809,29 +834,30 @@ body::after { display: none; }
   mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
 }
 .esi-campaign-athlete {
-  object-position: center top;
+  background-image: var(--hero-athlete-image);
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: 100% auto;
   /* Keep the face prominent on phones; crop only the lower trousers. */
-  height: auto !important;
-  aspect-ratio: 2 / 3;
 }
 .esi-campaign-strengths > li + li {
   border-inline-start: 1px solid var(--hero-hairline);
 }
 .esi-campaign-cta {
   background: var(--hero-cta);
-  color: #14100d;
+  color: var(--hero-cta-text);
   border: 1px solid var(--hero-cta);
 }
 .esi-campaign-cta:hover { background: var(--hero-cta-hover); border-color: var(--hero-cta-hover); }
 .esi-campaign-secondary {
-  border-color: rgb(255 255 255 / 0.37);
+  border-color: var(--hero-secondary-border);
   background: transparent;
-  color: #f8f7f5;
+  color: var(--hero-text);
 }
 .esi-campaign-secondary:hover {
   border-color: var(--hero-orange);
-  background: rgb(255 255 255 / 0.075);
-  color: #f8f7f5;
+  background: var(--hero-secondary-hover);
+  color: var(--hero-text);
 }
 .esi-campaign-cta:focus-visible,
 .esi-campaign-secondary:focus-visible {
@@ -881,9 +907,8 @@ body::after { display: none; }
     mask-image: none;
   }
   .esi-campaign-athlete {
-    height: 100% !important;
-    aspect-ratio: auto;
-    object-position: center bottom;
+    background-size: contain;
+    background-position: center bottom;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -896,6 +921,30 @@ body::after { display: none; }
 .esi-flat-app [class*="shadow-"],
 .public-shell-main [class*="shadow-"] {
   box-shadow: none !important;
+}
+
+/* Branded waiting state: existing palette, spacing and shared motion presets. */
+.esi-brand-loader-symbol {
+  animation: esi-brand-breathe calc(var(--duration-smooth) * 5) var(--ease-smooth) infinite;
+}
+.esi-brand-loader-track > span {
+  flex: 1;
+  border-radius: inherit;
+  background: var(--primary);
+  animation: esi-brand-progress calc(var(--duration-smooth) * 4) var(--ease-smooth) infinite;
+}
+.esi-brand-loader-track > span:nth-child(2) { animation-delay: var(--duration-snappy); }
+.esi-brand-loader-track > span:nth-child(3) { animation-delay: calc(var(--duration-snappy) * 2); }
+@keyframes esi-brand-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+@keyframes esi-brand-progress {
+  0%, 100% { opacity: 0.35; transform: scaleX(0.6); }
+  50% { opacity: 1; transform: scaleX(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .esi-brand-loader-symbol, .esi-brand-loader-track > span { animation: none; }
 }
 .esi-flat-app [class*="backdrop-blur"],
 .public-shell-main [class*="backdrop-blur"] {
