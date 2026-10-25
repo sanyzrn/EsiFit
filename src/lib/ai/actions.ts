@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { actionFingerprint, describeRecordAction, executeRecordAction, readOperationalReport } from "./admin-records";
-import { GET as planningSettings } from "@/app/api/admin/planning/route";
+import { GET as planningSettings, PUT as updatePlanningSettings } from "@/app/api/admin/planning/route";
 import { tool } from "ai";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors/app-error";
@@ -35,6 +35,7 @@ import {
 import { POST as assignPlan } from "@/app/api/coach/assign/route";
 
 const ADMIN_ACTIONS = [
+  "configure_planner",
   "edit_product",
   "edit_article",
   "edit_subscription_plan",
@@ -96,6 +97,11 @@ async function describeAction(actor: SessionUser, input: ActionInput) {
   let state: unknown;
   let preview: string;
   switch (input.kind) {
+    case "configure_planner": {
+      const policy=await db.aiPlanningPolicy.findUnique({where:{id:"default"}});const provider=input.providerId?await db.aiProvider.findUnique({where:{id:input.providerId},select:{id:true,label:true,enabled:true,updatedAt:true}}):null;
+      if((input.providerId&&!provider)||(input.enabled&&!provider?.enabled))throw AppError.from("validation","یک اتصال فعال و آزمایش‌شده انتخاب کن.");
+      state={policy,provider};preview=`${input.enabled?"فعال‌سازی":"توقف"} برنامه‌ریز مستقل برای ورزشکاران با رضایت خودشان؛ اتصال ← ${provider?.label??"بدون اتصال"}؛ سقف هر درخواست‌کننده روزانه ${input.dailyLimit} و ماهانه ${input.monthlyLimit}. سهمیه و مجوز همپا تغییر نمی‌کند.`;break;
+    }
     case "edit_product":
     case "edit_article":
     case "edit_subscription_plan": { const description=await describeRecordAction(input); state=description.state;preview=description.preview;break; }
@@ -301,6 +307,7 @@ export async function executeAction(
     const { kind, ...body } = envelope.input;
     let response: Response;
     switch (kind) {
+      case "configure_planner": response=await updatePlanningSettings(request("/api/admin/planning",body,"PUT"));break;
       case "edit_product":
       case "edit_article":
       case "edit_subscription_plan":
@@ -473,7 +480,7 @@ export function assistantTools(
       ? {
           propose_change: tool({
             description:
-              "Propose a change to EsiFit. NEVER executes. The human must review and confirm the server-generated card. Admin actions: update_user, assign_coach, moderate, grant_ai, disable_provider, edit_product, edit_article, edit_subscription_plan. Read the record and sources before editing. Prices are Toman; subscription tiers and credentials cannot be changed by catalog edits. Coach action: assign_plan (ppl or upper_lower, own active roster only). Read IDs first; never guess. Provider creation/credentials are entered privately in Admin > AI, never ask for keys in chat.",
+              "Propose a change to EsiFit. NEVER executes. The human must review and confirm the server-generated card. Admin actions: update_user, assign_coach, moderate, grant_ai, disable_provider, configure_planner, edit_product, edit_article, edit_subscription_plan. Read the record and sources before editing. Prices are Toman; subscription tiers and credentials cannot be changed by catalog edits. Coach action: assign_plan (ppl or upper_lower, own active roster only). Read IDs first; never guess. Provider creation/credentials are entered privately in Admin > AI, never ask for keys in chat.",
             inputSchema: proposalInput,
             execute: async ({ action }) => {
               try {

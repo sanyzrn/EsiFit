@@ -6,7 +6,7 @@ import { AppError } from "@/lib/errors/app-error";
 import type { SessionUser } from "@/lib/auth/session";
 import { resolveFeatureFlag } from "@/lib/feature-flags/registry";
 import { configuredModel } from "../provider";
-import { claimAiQuotaSlot, finalizeAiQuota, releaseAiQuotaSlot } from "../quota";
+import { claimAiQuotaSlot, releaseAiQuotaSlot } from "../quota";
 import { loadExerciseCatalog } from "@/lib/workout/catalog";
 import { storeWorkoutProgram } from "@/lib/workout/program-storage";
 import { planningSnapshot } from "./context";
@@ -51,6 +51,7 @@ export async function prepareTrainingPlan(actor:SessionUser,input:PlanningReques
   let result:ReturnType<typeof planningOutput.parse>|null=null;
   let failureCode:string|null=input.mode==='rules'?'rules_requested':null;
   let quotaId:string|undefined;
+  let completionUsage:{latencyMs:number;promptTokens:number;completionTokens:number;totalTokens:number}|undefined;
   const provider=policy?.enabled&&policy.providerId?await db.aiProvider.findFirst({where:{id:policy.providerId,enabled:true}}):null;
   if(input.mode==='ai'&&provider&&profile?.aiPlanningConsentAt){
     const claim=await claimAiQuotaSlot({userId:actor.id,timezone:actor.timezone,limit:policy!.dailyLimit,monthlyLimit:policy!.monthlyLimit,purpose:'planner',provider:provider.id,model:provider.model});
@@ -71,13 +72,16 @@ export async function prepareTrainingPlan(actor:SessionUser,input:PlanningReques
         const parsed=planningOutput.parse(call.input);
         parsed.plan=validatePlanningDraft(parsed.plan,snapshot.context,catalog);
         result=parsed;
-        await finalizeAiQuota(quotaId,{latencyMs:Date.now()-started,promptTokens:response.totalUsage.inputTokens??0,completionTokens:response.totalUsage.outputTokens??0,totalTokens:response.totalUsage.totalTokens??0});
+        completionUsage={latencyMs:Date.now()-started,promptTokens:response.totalUsage.inputTokens??0,completionTokens:response.totalUsage.outputTokens??0,totalTokens:response.totalUsage.totalTokens??0};
       }catch{result=null;failureCode='provider_or_validation';await releaseAiQuotaSlot(quotaId);}
     }else failureCode='quota';
   }else if(input.mode==='ai')failureCode=!provider?'not_configured':'consent_required';
   if(!result){const plan=rulesDraft(snapshot.context,catalog);if(plan)result={plan,reasons:['پیشنهاد پایه با قواعد و الگوهای مرورشده ساخته شد؛ پاسخ مدل هوش مصنوعی نیست.','وسایل، سطح تجربه و زمان هر جلسه در انتخاب حرکات لحاظ شده‌اند.','برنامهٔ فعلی هنوز تغییر نکرده؛ ابتدا جزئیات را بررسی کن.']};}
   // A timed-out or duplicated browser request cannot revive a superseded generation.
-  await db.aiPlanRun.updateMany({where:{id:run.id,status:'generating'},data:{status:result?'ready':'needs_review',source:result&&failureCode===null?'ai':'rules',planJson:result?JSON.stringify(result.plan):null,explanationJson:JSON.stringify(result?.reasons??['برای این ترکیب شرایط، پیشنهاد پایهٔ کافی پیدا نشد؛ بررسی مربی لازم است.']),failureCode,providerId:provider?.id??null}});
+  await db.$transaction(async tx=>{
+    const saved=await tx.aiPlanRun.updateMany({where:{id:run.id,status:'generating'},data:{status:result?'ready':'needs_review',source:result&&failureCode===null?'ai':'rules',planJson:result?JSON.stringify(result.plan):null,explanationJson:JSON.stringify(result?.reasons??['برای این ترکیب شرایط، پیشنهاد پایهٔ کافی پیدا نشد؛ بررسی مربی لازم است.']),failureCode,providerId:provider?.id??null}});
+    if(quotaId)await tx.aiUsageLog.updateMany({where:{requestId:quotaId,status:'pending'},data:saved.count&&result&&failureCode===null?{status:'success',...completionUsage}:{status:'failed'}});
+  });
   return db.aiPlanRun.findUniqueOrThrow({where:{id:run.id}});
 }
 export async function applyTrainingPlan(actor:SessionUser,id:string) {

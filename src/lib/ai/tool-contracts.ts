@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { planningPolicyInput } from "./planning/contract";
 import { grantInput } from "./provider-config";
 
 const contentBlock = z.discriminatedUnion("type",[
@@ -8,6 +9,7 @@ const contentBlock = z.discriminatedUnion("type",[
 ]);
 
 export const actionInput = z.discriminatedUnion("kind", [
+ planningPolicyInput.safeExtend({kind:z.literal("configure_planner")}),
  z.object({kind:z.literal("edit_product"),id:z.string().min(1),nameFa:z.string().trim().min(2).max(150).optional(),description:z.string().max(1500).optional(),priceToman:z.number().int().min(0).max(2000000000).optional(),stock:z.number().int().min(0).max(1000000).optional(),status:z.enum(["active","sold_out","archived"]).optional()}).strict(),
  z.object({kind:z.literal("edit_article"),id:z.string().min(1),title:z.string().trim().min(3).max(150).optional(),excerpt:z.string().min(10).max(500).optional(),status:z.enum(["draft","review","published","archived"]).optional(),contentBlocks:z.array(contentBlock).min(1).max(20).optional(),sources:z.array(z.object({title:z.string().min(2).max(150),publisher:z.string().min(2).max(100),url:z.url().refine(s=>s.startsWith("https://")),sourceType:z.enum(["organization","guideline","research"])}).strict()).min(1).max(8).optional()}).strict().refine(x=>!x.contentBlocks||JSON.stringify(x.contentBlocks).length<=12000,"متن پیشنهادی بیش از حد بلند است؛ ویرایش را بخش‌بندی کن."),
  z.object({kind:z.literal("edit_subscription_plan"),id:z.string().min(1),nameFa:z.string().trim().min(2).max(100).optional(),priceToman:z.number().int().min(0).max(2000000000).optional(),active:z.boolean().optional(),featuresFa:z.array(z.string().min(1).max(200)).max(12).optional()}).strict(),

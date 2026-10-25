@@ -17,7 +17,8 @@ export async function GET(){try{
 }catch(e){return appErrorResponse(e);}}
 export async function PUT(req:Request){try{
   const admin=await requireRole('admin');const input=planningPolicyInput.parse(await readJson(req));
-  if(input.enabled&&(!input.providerId||!await db.aiProvider.findFirst({where:{id:input.providerId,enabled:true}})))throw AppError.from('validation','یک اتصال آزمایش‌شده و فعال را انتخاب کن.');
+  const provider=input.providerId?await db.aiProvider.findUnique({where:{id:input.providerId},select:{id:true,enabled:true}}):null;
+  if((input.providerId&&!provider)||(input.enabled&&!provider?.enabled))throw AppError.from('validation','یک اتصال آزمایش‌شده و فعال را انتخاب کن.');
   const policy=await db.$transaction(async tx=>{
     const saved=await tx.aiPlanningPolicy.upsert({where:{id:'default'},create:{id:'default',...input},update:input});
     await tx.aiAction.create({data:{actorId:admin.id,actorRole:'admin',conversationId:'planning-settings',kind:'planning_policy',payloadJson:JSON.stringify(input),preview:`${input.enabled?'فعال‌سازی':'توقف'} برنامه‌ریز مستقل؛ سقف روزانه ${input.dailyLimit} و ماهانه ${input.monthlyLimit}`,status:'succeeded',expiresAt:new Date()}});

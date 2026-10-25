@@ -134,7 +134,7 @@ export async function POST(req: Request) {
         const oldUser=saved.find(m=>m.role==='user');
         if(oldUser&&oldUser.content!==body.message)throw AppError.from("conflict","شناسهٔ درخواست برای پیام دیگری استفاده شده است.");
         const reply=saved.find(m=>m.role==='assistant');
-        if(reply&&previous.status==='success')return NextResponse.json({ok:true,conversationId:previous.conversationId,userMessageId:oldUser?.id,message:{id:reply.id,content:reply.content},actions:await db.aiAction.findMany({where:{actorId:actor.id,requestId:clientKey},select:actionSelect}),quota:{used:await countAiQuotaUsage(actor.id,actor.timezone),limit:access.dailyLimit,monthUsed:await countAiQuotaUsage(actor.id,actor.timezone,true),monthlyLimit:access.monthlyLimit}});
+        if(reply)return NextResponse.json({ok:true,conversationId:previous.conversationId,userMessageId:oldUser?.id,message:{id:reply.id,content:reply.content},actions:await db.aiAction.findMany({where:{actorId:actor.id,requestId:clientKey},select:actionSelect}),quota:{used:await countAiQuotaUsage(actor.id,actor.timezone),limit:access.dailyLimit,monthUsed:await countAiQuotaUsage(actor.id,actor.timezone,true),monthlyLimit:access.monthlyLimit}});
         if(previous.status==='pending'&&previous.createdAt.getTime()>Date.now()-120000)return NextResponse.json({ok:true,pending:true,conversationId:previous.conversationId},{status:202});
         if(previous.status==='pending')await releaseAiQuotaSlot(clientKey);
         throw AppError.from("provider","درخواست قبلی کامل نشده است؛ ابتدا گفتگو را بازیابی کن و سپس در صورت نیاز دوباره بفرست.");

@@ -568,3 +568,11 @@ it("stores approved article edits with sources, revision and refreshed metadata"
   const updated=await db.article.findUniqueOrThrow({where:{id:article.id},include:{sources:true}});expect(updated.revision).toBe(2);expect(updated.metaTitle).toBe('عنوان جدید بررسی شده');expect(updated.sources).toHaveLength(1);
  }finally{await db.article.delete({where:{id:article.id}});await db.category.delete({where:{id:category.id}});await db.author.delete({where:{id:author.id}});}
 });
+
+it("reviews the independent planning policy without changing chat grants",async()=>{
+ const a=await login(admin.id);const c=await conversation(admin.id);
+ const action=await proposeAction(a,c.id,{kind:'configure_planner',enabled:true,providerId:provider.id,dailyLimit:2,monthlyLimit:10});
+ expect(action.preview).toContain(provider.label);expect(await db.aiPlanningPolicy.count()).toBe(0);
+ expect((await confirm(send('/api/ai/actions',{id:action.id,confirm:true}))).status).toBe(200);
+ expect(await db.aiPlanningPolicy.findUnique({where:{id:'default'}})).toMatchObject({enabled:true,dailyLimit:2,monthlyLimit:10});expect(await db.aiGrant.count()).toBe(0);
+});
