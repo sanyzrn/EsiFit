@@ -55,7 +55,7 @@ it("saves and clears only the coach's own private note without sending athlete m
 it("adds catalogs idempotently while preserving existing food values and meal histories",async()=>{
  const food=await db.food.create({data:{slug:"lentils-cooked",nameFa:"existing private food",isPublic:false,calories:123,proteinG:9,carbsG:12,fatG:1}});
  const day=await db.nutritionDay.create({data:{userId:athlete.id,logDate:todayISO()}});await db.mealEntry.create({data:{nutritionDayId:day.id,foodId:food.id,mealSlot:"lunch"}});
- const sql=readFileSync("docs/sql/catalog_expansion_20261025.sql","utf8").replace(/^BEGIN;$/m,"").replace(/^COMMIT;$/m,"").replaceAll('esifit."','"');
+ const sql=readFileSync("docs/sql/catalog_expansion_20261025.sql","utf8").replace(/^--.*$/gm, "").replace(/^BEGIN;$/m,"").replace(/^COMMIT;$/m,"").replaceAll('esifit."','"');
  const apply=async()=>{for(const s of sql.split(';').filter(s=>s.trim()))await db.$executeRawUnsafe(s);};
  await apply();const counts=[await db.exercise.count(),await db.food.count()];await apply();expect([await db.exercise.count(),await db.food.count()]).toEqual(counts);
  expect(counts).toEqual([100,140]);expect(await db.mealEntry.count()).toBe(1);expect(await db.food.findUnique({where:{id:food.id}})).toMatchObject({calories:123,isPublic:false,nameFa:"existing private food"});
