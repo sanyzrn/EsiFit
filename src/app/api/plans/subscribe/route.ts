@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { rateLimit } from "@/lib/http/rate-limit";
 import { requireMember } from "@/lib/auth/session";
 import { NextRequest, NextResponse } from "next/server";
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
         { status: 502 },
       );
     }
-    const body = schema.parse(await req.json());
+    const body = schema.parse(await readJson(req));
     const limit = await rateLimit(`plans:subscribe:${session.id}`, 10, 60 * 60 * 1000);
     if (!limit.ok) return NextResponse.json({ ok: false, code: "rate_limit", message: "تعداد تغییرات اشتراک زیاد است؛ کمی بعد تلاش کنید.", retryAfterSeconds: limit.retryAfterSeconds }, { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } });
     const plan = await db.subscriptionPlan.findUnique({ where: { code: body.planCode } });

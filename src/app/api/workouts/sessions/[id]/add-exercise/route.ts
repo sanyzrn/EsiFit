@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { withSessionLock } from "@/lib/workout/session-lock";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -15,7 +16,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     const sessionUser = await requireMember();
     const { id } = await params;
-    const parsed = bodySchema.safeParse(await req.json());
+    const parsed = bodySchema.safeParse(await readJson(req));
     if (!parsed.success) {
       return NextResponse.json({ ok: false, code: "validation" }, { status: 400 });
     }

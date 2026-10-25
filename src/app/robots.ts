@@ -1,3 +1,4 @@
+import { siteOrigin } from "@/lib/seo/site";
 import type { MetadataRoute } from "next";
 
 /**
@@ -5,7 +6,7 @@ import type { MetadataRoute } from "next";
  * carries the deployment's real origin.
  */
 export default function robots(): MetadataRoute.Robots {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const base = siteOrigin();
   return {
     rules: [
       {
@@ -27,7 +28,6 @@ export default function robots(): MetadataRoute.Robots {
           "/admin",
           "/coach",
           // Login-walled for anonymous visitors — nothing for a crawler to index.
-          "/store",
           "/community",
           "/auth/onboarding",
         ],

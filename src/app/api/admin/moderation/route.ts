@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/session";
@@ -63,7 +64,7 @@ const deleteSchema = z.object({
 export async function DELETE(req: Request) {
   try {
     await requireRole("admin");
-    const parsed = deleteSchema.safeParse(await req.json());
+    const parsed = deleteSchema.safeParse(await readJson(req));
     if (!parsed.success) {
       return NextResponse.json({ ok: false, code: "validation" }, { status: 400 });
     }

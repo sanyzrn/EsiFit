@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { motion, useReducedMotion } from "framer-motion";
-import { PageHeader } from "@/components/layout/app-shell";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { PageHeader } from "@/components/layout/page-header";
 import { RadialGauge } from "@/components/data-viz/radial-gauge";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { Button } from "@/components/ui/button";

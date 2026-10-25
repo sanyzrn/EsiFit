@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { PageHeader } from "@/components/layout/app-shell";
+import { PageHeader } from "@/components/layout/page-header";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

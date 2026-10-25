@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { MuscleBody, BODY_SLUG_FA, TRAINED_SLUGS, type BodySlug, type Gender, type BodySide } from "./muscle-body";
 import { toPersianDigits } from "@/lib/formatting/numbers";
 import { cn } from "@/lib/utils";

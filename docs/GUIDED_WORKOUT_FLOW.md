@@ -8,7 +8,7 @@ Updated 2026-10-24. Reference: [openGym](https://github.com/DuarteSantos8/openGy
 3. Start the programmed rest between sets and movements, except after the last planned set of the session. Focus mode uses a full-screen rest phase with a next-step preview; detail mode retains the **bottom-docked** timer with a slim progress bar and stable control positions. It runs on wall-clock time.
 4. Expose **−15 / +15**, **Pause / Resume**, and **Skip (two-step confirmation)**. When the timer reaches zero, display **Ready** rather than abruptly removing the bar. Athletes may explicitly dismiss it or add 15 s. A tab going to the background does not freeze the clock; pause is intentional.
 5. When all planned sets for a movement are recorded, show a clear **next exercise** action; after the last movement, ask to finish the workout.
-6. **Exit** to library preserves the session for continuation. **Finish** opens a confirmation with actual sets, percentage, elapsed session time and an unfinished-workout warning. Zero-set sessions may only be left active (prevents bogus completed 0-set workouts); completed sets stay intact.
+6. **Exit** to library preserves the session for continuation. **Finish** opens a confirmation with actual sets, percentage, elapsed session time and an unfinished-workout warning. The API rejects completion without a saved working set, including warmup-only sessions, before XP/badge/mission awards. Such sessions may be left active; completed sets stay intact.
 7. If offline, completion fails safely and the session remains active. Existing workout summaries/PR calculations and server API persist.
 
 ## Source comparison

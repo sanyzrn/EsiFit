@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { NextRequest, NextResponse } from "next/server";
 import { requireMember } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -84,7 +85,7 @@ async function shapeExercisesRaw(session: { id: string; planDayId: string | null
 export async function POST(req: NextRequest) {
   try {
     const session = await requireMember();
-    const body = startSchema.parse(await req.json().catch(() => ({})));
+    const body = startSchema.parse(await readJson(req, { allowEmpty: true }));
 
     // Explicit resume: honor ?session= navigation from dashboard/workouts.
     if (body.sessionId) {
@@ -214,7 +215,7 @@ export async function GET() {
 export async function DELETE(req: NextRequest) {
   try {
     const user = await requireMember();
-    const { sessionId } = z.object({ sessionId: z.string().min(1) }).parse(await req.json());
+    const { sessionId } = z.object({ sessionId: z.string().min(1) }).parse(await readJson(req));
     const active = await db.workoutSession.findFirst({
       where: { id: sessionId, userId: user.id, status: { in: ["active", "paused"] } },
       select: {

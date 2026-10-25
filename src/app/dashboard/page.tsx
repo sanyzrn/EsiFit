@@ -1,3 +1,4 @@
+import { loginPath, onboardingPath } from "@/lib/auth/return-path";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
 import { AppShell } from "@/components/layout/app-shell";
@@ -9,12 +10,12 @@ export const metadata = { title: "داشبورد" };
 
 export default async function DashboardPage() {
   const session = await getSessionUser();
-  if (!session) redirect("/auth/login");
+  if (!session) redirect(loginPath("/dashboard"));
   // Admin accounts supervise coaches/athletes instead of tracking personal
   // workouts, hydration or nutrition; /admin is their canonical dashboard.
   if (session.role === "admin") redirect("/admin");
   if (session.role === "coach") redirect("/coach");
-  if (!session.onboarded) redirect("/auth/onboarding");
+  if (!session.onboarded) redirect(onboardingPath("/dashboard"));
 
   return (
     <AppShell session={session} flags={resolveEnabledFlags()}>

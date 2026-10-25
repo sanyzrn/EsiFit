@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { clientIp } from "@/lib/http/client-ip";
 import { NextRequest, NextResponse } from "next/server";
 import { verifyOtp } from "@/lib/auth/otp";
@@ -15,7 +16,7 @@ const bodySchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const body = bodySchema.parse(await req.json());
+    const body = bodySchema.parse(await readJson(req));
     const result = await verifyOtp(body.phone, body.code, clientIp(req));
 
     // Create account on first successful verification.

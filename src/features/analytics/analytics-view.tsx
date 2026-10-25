@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { motion, useReducedMotion } from "framer-motion";
-import { PageHeader } from "@/components/layout/app-shell";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { PageHeader } from "@/components/layout/page-header";
 import { MuscleBody, type Gender } from "@/components/data-viz/anatomy/muscle-body";
 import { StreakCalendar } from "@/components/data-viz/streak-calendar";
 import { BodyRadar } from "@/components/data-viz/body-radar";

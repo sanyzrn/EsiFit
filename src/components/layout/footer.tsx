@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BrandMark } from "@/components/layout/navigation";
+import { BrandMark } from "@/components/layout/brand-mark";
 
 const GROUPS = [
   {

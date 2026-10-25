@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { rateLimit } from "@/lib/http/rate-limit";
 import { orderReceipt } from "@/lib/commerce/orders";
 import { NextRequest, NextResponse } from "next/server";
@@ -32,7 +33,7 @@ export async function POST(req:NextRequest) {
         { status: 502 },
       );
     }
-    const body = schema.parse(await req.json());
+    const body = schema.parse(await readJson(req));
 
     // Reject duplicate productIds — otherwise stock math double-counts.
     const ids = body.items.map((i) => i.productId);

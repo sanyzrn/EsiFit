@@ -1,3 +1,4 @@
+import { publicMetadata } from "@/lib/seo/site";
 import { getSessionUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { PublicPageShell } from "@/components/layout/public-page-shell";
@@ -5,10 +6,7 @@ import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 import { PlansView } from "@/features/store/plans-view";
 
 export const dynamic = "force-dynamic";
-export const metadata = {
-  title: "اشتراک و پلن‌ها",
-  description: "پلن رایگان همیشه رایگان است. وی‌آی‌پی برای تحلیل عمیق‌تر، وی‌آی‌پی پلاس برای حداکثر امکانات ورزشکار. مربی‌گری نقش جداگانه دارد.",
-};
+export const metadata = publicMetadata("/plans", "اشتراک و پلن‌ها", "پلن رایگان همیشه رایگان است. وی‌آی‌پی برای تحلیل عمیق‌تر، وی‌آی‌پی پلاس برای حداکثر امکانات ورزشکار. مربی‌گری نقش جداگانه دارد.");
 
 export default async function PlansPage() {
   const session = await getSessionUser();

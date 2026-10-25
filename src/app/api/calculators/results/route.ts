@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ ok: false, code: "authentication", message: "برای ذخیره نتیجه وارد شوید." }, { status: 401 });
     }
-    const body = schema.parse(await req.json());
+    const body = schema.parse(await readJson(req));
     const created = await db.calculatorResult.create({
       data: {
         userId: session.id,

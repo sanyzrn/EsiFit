@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { rateLimit } from "@/lib/http/rate-limit";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -17,7 +18,7 @@ const bodySchema = z.object({
 export async function POST(req: Request) {
   try {
     const session = await requireRole("coach");
-    const parsed = bodySchema.safeParse(await req.json());
+    const parsed = bodySchema.safeParse(await readJson(req));
     if (!parsed.success) {
       return NextResponse.json({ ok: false, code: "validation" }, { status: 400 });
     }

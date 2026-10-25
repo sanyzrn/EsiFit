@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/session";
@@ -66,7 +67,7 @@ const patchSchema = z.object({
 export async function PATCH(req: Request) {
   try {
     const session = await requireRole("admin");
-    const parsed = patchSchema.safeParse(await req.json());
+    const parsed = patchSchema.safeParse(await readJson(req));
     if (!parsed.success) {
       return NextResponse.json({ ok: false, code: "validation" }, { status: 400 });
     }

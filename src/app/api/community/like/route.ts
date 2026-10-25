@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { rateLimit } from "@/lib/http/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ ok: false, code: "authentication", message: "برای پسندیدن وارد شوید." }, { status: 401 });
     }
-    const body = likeSchema.parse(await req.json());
+    const body = likeSchema.parse(await readJson(req));
 
     const post = await db.post.findUnique({ where: { id: body.postId } });
     if (!post || post.visibility !== "public") return NextResponse.json({ ok: false, code: "not_found", message: "پست یافت نشد." }, { status: 404 });

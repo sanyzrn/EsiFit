@@ -135,7 +135,7 @@ bunx tsc --noEmit   # تایپ‌چک کامل (strict)
   **خطا برمی‌گرداند** و یک پیام `FATAL` در لاگ می‌نویسد (صفحه‌های عمومی همچنان سرو می‌شوند).
   تولید کلید: `openssl rand -hex 32`
 - `NEXT_PUBLIC_SITE_URL` را روی دامنه واقعی بگذارید؛ در نبود آن canonicalها و sitemap روی
-  `http://localhost:3000` ساخته می‌شوند.
+  ابتدا دامنهٔ اصلی و سپس دامنهٔ استقرار Vercel بررسی می‌شود؛ در محیط محلی `http://localhost:3000` است.
 - خروجی `standalone` به‌صورت پیش‌فرض فایل `.env` محلی را هم کپی می‌کند و آن مقادیر بر متغیرهای
   محیطیِ پلتفرم غالب می‌شوند؛ اسکریپت `build` این فایل‌ها را از خروجی حذف می‌کند تا کلیدهای
   توسعه به تولید نشت نکنند. متغیرها را از خود پلتفرم تزریق کنید.
@@ -156,3 +156,9 @@ bunx tsc --noEmit   # تایپ‌چک کامل (strict)
 | **Rate-limit چندنمونه‌ای** | in-process (تک‌نمونه) | Redis/Upstash برای scale-out |
 | **امنیت هدرها** | X-Content-Type-Options / X-Frame-Options / Referrer-Policy / Permissions-Policy | افزودن HSTS + CSP سخت‌گیرانه در reverse proxy یا next.config پس از پایداری assetها |
 | **حذف حساب / پرداخت واقعی فروشگاه** | پیام دمو | API حذف/آرشیو حساب + درگاه فروشگاه جدا از اشتراک |
+
+## Audit hardening and remaining product boundaries
+
+CI runs the complete unit/API suite and production dependency audit. Node 22.19+ (22 LTS) or 24+ is required; Bun 1.3.4+ remains optional for seed tasks. `db:push` no longer includes `--accept-data-loss`; deliberate destructive resets belong only to disposable test databases.
+
+The repository has not selected an application open-source license. No MIT/Apache grant is implied; third-party asset licenses and attribution remain in their existing documents. Web Push is not implemented: notifications are in-app only. A future push system needs explicit opt-in, subscription revocation, VAPID configuration, permission UX and delivery testing. Real payments/refunds, account erasure and competition scoring remain unavailable; do not market those as shipped.

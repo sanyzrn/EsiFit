@@ -4,6 +4,7 @@
  */
 
 export type AppErrorCode =
+  | "payload_too_large"
   | "validation"
   | "authentication"
   | "authorization"
@@ -16,6 +17,7 @@ export type AppErrorCode =
   | "unexpected";
 
 const FA_MESSAGES: Record<AppErrorCode, string> = {
+  payload_too_large: "حجم درخواست بیش از حد مجاز است.",
   validation: "اطلاعات واردشده کامل و درست نیست.",
   authentication: "برای ادامه باید وارد حساب خود شوید.",
   authorization: "شما به این بخش دسترسی ندارید.",

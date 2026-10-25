@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
 /**
  * RevealOnScroll — fade + rise once. Triggers as soon as a sliver is visible

@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "مدیریت مربی‌ها و ورزشکاران" };
 
 export default async function AdminPage() {
-  const session = await requireRolePage("admin");
+  const session = await requireRolePage("/admin", "admin");
   return (
     <AppShell session={session} flags={resolveEnabledFlags()}>
       <AdminConsoleView adminName={session.displayName} />

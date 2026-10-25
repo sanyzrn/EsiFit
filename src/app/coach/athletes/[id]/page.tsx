@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "پرونده ورزشکار — مربی" };
 
 export default async function CoachAthletePage({ params }: { params: Promise<{ id: string }> }) {
-  const session = await requireRolePage("coach_or_admin");
   const { id } = await params;
+  const session = await requireRolePage(`/coach/athletes/${encodeURIComponent(id)}`, "coach_or_admin");
 
   // Ownership: coaches only see their own athletes (admin supervises all).
   if (session.role !== "admin") {

@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { refreshDerivedMissions } from "@/lib/domain/gamification-engine";
 import { isoDateOnly } from "@/lib/dates/jalali";
 import { db } from "@/lib/db";
@@ -34,7 +35,7 @@ const bodySchema = z.object({ sets: z.array(setOp).max(200) });
 export async function POST(req: NextRequest) {
   try {
     const user = await requireMember();
-    const parsed = bodySchema.safeParse(await req.json());
+    const parsed = bodySchema.safeParse(await readJson(req));
     if (!parsed.success) {
       console.error("[sync] validation failed:", JSON.stringify(parsed.error.issues?.slice(0, 3)));
       throw toAppError(parsed.error);

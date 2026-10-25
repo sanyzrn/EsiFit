@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { PageHeader } from "@/components/layout/app-shell";
+import { motion, AnimatePresence } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/ui/icon";
@@ -11,27 +12,19 @@ import { useToast } from "@/hooks/use-toast";
 import { formatToman, toPersianDigits } from "@/lib/formatting/numbers";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { formatJalaliLong } from "@/lib/dates/jalali";
+import { loginPath } from "@/lib/auth/return-path";
+import type { Catalog, CatalogProduct } from "@/lib/commerce/catalog-types";
 import type { OrderReceipt } from "@/lib/commerce/orders";
 
-type Product = {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  type: string;
-  emoji: string;
-  priceToman: number;
-  compareAtToman: number | null;
-  stock: number;
-  badge: string | null;
-  finalPriceToman: number;
-};
+type Product = CatalogProduct;
 
 type CartLine = { product: Product; qty: number };
 
-export function StoreView({ signedIn }: { signedIn: boolean }) {
-  const [products, setProducts] = React.useState<Product[] | null>(null);
-  const [discount, setDiscount] = React.useState(0);
+export function StoreView({ signedIn, initialCatalog }: { signedIn: boolean; initialCatalog: Catalog | null }) {
+  const [products, setProducts] = React.useState<Product[] | null>(initialCatalog?.products ?? null);
+  const [discount, setDiscount] = React.useState(initialCatalog?.discountPercent ?? 0);
+  const [catalogError, setCatalogError] = React.useState<string | null>(initialCatalog ? null : "بارگذاری فروشگاه انجام نشد. دوباره تلاش کنید.");
+  const [catalogLoading, setCatalogLoading] = React.useState(false);
   const [cart, setCart] = React.useState<CartLine[]>([]);
   const [cartOpen, setCartOpen] = React.useState(false);
   const [historyOpen, setHistoryOpen] = React.useState(false);
@@ -44,17 +37,12 @@ export function StoreView({ signedIn }: { signedIn: boolean }) {
   const { toast } = useToast();
   const reduce = useReducedMotion();
 
-  React.useEffect(() => {
-    void (async () => {
-      try {
-        const res = await api<{ products: Product[]; discountPercent: number }>("/api/store/products");
-        setProducts(res.products);
-        setDiscount(res.discountPercent);
-      } catch {
-        setProducts([]);
-      }
-    })();
-  }, []);
+  const reloadCatalog = async () => {
+    setCatalogLoading(true); setCatalogError(null);
+    try { const result = await api<Catalog>("/api/store/products"); setProducts(result.products); setDiscount(result.discountPercent); }
+    catch (error) { setCatalogError(errorMessage(error)); }
+    finally { setCatalogLoading(false); }
+  };
 
   const loadOrders = React.useCallback(async (cursor: string | null = null) => {
     setOrdersLoading(true); setOrdersError(null);
@@ -132,16 +120,18 @@ export function StoreView({ signedIn }: { signedIn: boolean }) {
       />
 
       <div className="px-4 lg:px-8">
-        {!products ? (
+        {catalogError && <div role="alert" className="mb-4 rounded-2xl border border-destructive/30 p-4 text-sm"><p>{catalogError}</p><Button variant="secondary" className="mt-3 min-h-11" disabled={catalogLoading} onClick={() => void reloadCatalog()}>{catalogLoading ? "در حال بارگذاری…" : "تلاش دوباره"}</Button></div>}
+        {products?.length === 0 && <p className="py-12 text-center text-sm text-esi-text-secondary">هنوز محصولی در فروشگاه موجود نیست. کمی بعد دوباره سر بزنید.</p>}
+        {!products && catalogLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-56 rounded-3xl" />)}
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {products.map((p, i) => (
+            {products?.map((p, i) => (
               <motion.article
                 key={p.id}
-                initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
+                initial={false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: reduce ? 0.01 : 0.32, delay: reduce ? 0 : Math.min(i * 0.04, 0.28) }}
                 className="group flex flex-col esi-card rounded-3xl p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-raised)]"

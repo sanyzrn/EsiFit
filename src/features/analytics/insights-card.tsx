@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { Icon } from "@/components/ui/icon";
 import type { Insight } from "@/lib/domain/plateau";
 import { cn } from "@/lib/utils";

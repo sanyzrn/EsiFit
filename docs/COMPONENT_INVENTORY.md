@@ -42,3 +42,16 @@ existing `Exercise.instructionsFa` field. Add/swap responses retain equipment.
 - `SettingsView`: export available to every member tier, pending download state; truthful unavailable account-deletion copy replaces the fake destructive button. No erasure endpoint exists.
 - `AdminConsoleView`: actual recorded mock order count/total for 30 local calendar days and active subscription count; these are not gateway revenue or MRR.
 - No new UI primitives, dependencies, feature flags or schema fields.
+
+## Audit phases 6–7
+- Reused ThemeToggle in public/mobile/sidebar/auth chrome, preserving dark default and persistent light choice.
+- One root skip link targets focusable main#main-content across public/app/offline/404 shells. Persian not-found reuses the shell, BrandMark and Button.
+- StoreView accepts initialCatalog: Catalog|null; SSR/API share live catalog query/DTO with explicit failure, retry, loading and empty states.
+- AuthCard/OnboardingFlow accept validated returnTo; member/staff page guards preserve destinations and live-workout query values.
+- Shared useReducedMotion uses a consistent hydration snapshot in all animated consumers. Dashboard time also starts consistently; DayFlow preserves full text contrast.
+- Wide social card uses approved logo, existing palette/Lalezar/Vazirmatn and an optional browser renderer.
+- Existing API writes share bounded JSON parsing with explicit 413 response; no parallel UI primitives or runtime browser dependency.
+
+- PageHeader and BrandMark were moved, not duplicated, into presentation-only files. Existing exports remain compatible. PublicPageShell is server-rendered so anonymous pages no longer import the authenticated shell/offline/navigation through its client graph. Vazirmatn weights load on demand; the main display face retains preload. This targets measured public-page critical-path cost without caching private HTML.
+
+- Landing Tile now instantiates decorative motion studies only near the viewport; titles/descriptions remain SSR content and visual space stays reserved. ThemeToggle uses existing CSS button feedback instead of importing a motion engine solely for its icon.

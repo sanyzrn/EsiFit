@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
+import { motion, useMotionValue, useSpring } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
 /** Pulls its child a few pixels toward the pointer — for hero CTAs only. */
 export function Magnetic({

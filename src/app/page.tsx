@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
+import { getPublicArticles } from "@/lib/content/public-articles";
 import { getSessionUser } from "@/lib/auth/session";
 import { PublicPageShell } from "@/components/layout/public-page-shell";
 import { RevealOnScroll } from "@/components/ui/reveal-on-scroll";
@@ -16,16 +16,10 @@ import { toPersianDigits } from "@/lib/formatting/numbers";
 import { Button } from "@/components/ui/button";
 import { ArticleCard } from "@/components/features/article-card";
 
-export const dynamic = "force-dynamic";
 
 async function getLatestArticles() {
   try {
-    return await db.article.findMany({
-      where: { status: "published" },
-      orderBy: { publishedAt: "desc" },
-      take: 3,
-      include: { author: true, category: true },
-    });
+    return (await getPublicArticles()).slice(0, 3);
   } catch {
     return [];
   }
@@ -44,7 +38,7 @@ export default async function LandingPage() {
       <LandingHero signedIn={Boolean(session)} />
 
       {/* ============ FEATURES ============ */}
-      <section className="mx-auto max-w-6xl px-4 lg:px-8 py-24">
+      <section className="mx-auto max-w-6xl px-4 lg:px-8 py-16">
         <RevealOnScroll>
           <SectionHeader
             title="تمرین، تغذیه و پیشرفت؛ همه در یک جا"

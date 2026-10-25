@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { PageHeader } from "@/components/layout/app-shell";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,8 @@ import { MUSCLE_GROUP_TO_BODY, BODY_SLUG_FA } from "@/components/data-viz/anatom
 import { api, errorMessage } from "@/lib/client/api";
 import { useToast } from "@/hooks/use-toast";
 import { toPersianDigits } from "@/lib/formatting/numbers";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { cn } from "@/lib/utils";
 
 type PlanExercise = {

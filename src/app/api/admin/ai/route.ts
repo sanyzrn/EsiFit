@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -81,7 +82,7 @@ export async function GET(req: Request) {
 export async function PUT(req: Request) {
   try {
     await requireRole("admin");
-    const parsed = providerInput.parse(await req.json());
+    const parsed = providerInput.parse(await readJson(req));
     let input;
     try {
       input = normalizedInput(parsed);
@@ -133,7 +134,7 @@ export async function PUT(req: Request) {
 export async function PATCH(req: Request) {
   try {
     await requireRole("admin");
-    const data = grantInput.parse(await req.json());
+    const data = grantInput.parse(await readJson(req));
     const user = await db.user.findFirst({
       where: { id: data.userId, role: { in: ["coach", "member"] } },
       select: { id: true },
@@ -163,7 +164,7 @@ export async function DELETE(req: Request) {
     const { id } = z
       .object({ id: z.string().min(1) })
       .strict()
-      .parse(await req.json());
+      .parse(await readJson(req));
     // Deactivate without erasing grants, credentials or accounting history.
     await db.aiProvider.update({ where: { id }, data: { enabled: false } });
     return NextResponse.json({ ok: true });

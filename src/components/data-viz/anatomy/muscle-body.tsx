@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Body, { type ExtendedBodyPart, type Slug } from "react-muscle-highlighter";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import {
   BODY_SLUG_FA,
   MUSCLE_GROUP_TO_BODY,

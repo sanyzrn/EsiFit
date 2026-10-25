@@ -64,8 +64,11 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
-      - name: Essential tests (unit, authentication, roles)
-        run: npx vitest run tests/unit tests/api/auth.test.ts tests/api/roles.test.ts tests/api/community.test.ts tests/api/ai.test.ts tests/api/validated-audit.test.ts tests/api/pwa-engagement-audit.test.ts tests/api/commerce-privacy-audit.test.ts
+      - name: Complete dependency audit
+        run: npm audit --audit-level=high
+
+      - name: Complete unit and API tests
+        run: npm test
 
       - name: Production build and type check
         run: npm run build

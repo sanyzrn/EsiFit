@@ -38,3 +38,6 @@ The user supplied three mobile fitness references: clean dark cards + restrained
 - Public hero remains untouched; flat styling applies to lower marketing sections.
 - Reduced motion and keyboard focus are still respected.
 - GitHub CI only. Vercel Git-based deployment disabled in `vercel.json`; one explicit production deploy on latest `main` only.
+
+## Public social card
+The 1200×630 export uses existing dark background/text/primary tokens, the approved gradient mark, Lalezar and Vazirmatn with the existing 32/64px spacing rhythm. scripts/generate-social-card.mjs regenerates it with an optional local browser runtime. This adds no product theme or runtime dependency.

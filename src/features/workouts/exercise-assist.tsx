@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { platesPerSide, warmupRamp, DEFAULT_PLATES_KG } from "@/lib/workout/progression";
 import { formatNumber, toPersianDigits } from "@/lib/formatting/numbers";
 import { cn } from "@/lib/utils";

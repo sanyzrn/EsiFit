@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { RadialGauge } from "@/components/data-viz/radial-gauge";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { KhatamDial, KhatamStar } from "@/components/motion/khatam";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
-import { BrandMark } from "@/components/layout/navigation";
+import { BrandMark } from "@/components/layout/brand-mark";
 import { toPersianDigits } from "@/lib/formatting/numbers";
 
 const PROMISES = [

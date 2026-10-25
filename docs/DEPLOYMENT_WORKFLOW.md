@@ -44,3 +44,6 @@ Docs:
 - https://vercel.com/docs/project-configuration/git-configuration#gitdeploymentenabled
 - https://vercel.com/docs/git#creating-a-deployment-from-a-git-reference
 - https://vercel.com/docs/project-configuration/project-settings#ignored-build-step
+
+## Audit release checklist
+PR #34 stays unmerged/unpublished until all seven reports have been reconciled and release checks pass. Apply its RateLimitBucket SQL before the code; never reset or reseed production. Set NEXT_PUBLIC_SITE_URL to the real canonical origin; the resolver otherwise tries the production Vercel domain, the deployment domain, then localhost. Check exact deployed SHA, canonical/OG, robots, sitemap, secure cookies and the shared limiter. Public editorial reads alone use a 60-second cache; session HTML, stock and member discounts remain dynamic. Use a demo release label while payments, account erasure, competitions and Web Push remain unavailable.

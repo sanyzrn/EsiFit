@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { bmi, bmiCategory, BMI_FA, healthyWeightRange, type BmiCategory } from "@/lib/domain/body-math";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { Button } from "@/components/ui/button";

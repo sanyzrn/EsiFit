@@ -127,8 +127,10 @@ export function DashboardView() {
     }
   };
 
-  const hour = new Date().getHours();
-  const greeting = hour < 5 ? "شب‌بخیر" : hour < 12 ? "صبح بخیر" : hour < 17 ? "وقت بخیر" : "عصر بخیر";
+  const [clock, setClock] = React.useState<Date | null>(null);
+  React.useEffect(() => { const update = () => setClock(new Date()); update(); const timer = setInterval(update, 60_000); return () => clearInterval(timer); }, []);
+  const hour = clock?.getHours() ?? 12;
+  const greeting = !clock ? "سلام" : hour < 5 ? "شب‌بخیر" : hour < 12 ? "صبح بخیر" : hour < 17 ? "وقت بخیر" : "عصر بخیر";
   const waterPct = data?.water.targetMl ? Math.min(100, Math.round(data.water.ml / data.water.targetMl * 100)) : 0;
   const nutritionPct = data?.nutrition.targets?.calories
     ? Math.min(100, Math.round(data.nutrition.totals.calories / data.nutrition.targets.calories * 100)) : 0;
@@ -141,7 +143,7 @@ export function DashboardView() {
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-xs font-medium text-esi-text-secondary">
             <span className="size-1.5 rounded-full bg-primary" aria-hidden />
-            {formatJalaliWeekdayDay(new Date())}
+            {clock ? formatJalaliWeekdayDay(clock) : "امروز"}
           </p>
           <h1 className="mt-2 text-2xl font-extrabold leading-snug tracking-tight sm:text-3xl lg:text-4xl">
             {greeting}، <span className="text-primary">{data?.greetingName ?? session?.displayName ?? "ورزشکار"}</span>

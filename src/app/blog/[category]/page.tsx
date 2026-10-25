@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { db } from "@/lib/db";
+import { getPublicArticles, getPublicCategories } from "@/lib/content/public-articles";
+import { publicMetadata } from "@/lib/seo/site";
 import { getSessionUser } from "@/lib/auth/session";
 import { PublicPageShell } from "@/components/layout/public-page-shell";
 import { ArticleCard } from "@/components/features/article-card";
@@ -9,29 +10,24 @@ import { formatJalaliLong } from "@/lib/dates/jalali";
 import { toPersianDigits } from "@/lib/formatting/numbers";
 import { Button } from "@/components/ui/button";
 
-export const dynamic = "force-dynamic";
 
 type CategoryParams = { params: Promise<{ category: string }> };
 
 export async function generateMetadata({ params }: CategoryParams) {
   const { category: slug } = await params;
-  const category = await db.category.findUnique({ where: { slug } });
+  const category = (await getPublicCategories()).find(category => category.slug === slug);
   if (!category) return { title: "دسته‌بندی" };
-  return { title: `${category.nameFa} | مجله اسی‌فیت`, description: category.description };
+  return publicMetadata(`/blog/${category.slug}`, `${category.nameFa} | مجله اسی‌فیت`, category.description);
 }
 
 export default async function BlogCategoryPage({ params }: CategoryParams) {
   const { category: slug } = await params;
-  const category = await db.category.findUnique({ where: { slug } });
+  const category = (await getPublicCategories()).find(category => category.slug === slug);
   if (!category) notFound();
 
   const [session, articles] = await Promise.all([
     getSessionUser(),
-    db.article.findMany({
-      where: { status: "published", category: { slug } },
-      orderBy: { publishedAt: "desc" },
-      include: { author: true, category: true },
-    }),
+    getPublicArticles(slug),
   ]);
 
   return (

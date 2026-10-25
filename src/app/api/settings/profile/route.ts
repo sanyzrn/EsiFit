@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireMember } from "@/lib/auth/session";
@@ -32,7 +33,7 @@ export async function GET() {
 export async function PATCH(req: NextRequest) {
   try {
     const session = await requireMember();
-    const parsed = patchSchema.safeParse(await req.json());
+    const parsed = patchSchema.safeParse(await readJson(req));
     if (!parsed.success) {
       return NextResponse.json({ ok: false, code: "validation", message: "فهرست وسایل نامعتبر است." }, { status: 400 });
     }

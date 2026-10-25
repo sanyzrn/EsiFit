@@ -1,3 +1,4 @@
+import { siteOrigin } from "@/lib/seo/site";
 import type { MetadataRoute } from "next";
 import { db } from "@/lib/db";
 import { CALCULATOR_CONFIGS } from "@/features/calculators/registry";
@@ -13,15 +14,15 @@ const STATIC_PATHS: Array<{ path: string; priority: number; changeFrequency: Met
   { path: "/", priority: 1, changeFrequency: "weekly" },
   { path: "/blog", priority: 0.8, changeFrequency: "daily" },
   { path: "/calculators", priority: 0.8, changeFrequency: "monthly" },
+  { path: "/store", priority: 0.7, changeFrequency: "daily" },
   { path: "/plans", priority: 0.7, changeFrequency: "monthly" },
   { path: "/auth/login", priority: 0.4, changeFrequency: "yearly" },
 ];
-// /store and /community deliberately absent: both redirect anonymous visitors
-// to /auth/login, so listing them would send crawlers to a login wall.
+// /community remains absent because anonymous visitors reach a login wall.
 
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const base = siteOrigin();
   const now = new Date();
 
   const entries: MetadataRoute.Sitemap = STATIC_PATHS.map((e) => ({

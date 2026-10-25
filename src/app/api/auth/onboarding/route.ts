@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireMember } from "@/lib/auth/session";
@@ -25,7 +26,7 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const session = await requireMember();
-    const parsed = schema.parse(await req.json());
+    const parsed = schema.parse(await readJson(req));
     const { displayName, unitSystem, weightKg, availableEquipment, ...profileFields } = parsed;
 
     const macros = computeMacroTargets({

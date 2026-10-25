@@ -1,3 +1,4 @@
+import { siteOrigin, SOCIAL_IMAGE } from "@/lib/seo/site";
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -16,7 +17,7 @@ const vazir = localFont({
   ],
   variable: "--font-vazir",
   display: "swap",
-  preload: true,
+  preload: false,
 });
 
 /** Display face: chunky Persian poster lettering for headlines and big numerals. */
@@ -32,7 +33,7 @@ const lalezar = localFont({
  * Without it Next emits *relative* canonicals, which search engines ignore.
  * Set NEXT_PUBLIC_SITE_URL per environment.
  */
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const siteUrl = siteOrigin();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -78,14 +79,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "fa_IR",
     url: "/",
-    images: [{ url: "/icons/icon-512.png", width: 512, height: 512, alt: "اسی‌فیت" }],
+    images: [SOCIAL_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     title: "اسی‌فیت | مربی هوشمند تناسب اندام",
     description:
       "تمرین، تغذیه، ریکاوری و تحلیل پیشرفت — اکوسیستم کامل تناسب اندام فارسی، بهینه برای موبایل.",
-    images: ["/icons/icon-512.png"],
+    images: [SOCIAL_IMAGE.url],
   },
   formatDetection: { telephone: false },
 };
@@ -104,7 +105,8 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={`${vazir.variable} ${lalezar.variable} antialiased bg-background text-foreground min-h-screen`}>
-        <ThemeProvider defaultTheme="dark" forcedTheme="dark" enableSystem={false} storageKey="esifit-theme">
+        <ThemeProvider defaultTheme="dark" enableSystem={false} storageKey="esifit-theme">
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-primary focus:px-4 focus:py-3 focus:font-semibold focus:text-primary-foreground">پرش به محتوا</a>
           {children}
           <Toaster position="top-center" dir="rtl" richColors closeButton />
           <ServiceWorkerRegistrar />

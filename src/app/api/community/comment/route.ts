@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
         { status: 429 },
       );
     }
-    const body = commentSchema.parse(await req.json());
+    const body = commentSchema.parse(await readJson(req));
     const post = await db.post.findUnique({ where: { id: body.postId } });
     if (!post || post.visibility !== "public") return NextResponse.json({ ok: false, code: "not_found", message: "پست یافت نشد." }, { status: 404 });
 

@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireMember } from "@/lib/auth/session";
@@ -14,7 +15,7 @@ const schema = z.object({
 export async function POST(req: Request) {
   try {
     const session = await requireMember();
-    const body = schema.parse(await req.json().catch(() => ({})));
+    const body = schema.parse(await readJson(req, { allowEmpty: true }));
     const equipment = await getUserEquipmentSet(session.id);
     const plan = await createPlanFromTemplate(session.id, body.template, undefined, equipment, session.timezone);
     const dayCount = await db.workoutPlanDay.count({ where: { planId: plan.id } });

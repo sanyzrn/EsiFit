@@ -1,4 +1,5 @@
-import { db } from "@/lib/db";
+import { publicMetadata } from "@/lib/seo/site";
+import { getPublicArticles, getPublicCategories } from "@/lib/content/public-articles";
 import { getSessionUser } from "@/lib/auth/session";
 import { PublicPageShell } from "@/components/layout/public-page-shell";
 import { ArticleCard } from "@/components/features/article-card";
@@ -8,11 +9,7 @@ import { toPersianDigits } from "@/lib/formatting/numbers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-export const metadata = {
-  title: "مجله اسی‌فیت",
-  description: "مقالات تمرینی، تغذیه و ریکاوری مبتنی بر شواهد علمی — با ذکر منبع و مرور تخصصی.",
-};
+export const metadata = publicMetadata("/blog", "مجله اسی‌فیت", "مقالات تمرینی، تغذیه و ریکاوری مبتنی بر شواهد علمی — با ذکر منبع و مرور تخصصی.");
 
 export default async function BlogIndexPage() {
   const session = await getSessionUser();
@@ -20,12 +17,8 @@ export default async function BlogIndexPage() {
   if (!flags.BLOG) notFound();
 
   const [articles, categories] = await Promise.all([
-    db.article.findMany({
-      where: { status: "published" },
-      orderBy: { publishedAt: "desc" },
-      include: { author: true, category: true },
-    }),
-    db.category.findMany({ orderBy: { orderIndex: "asc" } }),
+    getPublicArticles(),
+    getPublicCategories(),
   ]);
 
   return (

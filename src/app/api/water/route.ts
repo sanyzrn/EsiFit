@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { evaluateBadges, refreshDerivedMissions } from "@/lib/domain/gamification-engine";
 import { NextRequest, NextResponse } from "next/server";
 import { requireMember } from "@/lib/auth/session";
@@ -16,7 +17,7 @@ const postSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const session = await requireMember();
-    const body = postSchema.parse(await req.json());
+    const body = postSchema.parse(await readJson(req));
 
     const existing = await db.waterLog.findUnique({
       where: { userId_clientId: { userId: session.id, clientId: body.clientId } },

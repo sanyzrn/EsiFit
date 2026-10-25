@@ -31,3 +31,6 @@ No account history or challenge records are deleted. Competition scoring/settlem
 - Member exports retain `esifit-export-v1` and fitness history, adding owned receipts, subscriptions and selected account preferences. They exclude session tokens and credentials. Free members can export; staff remain outside the member API. This is not a comprehensive account-domain export or a claim of legal compliance.
 - `/api/auth/me` intentionally returns HTTP 200 with `user: null` for anonymous/revoked sessions.
 - Account erasure, real payment/refund/recurring billing and MRR remain unimplemented. No production data is migrated or deleted.
+
+## Audit phases 6–7: no schema changes
+Catalog is the shared client-safe SSR/API product DTO. Product stock and member prices stay uncached. Published editorial reads alone have a 60-second data cache and explicit Date hydration; session-aware HTML remains dynamic. Origin/social/canonical generation and internal next destinations use shared validators. JSON request bodies are capped at 1 MiB, including unknown-length streams, before JSON/Zod allocation; payload_too_large maps to 413. No new database entity or feature flag.

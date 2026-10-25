@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { db } from "@/lib/db";
+import { getPublicArticle, getPublicArticles } from "@/lib/content/public-articles";
+import { publicMetadata, SOCIAL_IMAGE, siteOrigin } from "@/lib/seo/site";
 import { getSessionUser } from "@/lib/auth/session";
 import { PublicPageShell } from "@/components/layout/public-page-shell";
 import { ArticleCard } from "@/components/features/article-card";
@@ -8,7 +9,6 @@ import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 import { formatJalaliLong } from "@/lib/dates/jalali";
 import { toPersianDigits } from "@/lib/formatting/numbers";
 
-export const dynamic = "force-dynamic";
 
 type Block =
   | { type: "p"; text: string }
@@ -20,16 +20,16 @@ type Block =
 
 export async function generateMetadata({ params }: { params: Promise<{ category: string; slug: string }> }) {
   const { category, slug } = await params;
-  const article = await db.article.findUnique({ where: { slug }, include: { category: true } });
+  const article = await getPublicArticle(category, slug);
   if (!article || article.category.slug !== category) return {};
   return {
-    title: article.metaTitle || article.title,
-    description: article.metaDescription || article.excerpt,
-    alternates: { canonical: `/blog/${category}/${slug}` },
+    ...publicMetadata(`/blog/${category}/${slug}`, article.metaTitle || article.title, article.metaDescription || article.excerpt),
     openGraph: {
       type: "article",
       title: article.metaTitle || article.title,
       description: article.metaDescription || article.excerpt,
+      url: `/blog/${category}/${slug}`,
+      images: [SOCIAL_IMAGE],
       publishedTime: article.publishedAt?.toISOString(),
     },
   };
@@ -41,24 +41,12 @@ export default async function ArticlePage({
   params: Promise<{ category: string; slug: string }>;
 }) {
   const { category, slug } = await params;
-  const article = await db.article.findUnique({
-    where: { slug },
-    include: {
-      author: true,
-      reviewer: true,
-      category: true,
-      sources: true,
-    },
-  });
+  const article = await getPublicArticle(category, slug);
   if (!article || article.category.slug !== category || article.status !== "published") notFound();
 
   const [session, related] = await Promise.all([
     getSessionUser(),
-    db.article.findMany({
-      where: { status: "published", categoryId: article.categoryId, NOT: { id: article.id } },
-      take: 3,
-      include: { category: true },
-    }),
+    getPublicArticles(category).then(articles => articles.filter(row => row.id !== article.id).slice(0, 3)),
   ]);
 
   const blocks = JSON.parse(article.contentBlocks) as Block[];
@@ -68,6 +56,7 @@ export default async function ArticlePage({
     "@context": "https://schema.org",
     "@type": "Article",
     headline: article.title,
+    image: `${siteOrigin()}${SOCIAL_IMAGE.url}`,
     datePublished: article.publishedAt?.toISOString(),
     dateModified: article.updatedAt.toISOString(),
     author: { "@type": "Person", name: article.author.name },

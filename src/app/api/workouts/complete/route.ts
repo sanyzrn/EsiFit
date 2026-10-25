@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { withSessionLock } from "@/lib/workout/session-lock";
 import { NextRequest, NextResponse } from "next/server";
 import { requireMember } from "@/lib/auth/session";
@@ -17,7 +18,7 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await requireMember();
-    const body = schema.parse(await req.json());
+    const body = schema.parse(await readJson(req));
 
     const finalized = await withSessionLock(body.sessionId, async tx => {
       const session = await tx.workoutSession.findUnique({

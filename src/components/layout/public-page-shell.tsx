@@ -1,9 +1,9 @@
-"use client";
 
 import * as React from "react";
 import { PublicNavbar } from "@/components/layout/public-navbar";
 import { Footer } from "@/components/layout/footer";
-import { AppShell, PageHeader } from "@/components/layout/app-shell";
+import { AppShell } from "@/components/layout/app-shell";
+import { PageHeader } from "@/components/layout/page-header";
 import { SessionProvider } from "@/lib/client/use-session";
 import { FeatureFlagProvider } from "@/lib/feature-flags/flag-provider";
 import type { ClientSession } from "@/lib/auth/session-types";
@@ -57,7 +57,7 @@ export function PublicPageShell({
         <div className="min-h-dvh flex flex-col">
           <PublicNavbar />
           {/* Clears fixed h-16 navbar + safe-area; never overlap PageHeader. */}
-          <main className={cn("flex-1 public-shell-main", !flush && "pt-24 lg:pt-28", className)}>
+          <main id="main-content" tabIndex={-1} className={cn("flex-1 public-shell-main", !flush && "pt-24 lg:pt-28", className)}>
             {title ? <PageHeader title={title} description={description} backHref={backHref} /> : null}
             {children}
           </main>

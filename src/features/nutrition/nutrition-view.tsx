@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { PageHeader } from "@/components/layout/app-shell";
+import { motion, AnimatePresence } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { PageHeader } from "@/components/layout/page-header";
 import { MacroRingGroup } from "@/components/data-viz/macro-rings";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";

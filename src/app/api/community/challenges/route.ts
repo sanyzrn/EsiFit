@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { resolveFeatureFlag } from "@/lib/feature-flags/registry";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
     }
     if (session.role !== "member") return NextResponse.json({ ok: false, code: "authorization", message: "چالش‌های ورزشی مخصوص ورزشکاران هستند." }, { status: 403 });
     if (!resolveFeatureFlag("CHALLENGES")) return NextResponse.json({ ok: false, code: "not_found", message: "چالش‌ها تا آماده‌شدن امتیازدهی واقعی در دسترس نیستند." }, { status: 404 });
-    const body = joinSchema.parse(await req.json());
+    const body = joinSchema.parse(await readJson(req));
     const challenge = await db.challenge.findUnique({ where: { id: body.challengeId } });
     if (!challenge || challenge.status !== "active" || challenge.startDate > todayISO(session.timezone) || challenge.endDate < todayISO(session.timezone)) {
       return NextResponse.json({ ok: false, code: "not_found", message: "چالش فعال نیست." }, { status: 404 });

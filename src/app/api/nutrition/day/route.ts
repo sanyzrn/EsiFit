@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { evaluateBadges, refreshDerivedMissions } from "@/lib/domain/gamification-engine";
 import { NextRequest, NextResponse } from "next/server";
 import { requireMember } from "@/lib/auth/session";
@@ -94,7 +95,7 @@ const addSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const session = await requireMember();
-    const body = addSchema.parse(await req.json());
+    const body = addSchema.parse(await readJson(req));
     const today = todayISO(session.timezone);
     const date = body.date ?? today;
     if (date > today) return NextResponse.json({ ok: false, code: "validation", message: "ثبت وعدهٔ مصرف‌شده در آینده ممکن نیست." }, { status: 400 });
@@ -141,7 +142,7 @@ const deleteSchema = z.object({ entryId: z.string() });
 export async function DELETE(req: NextRequest) {
   try {
     const session = await requireMember();
-    const body = deleteSchema.parse(await req.json());
+    const body = deleteSchema.parse(await readJson(req));
     const entry = await db.mealEntry.findUnique({
       where: { id: body.entryId },
       include: { nutritionDay: true },

@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { todayISO, isValidISODate } from "@/lib/dates/jalali";
 import { computeGoalProgress } from "@/lib/domain/goals";
 import { currentValueForGoal } from "@/lib/goal-values";
@@ -19,7 +20,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const session = await requireMember();
     const { id } = await params;
-    const parsed = patchSchema.safeParse(await req.json());
+    const parsed = patchSchema.safeParse(await readJson(req));
     if (!parsed.success) {
       return NextResponse.json({ ok: false, code: "validation" }, { status: 400 });
     }
