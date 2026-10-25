@@ -1,21 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { ProgramEditor } from "./program-editor";
+import { CoachNote } from "./coach-note";
+import type { CoachExerciseOption } from "@/lib/coach/program-contract";
 import { motion } from "framer-motion";
 import { PageHeader } from "@/components/layout/page-header";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { api, errorMessage } from "@/lib/client/api";
 import type { AthleteDetail } from "@/lib/coach/data";
 import { toPersianDigits, formatNumber, formatDelta } from "@/lib/formatting/numbers";
 import { formatRelative, formatJalaliLong } from "@/lib/dates/jalali";
-import { formatWorkoutPlanTitle, PLAN_TEMPLATE_LABELS } from "@/lib/workout/plan-titles";
+import { formatWorkoutPlanTitle } from "@/lib/workout/plan-titles";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 
 const PAIN_REGION_FA: Record<string, string> = {
@@ -24,40 +21,12 @@ const PAIN_REGION_FA: Record<string, string> = {
   ribs: "دنده", other: "سایر",
 };
 
-const TEMPLATES = [
-  { key: "ppl", label: PLAN_TEMPLATE_LABELS.ppl },
-  { key: "upper_lower", label: PLAN_TEMPLATE_LABELS.upper_lower },
-] as const;
-
-export function AthleteDetailView({ detail, backHref }: { detail: AthleteDetail; backHref: string }) {
-  const router = useRouter();
-  const { toast } = useToast();
-  const [template, setTemplate] = React.useState<string>("upper_lower");
-  const [note, setNote] = React.useState("");
-  const [assigning, setAssigning] = React.useState(false);
-
+export function AthleteDetailView({ detail, backHref, catalog = [], coachNote = "", canManage = false }: { detail: AthleteDetail; backHref: string; catalog?: CoachExerciseOption[]; coachNote?: string; canManage?: boolean }) {
   const weightData = detail.weightTrend.map((m) => ({ date: m.date, weight: m.weightKg }));
   const tonnageData = detail.weeklyTonnage.slice(-8).map((w) => ({
     label: formatJalaliLong(w.weekStart).split(" ").slice(1).join(" "),
     tonnage: Math.round(w.tonnageKg / 100) / 10,
   }));
-
-  const assign = async () => {
-    setAssigning(true);
-    try {
-      const res = await api<{ planName: string }>("/api/coach/assign", {
-        method: "POST",
-        body: JSON.stringify({ athleteId: detail.athlete.id, template, note: note || undefined }),
-      });
-      toast({ title: "برنامه فعال شد", description: `«${res.planName}» برای ${detail.athlete.displayName} فعال شد.` });
-      setNote("");
-      router.refresh();
-    } catch (e) {
-      toast({ title: "خطا", description: errorMessage(e), variant: "destructive" });
-    } finally {
-      setAssigning(false);
-    }
-  };
 
   return (
     <div className="max-w-6xl mx-auto w-full pb-6">
@@ -218,38 +187,16 @@ export function AthleteDetailView({ detail, backHref }: { detail: AthleteDetail;
           </section>
         </div>
 
-        {/* Assign program */}
-        <section aria-label="تجویز برنامه" className="esi-card rounded-3xl p-6">
-          <h2 className="font-bold flex items-center gap-2 mb-1">
-            <Icon name="ClipboardList" size={18} className="text-primary" />
-            تجویز برنامه جدید
-          </h2>
-          <p className="text-xs text-esi-text-secondary mb-4">
-            برنامه فعال قبلی آرشیو و برنامه جدید از فردا در داشبورد ورزشکار قرار می‌گیرد.
-          </p>
-          <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] items-end">
-            <div>
-              <label htmlFor="tpl" className="text-xs font-medium text-esi-text-secondary mb-1.5 block">الگوی برنامه</label>
-              <Select value={template} onValueChange={setTemplate}>
-                <SelectTrigger id="tpl" className="w-full h-11">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TEMPLATES.map((t) => (
-                    <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label htmlFor="note" className="text-xs font-medium text-esi-text-secondary mb-1.5 block">یادداشت مربی (اختیاری)</label>
-              <Textarea id="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="مثلاً: دو هفته اول با RPE ۷ اجرا شود" className="min-h-[44px]" maxLength={280} />
-            </div>
-            <Button onClick={() => void assign()} disabled={assigning} className="h-11 esi-glow">
-              {assigning ? "…" : "فعال‌سازی"}
-            </Button>
-          </div>
+        <section aria-label="مشخصات و پیگیری" className="esi-card rounded-3xl p-5">
+          <h2 className="font-bold">مشخصات و تغذیهٔ ثبت‌شده</h2>
+          <p className="mt-3 text-sm text-esi-text-secondary">هدف هفتگی: {toPersianDigits(detail.profile?.weeklyWorkoutTarget ?? 3)} جلسه · سطح: {detail.profile?.experienceLevel === "advanced" ? "باتجربه" : detail.profile?.experienceLevel === "intermediate" ? "متوسط" : detail.profile?.experienceLevel === "beginner" ? "مبتدی" : "ثبت نشده"}</p>
+          <p className="mt-2 text-xs text-esi-text-secondary">هدف روزانه: {detail.profile?.dailyCalorieTarget ? `${formatNumber(detail.profile.dailyCalorieTarget)} کالری` : "کالری تعیین نشده"} · {detail.profile?.dailyProteinTarget ? `${formatNumber(detail.profile.dailyProteinTarget)} گرم پروتئین` : "پروتئین تعیین نشده"}</p>
+          <div className="mt-4 overflow-x-auto"><table className="w-full text-start text-xs"><caption className="mb-3 text-start text-esi-text-secondary">۷ روز اخیر؛ روزهای بدون ثبت، صفر مصرف محسوب نمی‌شوند.</caption><thead><tr className="border-b border-border"><th className="py-2 text-start">تاریخ</th><th className="text-start">ثبت غذا</th><th className="text-start">کالری</th><th className="text-start">پروتئین</th></tr></thead><tbody>{detail.nutrition7d.map(d=><tr key={d.date} className="border-b border-border"><td className="py-3">{formatJalaliLong(d.date)}</td><td>{toPersianDigits(d.entries)}</td><td>{formatNumber(d.calories)}</td><td>{formatNumber(d.proteinG)} گرم</td></tr>)}</tbody></table></div>
+          {!detail.nutrition7d.length && <p className="py-4 text-sm text-esi-text-muted">در این هفت روز غذایی ثبت نشده است.</p>}
+          {detail.readiness14.length > 0 && <p className="mt-4 text-sm text-esi-text-secondary">آخرین آمادگی ثبت‌شده: {toPersianDigits(detail.readiness14.at(-1)!.score)} از ۱۰۰ · {formatJalaliLong(detail.readiness14.at(-1)!.scoreDate)}</p>}
         </section>
+        {detail.activePlan && <section className="esi-card rounded-3xl p-5" aria-label="برنامه فعلی"><h2 className="font-bold">برنامه فعلی</h2><p className="mt-2 text-sm">{detail.activePlan.name} · {toPersianDigits(detail.activePlan.weeks)} هفته</p><p className="mt-2 whitespace-pre-line text-xs leading-6 text-esi-text-secondary">{detail.activePlan.description}</p><div className="mt-4 space-y-2">{detail.activePlan.days.map((d,i)=><details key={i} className="rounded-xl bg-surface-2 p-3"><summary className="min-h-11 cursor-pointer text-sm font-semibold">{d.name} {d.isRest ? "· استراحت" : ""}</summary><ul className="space-y-2 text-xs">{d.exercises.map((e,j)=><li key={j} className="flex justify-between gap-3"><span>{catalog.find(x=>x.slug===e.slug)?.nameFa ?? e.slug}</span><span>{toPersianDigits(e.sets)} ست · {toPersianDigits(e.repsMin)}–{toPersianDigits(e.repsMax)} تکرار</span></li>)}</ul></details>)}</div></section>}
+        {canManage && <><CoachNote key={detail.athlete.id} athleteId={detail.athlete.id} initialNote={coachNote}/><ProgramEditor key={detail.athlete.id} athleteId={detail.athlete.id} activePlan={detail.activePlan} catalog={catalog} equipment={detail.profile?.availableEquipment ?? ""}/></>}
 
         {/* Recent sessions */}
         <section aria-label="جلسات اخیر" className="esi-card rounded-3xl p-6">

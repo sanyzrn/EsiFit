@@ -1,3 +1,4 @@
+import { mealTotals } from "@/lib/domain/meal-totals";
 import { readJson } from "@/lib/http/read-json";
 import { evaluateBadges, refreshDerivedMissions } from "@/lib/domain/gamification-engine";
 import { NextRequest, NextResponse } from "next/server";
@@ -34,17 +35,12 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
-    const totals = { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, fiberG: 0 };
+    const totals = mealTotals(day?.entries ?? []);
     const slots: Record<string, Array<{ id: string; foodName: string; emoji: string; quantity: number; servingUnit: string; servingAmount: number; calories: number; proteinG: number; carbsG: number; fatG: number }>> = {};
     for (const slot of mealOrder) slots[slot] = [];
 
     for (const entry of day?.entries ?? []) {
       const mult = entry.quantity * entry.servingMultiplier;
-      totals.calories += entry.food.calories * mult;
-      totals.proteinG += entry.food.proteinG * mult;
-      totals.carbsG += entry.food.carbsG * mult;
-      totals.fatG += entry.food.fatG * mult;
-      totals.fiberG += entry.food.fiberG * mult;
       slots[entry.mealSlot]?.push({
         id: entry.id,
         foodName: entry.food.nameFa,

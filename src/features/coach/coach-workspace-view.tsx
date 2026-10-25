@@ -1,5 +1,6 @@
 "use client";
 
+import { normalizePersianSearch } from "@/lib/formatting/search";
 import * as React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -7,7 +8,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { RevealOnScroll } from "@/components/ui/reveal-on-scroll";
 import type { RosterEntry } from "@/lib/coach/data";
 import { toPersianDigits, formatNumber } from "@/lib/formatting/numbers";
@@ -31,6 +32,9 @@ export function CoachWorkspaceView({
   activePlans: number;
   coachName: string;
 }) {
+  const [query, setQuery] = React.useState("");
+  const [filter, setFilter] = React.useState("all");
+  const visibleRoster = roster.filter(a => normalizePersianSearch(a.displayName).includes(normalizePersianSearch(query)) && (filter === "all" || (filter === "attention" ? Boolean(a.alertFa) : !a.planName)));
   const avgAdherence =
     roster.length > 0 ? Math.round(roster.reduce((s, r) => s + r.adherencePct, 0) / roster.length) : 0;
   const alerts = roster.filter((r) => r.alertFa);
@@ -91,9 +95,14 @@ export function CoachWorkspaceView({
         </section>
       )}
 
+      <section className="mb-5 grid gap-3 px-4 sm:grid-cols-2 lg:px-8" aria-label="پیدا کردن ورزشکار">
+        <label className="text-xs font-semibold">جست‌وجوی نام<Input className="mt-2" value={query} onChange={e=>setQuery(e.target.value)} placeholder="نام ورزشکار" /></label>
+        <label className="text-xs font-semibold">فیلتر پیگیری<select className="mt-2 min-h-11 w-full rounded-xl border border-border bg-surface-2 px-3 text-sm" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">همه ورزشکاران</option><option value="attention">نیازمند توجه</option><option value="no_plan">بدون برنامه فعال</option></select></label>
+        {roster.length>0 && !visibleRoster.length && <p role="status" className="py-4 text-sm text-esi-text-secondary">با این جست‌وجو و فیلتر، ورزشکاری پیدا نشد.</p>}
+      </section>
       {/* Roster cards */}
       <section aria-label="فهرست ورزشکاران" className="px-4 lg:px-8 grid gap-4 md:grid-cols-2">
-        {roster.map((athlete, i) => (
+        {visibleRoster.map((athlete, i) => (
           <RevealOnScroll key={athlete.athleteId} delay={i * 0.04}>
             <Link
               href={`/coach/athletes/${athlete.athleteId}`}

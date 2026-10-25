@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import {  } from "framer-motion";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { exerciseVisualFor } from "@/features/workouts/data/exercise-media";
 import { Icon } from "@/components/ui/icon";
@@ -59,7 +58,7 @@ export function ExerciseVisual({
   }, [cycling, speed]);
 
   if (!media || failed) {
-    if (compact) return null;
+    if (compact) return <span className={cn("flex aspect-square w-[88px] shrink-0 items-center justify-center rounded-xl border border-border bg-surface-2", className)} role="img" aria-label={`تصویر ${name} در دسترس نیست`}><Icon name="Dumbbell" size={28} className="text-esi-text-muted" /></span>;
     return (
       <figure
         className={cn(
@@ -186,14 +185,7 @@ export function ExerciseVisual({
             </button>
           </div>
         )}
-        <a
-          href="https://repdb.co"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="self-center text-[10px] text-esi-text-muted hover:text-primary"
-        >
-          Exercise data by RepDB (repdb.co)
-        </a>
+        {media.creditHref ? <a href={media.creditHref} target="_blank" rel="noopener noreferrer" className="self-center text-[10px] text-esi-text-muted hover:text-primary">{media.creditLabel}</a> : <span className="self-center text-[10px] text-esi-text-muted">{media.creditLabel}</span>}
       </figcaption>
     </figure>
   );

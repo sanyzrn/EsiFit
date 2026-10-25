@@ -46,7 +46,6 @@ export function PublicPageShell({
           <PageHeader title={title} description={description} backHref={backHref ?? "/dashboard"} />
         ) : null}
         <div className={cn("pb-6", className)}>{children}</div>
-        {showFooter ? <Footer /> : null}
       </AppShell>
     );
   }

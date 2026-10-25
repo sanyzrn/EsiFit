@@ -1,4 +1,6 @@
 import "server-only";
+import { mealTotals } from "@/lib/domain/meal-totals";
+import type { CoachActivePlan } from "./program-contract";
 import { db } from "@/lib/db";
 import { activityStreak } from "@/lib/domain/gamification-engine";
 import { todayISO, lastNDaysISO, addDaysISO, localDayStartUTC, isoDateOnly, daysBetweenISO } from "@/lib/dates/jalali";
@@ -129,13 +131,18 @@ export async function getCoachRoster(coachId: string): Promise<RosterEntry[]> {
 }
 
 export type AthleteDetail = {
-  athlete: { id: string; displayName: string; tier: string; createdAt: string };
+  athlete: { id: string; displayName: string; tier: string; createdAt: string; timezone: string };
   profile: {
+    availableEquipment: string;
+    dailyCalorieTarget: number | null;
+    dailyProteinTarget: number | null;
     heightCm: number | null;
     primaryGoal: string | null;
     experienceLevel: string | null;
     weeklyWorkoutTarget: number | null;
   } | null;
+  activePlan: CoachActivePlan | null;
+  nutrition7d: Array<{ date: string; entries: number; calories: number; proteinG: number }>;
   planName: string | null;
   streakDays: number;
   weightTrend: Array<{ date: string; weightKg: number | null }>;
@@ -156,10 +163,10 @@ export async function getCoachAthleteDetail(athleteId: string): Promise<AthleteD
 
   const now = new Date();
   const today = todayISO(athlete.timezone);
-  const [profile, plan, streak, measurements, sessions, prs, goals, readiness, pain, allSessions] =
+  const [profile, plan, streak, measurements, sessions, prs, goals, readiness, pain, allSessions, nutrition] =
     await Promise.all([
       db.userProfile.findUnique({ where: { userId: athleteId } }),
-      db.workoutPlan.findFirst({ where: { userId: athleteId, status: "active" }, select: { name: true } }),
+      db.workoutPlan.findFirst({ where: { userId: athleteId, status: "active" }, orderBy: { createdAt: "desc" }, include: { days: { where: { weekNumber: 1 }, orderBy: { dayNumber: "asc" }, include: { exercises: { orderBy: { orderIndex: "asc" }, include: { exercise: { select: { slug: true } } } } } } } }),
       activityStreak(athleteId),
       db.bodyMeasurement.findMany({
         where: { userId: athleteId, weightKg: { not: null } },
@@ -196,6 +203,7 @@ export async function getCoachAthleteDetail(athleteId: string): Promise<AthleteD
         select: { startedAt: true, totalVolumeKg: true },
         orderBy: { startedAt: "asc" },
       }),
+      db.nutritionDay.findMany({ where: { userId: athleteId, logDate: { gte: addDaysISO(today, -6), lte: today } }, orderBy: { logDate: "asc" }, take: 7, include: { entries: { include: { food: true } } } }),
     ]);
 
   // Weekly tonnage buckets (last 8 weeks).
@@ -218,15 +226,21 @@ export async function getCoachAthleteDetail(athleteId: string): Promise<AthleteD
       displayName: athlete.displayName,
       tier: athlete.tier,
       createdAt: athlete.createdAt.toISOString(),
+      timezone: athlete.timezone,
     },
     profile: profile
       ? {
+          availableEquipment: profile.availableEquipment,
+          dailyCalorieTarget: profile.dailyCalorieTarget,
+          dailyProteinTarget: profile.dailyProteinTarget,
           heightCm: profile.heightCm,
           primaryGoal: profile.primaryGoal,
           experienceLevel: profile.experienceLevel,
           weeklyWorkoutTarget: profile.weeklyWorkoutTarget,
         }
       : null,
+    activePlan: plan ? { id: plan.id, name: plan.name, description: plan.description, weeks: plan.weeks, startsOn: plan.startsOn, goalType: (["build_muscle","lose_weight","endurance","health","recomp"].includes(plan.goalType) ? plan.goalType : "health") as CoachActivePlan["goalType"], days: plan.days.map(d => ({ name: formatWorkoutDayTitle(d.name), focusRegion: d.focusRegion, isRest: d.isRestDay, exercises: d.exercises.map(e => ({ slug: e.exercise.slug, sets: e.targetSets, repsMin: e.targetRepsMin, repsMax: e.targetRepsMax, rpe: e.targetRpe, rest: e.restSeconds, note: e.note })) })) } : null,
+    nutrition7d: nutrition.map(d => ({ date: d.logDate, entries: d.entries.length, calories: Math.round(mealTotals(d.entries).calories), proteinG: Math.round(mealTotals(d.entries).proteinG) })),
     planName: plan ? formatWorkoutPlanTitle(plan.name) : null,
     streakDays: streak,
     weightTrend: measurements.map((m) => ({ date: m.measuredOn, weightKg: m.weightKg })),

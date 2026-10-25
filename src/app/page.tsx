@@ -4,7 +4,6 @@ import { getSessionUser } from "@/lib/auth/session";
 import { PublicPageShell } from "@/components/layout/public-page-shell";
 import { RevealOnScroll } from "@/components/ui/reveal-on-scroll";
 import { SectionHeader } from "@/components/ui/section-header";
-import { InstallPrompt } from "@/components/features/offline-sync-indicator";
 import { LandingHero } from "@/components/landing/hero";
 import { FeatureBento } from "@/components/landing/bento";
 import { DayFlow } from "@/components/landing/day-flow";
@@ -34,6 +33,16 @@ export default async function LandingPage() {
 
   return (
     <PublicPageShell session={session} flags={flags} showFooter flush backHref={undefined}>
+      {session && <section className="mx-auto max-w-6xl px-4 py-8 lg:px-8">
+        <p className="text-sm text-esi-text-secondary">خوش برگشتی، {session.displayName}</p>
+        <h1 className="mt-2 font-display text-3xl">ادامهٔ مسیرت در اسی‌فیت</h1>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button asChild><Link href={session.role === "admin" ? "/admin" : session.role === "coach" ? "/coach" : "/dashboard"}>رفتن به فضای من</Link></Button>
+          <Button asChild variant="secondary"><Link href="/calculators">ابزارهای محاسبه</Link></Button>
+          <Button asChild variant="secondary"><Link href="/blog">مطالب آموزشی</Link></Button>
+        </div>
+      </section>}
+      {!session && <>
       <ScrollProgress />
       <LandingHero signedIn={Boolean(session)} />
 
@@ -79,6 +88,8 @@ export default async function LandingPage() {
         </RevealOnScroll>
       </section>
 
+      </>}
+
       {/* ============ ARTICLES ============ */}
       {articles.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 lg:px-8 pb-24">
@@ -112,7 +123,7 @@ export default async function LandingPage() {
       )}
 
       {/* Minimal final action — hero above remains the only editorial art section. */}
-      <section className="mx-auto max-w-6xl px-4 pb-6 lg:px-8">
+      {!session && <section className="mx-auto max-w-6xl px-4 pb-6 lg:px-8">
         <div className="rounded-2xl border border-border bg-surface-1 px-6 py-12 text-center sm:py-16">
           <p className="text-xs font-bold text-primary">از همین امروز</p>
           <h2 className="mt-3 font-display text-3xl leading-tight sm:text-4xl">
@@ -127,9 +138,8 @@ export default async function LandingPage() {
             </Link>
           </Button>
         </div>
-      </section>
+      </section>}
 
-      <InstallPrompt />
     </PublicPageShell>
   );
 }

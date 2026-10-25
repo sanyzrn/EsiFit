@@ -7,6 +7,12 @@
 export const PLAN_TEMPLATE_LABELS = {
   ppl: "سه‌روزه: سینه و پشت، پا، سرشانه و بازو",
   upper_lower: "بالاتنه و پایین‌تنه: ۵ جلسه",
+  full_body_2: "تمام‌بدن: ۲ جلسه",
+  full_body_3: "تمام‌بدن: ۳ جلسه",
+  upper_lower_4: "بالاتنه و پایین‌تنه: ۴ جلسه",
+  home_3: "خانه بدون وزنه: ۳ جلسه",
+  dumbbell_3: "دمبل: ۳ جلسه",
+  ppl_6: "پوش، پول، پا: ۶ جلسه",
 } as const;
 
 const DAY_LABELS: Record<string, string> = {

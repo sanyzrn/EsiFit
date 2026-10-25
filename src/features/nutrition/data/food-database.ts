@@ -1,3 +1,4 @@
+import { USDA_FOODS } from "./usda-foods";
 /**
  * Persian-focused food database — per-serving nutrition values curated from
  * standard food-composition references (USDA + Iranian food composition tables).
@@ -37,6 +38,7 @@ const g = (slug: string, nameFa: string, category: FoodSeed["category"], amount:
 });
 
 export const FOODS: FoodSeed[] = [
+  ...USDA_FOODS,
   // ------- Persian dishes -------
   g("chelo-kabab-kubideh", "چلوکباب کوبیده", "persian_dishes", 1, "سیخ با برنج", 850, 38, 95, 30, 3, 780),
   g("chelo-joojeh", "چلوجوجه", "persian_dishes", 1, "نصف مرغ با برنج", 720, 45, 88, 18, 3, 640),

@@ -34,3 +34,6 @@ No account history or challenge records are deleted. Competition scoring/settlem
 
 ## Audit phases 6–7: no schema changes
 Catalog is the shared client-safe SSR/API product DTO. Product stock and member prices stay uncached. Published editorial reads alone have a 60-second data cache and explicit Date hydration; session-aware HTML remains dynamic. Origin/social/canonical generation and internal next destinations use shared validators. JSON request bodies are capped at 1 MiB, including unknown-length streams, before JSON/Zod allocation; payload_too_large maps to 413. No new database entity or feature flag.
+
+## Coach/catalog/engagement — no schema changes
+POST /api/coach/program uses a bounded seven-day CoachProgramDraft and sourcePlanId. It serializes by User/CoachClient, rechecks active ownership, archives the previous plan, persists explicit weekly rows and updates weeklyWorkoutTarget plus notification atomically. Sessions/history are retained. PATCH /api/coach/note edits only the existing active relationship's note. The athlete DTO includes current first-week prescription and seven-day nutrition totals, without inventing a stored entity. Catalog additions preserve existing IDs and historical food values. Install engagement/cooldown is local device state, not a new user database field.

@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { createPortal } from "react-dom";
 import { queuedCount, syncQueue } from "@/lib/offline/adapter";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
@@ -68,70 +67,4 @@ export function OfflineIndicator() {
   );
 }
 
-/** Install prompt — contextual, dismissible, no aggressive nagging. */
-export function InstallPrompt() {
-  const [deferred, setDeferred] = React.useState<Event | null>(null);
-  const [dismissed, setDismissed] = React.useState(true);
-
-  React.useEffect(() => {
-    const stored = localStorage.getItem("esifit-install-dismissed");
-    setDismissed(stored === "1");
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferred(e);
-      if (localStorage.getItem("esifit-install-dismissed") !== "1") setDismissed(false);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
-
-  if (!deferred || dismissed) return null;
-
-  const dismiss = () => {
-    localStorage.setItem("esifit-install-dismissed", "1");
-    setDismissed(true);
-  };
-
-  return createPortal(
-    <div
-      role="dialog"
-      aria-label="نصب اسی‌فیت"
-      className="fixed z-[70] inset-x-4 top-[calc(4.5rem+env(safe-area-inset-top))] sm:inset-x-auto sm:top-auto sm:bottom-6 sm:end-6 sm:w-96 max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-surface-1 p-4 text-esi-text-primary shadow-[var(--shadow-float)]"
-    >
-      <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl esi-gradient-brand">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path d="M4 9v6M8 7v10M16 7v10M20 9v6M8 12h8" stroke="var(--primary-foreground)" strokeWidth="2.2" strokeLinecap="round" />
-          </svg>
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold">اسی‌فیت را نصب کنید</p>
-          <p className="text-xs text-esi-text-secondary mt-0.5 leading-5">
-            دسترسی سریع، حالت تمام‌صفحه و کارکرد آفلاین در تمرین‌ها
-          </p>
-          <div className="mt-3 flex items-center gap-2">
-            <button
-              type="button"
-              className="rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-transform duration-150 active:scale-95"
-              onClick={async () => {
-                const prompt = deferred as Event & { prompt?: () => Promise<void> };
-                await prompt.prompt?.();
-                dismiss();
-              }}
-            >
-              نصب
-            </button>
-            <button
-              type="button"
-              className="rounded-lg px-3 py-2 text-xs text-esi-text-muted hover:text-esi-text-primary"
-              onClick={dismiss}
-            >
-              بعداً
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>,
-    document.body,
-  );
-}
+export { InstallPrompt } from "./install-prompt";
