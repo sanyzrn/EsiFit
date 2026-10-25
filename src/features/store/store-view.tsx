@@ -1,53 +1,59 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { PageHeader } from "@/components/layout/app-shell";
+import { motion, AnimatePresence } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/ui/icon";
 import { api, errorMessage } from "@/lib/client/api";
 import { useToast } from "@/hooks/use-toast";
 import { formatToman, toPersianDigits } from "@/lib/formatting/numbers";
-import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { formatJalaliLong } from "@/lib/dates/jalali";
+import { loginPath } from "@/lib/auth/return-path";
+import type { Catalog, CatalogProduct } from "@/lib/commerce/catalog-types";
+import type { OrderReceipt } from "@/lib/commerce/orders";
 
-type Product = {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  type: string;
-  emoji: string;
-  priceToman: number;
-  compareAtToman: number | null;
-  stock: number;
-  badge: string | null;
-  finalPriceToman: number;
-};
+type Product = CatalogProduct;
 
 type CartLine = { product: Product; qty: number };
 
-export function StoreView({ signedIn }: { signedIn: boolean }) {
-  const [products, setProducts] = React.useState<Product[] | null>(null);
-  const [discount, setDiscount] = React.useState(0);
+export function StoreView({ signedIn, initialCatalog }: { signedIn: boolean; initialCatalog: Catalog | null }) {
+  const [products, setProducts] = React.useState<Product[] | null>(initialCatalog?.products ?? null);
+  const [discount, setDiscount] = React.useState(initialCatalog?.discountPercent ?? 0);
+  const [catalogError, setCatalogError] = React.useState<string | null>(initialCatalog ? null : "بارگذاری فروشگاه انجام نشد. دوباره تلاش کنید.");
+  const [catalogLoading, setCatalogLoading] = React.useState(false);
   const [cart, setCart] = React.useState<CartLine[]>([]);
   const [cartOpen, setCartOpen] = React.useState(false);
+  const [historyOpen, setHistoryOpen] = React.useState(false);
+  const [orders, setOrders] = React.useState<OrderReceipt[] | null>(null);
+  const [ordersNext, setOrdersNext] = React.useState<string | null>(null);
+  const [ordersLoading, setOrdersLoading] = React.useState(false);
+  const [ordersError, setOrdersError] = React.useState<string | null>(null);
   const [checkout, setCheckout] = React.useState(false);
-  const [order, setOrder] = React.useState<{ totalToman: number; discountToman: number } | null>(null);
+  const [order, setOrder] = React.useState<OrderReceipt | null>(null);
   const { toast } = useToast();
   const reduce = useReducedMotion();
 
-  React.useEffect(() => {
-    void (async () => {
-      try {
-        const res = await api<{ products: Product[]; discountPercent: number }>("/api/store/products");
-        setProducts(res.products);
-        setDiscount(res.discountPercent);
-      } catch {
-        setProducts([]);
-      }
-    })();
+  const reloadCatalog = async () => {
+    setCatalogLoading(true); setCatalogError(null);
+    try { const result = await api<Catalog>("/api/store/products"); setProducts(result.products); setDiscount(result.discountPercent); }
+    catch (error) { setCatalogError(errorMessage(error)); }
+    finally { setCatalogLoading(false); }
+  };
+
+  const loadOrders = React.useCallback(async (cursor: string | null = null) => {
+    setOrdersLoading(true); setOrdersError(null);
+    try {
+      const result = await api<{ orders: OrderReceipt[]; nextCursor: string | null }>(`/api/store/orders${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`);
+      setOrders(previous => cursor ? [...new Map([...(previous ?? []), ...result.orders].map(receipt => [receipt.id, receipt])).values()] : result.orders);
+      setOrdersNext(result.nextCursor);
+    } catch (error) { setOrdersError(errorMessage(error)); }
+    finally { setOrdersLoading(false); }
   }, []);
+  React.useEffect(() => { if (historyOpen && orders === null) void loadOrders(); }, [historyOpen, orders, loadOrders]);
 
   const addToCart = (p: Product) => {
     setCart((c) => {
@@ -66,12 +72,12 @@ export function StoreView({ signedIn }: { signedIn: boolean }) {
   const doCheckout = async () => {
     setCheckout(true);
     try {
-      const res = await api<{ order: { totalToman: number; discountToman: number }; message: string }>("/api/store/checkout", {
+      const res = await api<{ order: OrderReceipt; message: string }>("/api/store/checkout", {
         method: "POST",
         json: { items: cart.map((l) => ({ productId: l.product.id, qty: l.qty })) },
       });
       setOrder(res.order);
-      setCart([]);
+      setCart([]); setOrders(null); setOrdersNext(null); setOrdersError(null);
     } catch (e) {
       toast({ title: "پرداخت ناموفق", description: errorMessage(e), variant: "destructive" });
     } finally {
@@ -92,6 +98,8 @@ export function StoreView({ signedIn }: { signedIn: boolean }) {
         }
         backHref={signedIn ? "/dashboard" : "/"}
         action={
+          <div className="flex flex-wrap gap-2">
+            {signedIn && <Button variant="secondary" className="min-h-11" onClick={() => setHistoryOpen(true)}>سفارش‌های من</Button>}
           <Button variant="secondary" className="h-11 relative active:scale-[0.98] transition-transform" onClick={() => setCartOpen(true)}>
             <Icon name="ShoppingCart" size={18} />
             سبد خرید
@@ -107,20 +115,23 @@ export function StoreView({ signedIn }: { signedIn: boolean }) {
               </motion.span>
             )}
           </Button>
+          </div>
         }
       />
 
       <div className="px-4 lg:px-8">
-        {!products ? (
+        {catalogError && <div role="alert" className="mb-4 rounded-2xl border border-destructive/30 p-4 text-sm"><p>{catalogError}</p><Button variant="secondary" className="mt-3 min-h-11" disabled={catalogLoading} onClick={() => void reloadCatalog()}>{catalogLoading ? "در حال بارگذاری…" : "تلاش دوباره"}</Button></div>}
+        {products?.length === 0 && <p className="py-12 text-center text-sm text-esi-text-secondary">هنوز محصولی در فروشگاه موجود نیست. کمی بعد دوباره سر بزنید.</p>}
+        {!products && catalogLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-56 rounded-3xl" />)}
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {products.map((p, i) => (
+            {products?.map((p, i) => (
               <motion.article
                 key={p.id}
-                initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
+                initial={false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: reduce ? 0.01 : 0.32, delay: reduce ? 0 : Math.min(i * 0.04, 0.28) }}
                 className="group flex flex-col esi-card rounded-3xl p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-raised)]"
@@ -147,6 +158,33 @@ export function StoreView({ signedIn }: { signedIn: boolean }) {
           </div>
         )}
       </div>
+
+      <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+        <SheetContent className="overflow-y-auto bg-surface-1">
+          <SheetHeader>
+            <SheetTitle>سفارش‌های من</SheetTitle>
+            <SheetDescription>رسیدهای ثبت‌شدهٔ محیط آزمایشی؛ هیچ پرداخت واقعی انجام نشده است.</SheetDescription>
+          </SheetHeader>
+          <div className="space-y-4 px-4 pb-6">
+            {ordersError && <div role="alert" className="rounded-2xl border border-destructive/30 p-4 text-sm text-destructive">
+              <p>{ordersError}</p>
+              <Button variant="secondary" className="mt-3 min-h-11" disabled={ordersLoading} onClick={() => void loadOrders(orders?.length ? ordersNext : null)}>تلاش دوباره</Button>
+            </div>}
+            {ordersLoading && orders === null ? <Skeleton className="h-48 rounded-2xl" /> : orders?.length === 0 ? <div className="rounded-2xl border border-border p-5 text-sm leading-7 text-esi-text-secondary">هنوز سفارشی ثبت نکرده‌اید. از فروشگاه محصولی انتخاب کنید؛ رسید آن همین‌جا می‌ماند.</div> : orders?.map(receipt => <article key={receipt.id} className="rounded-2xl border border-border bg-surface-2 p-4">
+              <p className="text-sm font-bold">{formatJalaliLong(new Date(receipt.createdAt))}</p>
+              <p className="mt-1 text-xs text-esi-text-muted">{receipt.status === "paid" ? "ثبت پرداخت آزمایشی" : receipt.status === "canceled" ? "لغوشده" : "در انتظار"}</p>
+              <p className="mt-2 break-all text-xs text-esi-text-muted">شناسه: <span dir="ltr">{receipt.id}</span></p>
+              {receipt.items.length ? <ul className="mt-3 space-y-2">{receipt.items.map((item, index) => <li key={`${item.productId}:${index}`} className="text-sm leading-6">
+                <p>{item.nameFa} × {toPersianDigits(item.qty)}</p>
+                <p className="text-xs text-esi-text-secondary">{item.unitPriceToman != null ? `قیمت واحد: ${formatToman(item.unitPriceToman)}` : `قیمت پایهٔ ثبت‌شده: ${formatToman(item.priceToman)}`}</p>
+              </li>)}</ul> : <p className="mt-3 text-xs text-esi-text-muted">جزئیات اقلام این رسید در دسترس نیست.</p>}
+              <p className="mt-4 text-sm font-bold">جمع ثبت‌شده: {formatToman(receipt.totalToman)}</p>
+              {receipt.discountToman > 0 && <p className="mt-1 text-xs text-esi-text-secondary">تخفیف: {formatToman(receipt.discountToman)}</p>}
+            </article>)}
+            {ordersNext && <Button variant="secondary" className="min-h-11 w-full" disabled={ordersLoading} onClick={() => void loadOrders(ordersNext)}>{ordersLoading ? "در حال بارگذاری…" : "سفارش‌های بیشتر"}</Button>}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Cart drawer */}
       <AnimatePresence>

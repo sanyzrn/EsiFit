@@ -176,8 +176,19 @@ async function resolveEffectiveTier(userId: string, storedTier: string): Promise
   const now = new Date();
   const active = subs.find((s) => s.status === "active" && s.currentPeriodEndsAt >= now);
   if (active && isMemberTier(active.tier)) return active.tier;
-  await db.user.update({ where: { id: userId }, data: { tier: "free" } }).catch(() => undefined);
-  return "free";
+  // A purchase/cancellation may have committed since the first subscription
+  // read. Recheck under the same member-row lock used by those writes so an
+  // expired snapshot cannot overwrite a newly purchased entitlement.
+  return db.$transaction(async tx => {
+    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`;
+    const current = await tx.subscription.findFirst({
+      where: { userId, status: "active", currentPeriodEndsAt: { gte: new Date() } },
+      orderBy: { currentPeriodEndsAt: "desc" }, select: { tier: true },
+    });
+    if (current && isMemberTier(current.tier)) return current.tier;
+    await tx.user.update({ where: { id: userId }, data: { tier: "free" } });
+    return "free";
+  });
 }
 
 /** Route-guard: throws authentication AppError when unauthenticated. */

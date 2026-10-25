@@ -1,3 +1,4 @@
+import { publicMetadata } from "@/lib/seo/site";
 import { notFound } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
 import { PublicPageShell } from "@/components/layout/public-page-shell";
@@ -11,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const calc = CALCULATOR_CONFIGS.find((c) => c.slug === slug);
   return calc
-    ? { title: calc.metaTitle, description: calc.metaDescription }
+    ? publicMetadata(`/calculators/${calc.slug}`, calc.metaTitle, calc.metaDescription)
     : { title: "ماشین‌حساب" };
 }
 

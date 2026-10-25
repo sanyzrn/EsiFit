@@ -452,10 +452,10 @@ async function main() {
   // Challenge participation
   const challenges = await db.challenge.findMany();
   for (const ch of challenges) {
-    await db.challengeParticipant.create({ data: { challengeId: ch.id, userId: demo.id, score: Math.round(between(8, 20)) } });
+    await db.challengeParticipant.create({ data: { challengeId: ch.id, userId: demo.id, score: 0 } });
     for (const u of communityUsers) {
       if (rand() > 0.35) {
-        await db.challengeParticipant.create({ data: { challengeId: ch.id, userId: u.id, score: Math.round(between(2, 26)) } }).catch(() => undefined);
+        await db.challengeParticipant.create({ data: { challengeId: ch.id, userId: u.id, score: 0 } }).catch(() => undefined);
       }
     }
   }
@@ -659,20 +659,11 @@ async function main() {
   });
 
   // Starter plan for the demo athlete and roster, so "today's workout" works on first login.
-  // plan-templates is a server module (`import "server-only"`); give scripts a shim for that marker.
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Module = require("node:module");
-    const originalResolve = Module._resolveFilename;
-    Module._resolveFilename = (request: string, ...rest: unknown[]) =>
-      request === "server-only" ? require.resolve("./server-only-shim.cjs") : originalResolve(request, ...rest);
-    const { createDefaultPlanForUser } = await import("../src/features/workouts/data/plan-templates");
-    const planUsers = await db.user.findMany({ where: { role: "member", profile: { isNot: null } }, select: { id: true } });
-    for (const u of planUsers) await createDefaultPlanForUser(u.id, null);
-    console.log(`   ${planUsers.length} starter plans`);
-  } catch (error) {
-    console.warn("   (skipped starter plans — run with `tsx scripts/seed.ts`)", error instanceof Error ? error.message : error);
-  }
+  // The seed-only tsconfig maps server-only to a script shim (app builds keep the guard).
+  const { createDefaultPlanForUser } = await import("../src/features/workouts/data/plan-templates");
+  const planUsers = await db.user.findMany({ where: { role: "member", profile: { isNot: null } }, select: { id: true } });
+  for (const u of planUsers) await createDefaultPlanForUser(u.id, null);
+  console.log(`   ${planUsers.length} starter plans`);
 
   console.log("✅ Seed complete");
   console.log(`   Demo user: 09120000000 (امیر رضایی, VIP)`);

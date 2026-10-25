@@ -1,8 +1,9 @@
+import { readJson } from "@/lib/http/read-json";
+import { withSessionLock } from "@/lib/workout/session-lock";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireMember } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
-import { db } from "@/lib/db";
 import { defaultPrescription } from "@/lib/workout/prescription";
 
 const bodySchema = z.object({
@@ -21,99 +22,104 @@ const bodySchema = z.object({
 export async function POST(req: Request) {
   try {
     const sessionUser = await requireMember();
-    const parsed = bodySchema.safeParse(await req.json());
+    const parsed = bodySchema.safeParse(await readJson(req));
     if (!parsed.success) {
       return NextResponse.json({ ok: false, code: "validation" }, { status: 400 });
     }
     const { sessionId, exerciseId, targetExerciseId, reason } = parsed.data;
 
-    const session = await db.workoutSession.findUnique({
-      where: { id: sessionId },
-      include: { exerciseLogs: { include: { _count: { select: { sets: true } } } } },
-    });
-    if (!session || session.userId !== sessionUser.id) {
-      return NextResponse.json({ ok: false, code: "not_found" }, { status: 404 });
-    }
-    if (session.status !== "active" && session.status !== "paused") {
-      return NextResponse.json(
-        { ok: false, code: "conflict", message: "جایگزینی فقط در جلسه فعال ممکن است." },
-        { status: 409 },
-      );
-    }
-
-    const target = await db.exercise.findUnique({ where: { id: targetExerciseId } });
-    if (!target) {
-      return NextResponse.json({ ok: false, code: "not_found" }, { status: 404 });
-    }
-
-    const existingLog = session.exerciseLogs.find((l) => l.exerciseId === exerciseId);
-    if (existingLog && existingLog._count.sets > 0) {
-      return NextResponse.json(
-        { ok: false, code: "conflict", message: "برای این حرکت ست ثبت شده — جایگزینی ممکن نیست." },
-        { status: 409 },
-      );
-    }
-
-    // Do not create a second log for an exercise already in this session.
-    if (target.id !== exerciseId) {
-      const targetAlready = session.exerciseLogs.find((l) => l.exerciseId === target.id);
-      if (targetAlready) {
+    return await withSessionLock(sessionId, async tx => {
+      const session = await tx.workoutSession.findUnique({
+        where: { id: sessionId },
+        include: { exerciseLogs: { include: { _count: { select: { sets: true } } } } },
+      });
+      if (!session || session.userId !== sessionUser.id) {
+        return NextResponse.json({ ok: false, code: "not_found" }, { status: 404 });
+      }
+      if (session.status !== "active" && session.status !== "paused") {
         return NextResponse.json(
-          { ok: false, code: "conflict", message: "این حرکت قبلاً در جلسه هست." },
+          { ok: false, code: "conflict", message: "جایگزینی فقط در جلسه فعال ممکن است." },
           { status: 409 },
         );
       }
-    }
 
-    // Prefer the plan-day prescription for the replacement when it exists.
-    let prescription = defaultPrescription(target);
-    if (session.planDayId) {
-      const planned = await db.plannedExercise.findFirst({
-        where: { planDayId: session.planDayId, exerciseId: target.id },
-      });
-      if (planned) {
-        prescription = {
-          targetSets: planned.targetSets,
-          targetRepsMin: planned.targetRepsMin,
-          targetRepsMax: planned.targetRepsMax,
-          targetRpe: planned.targetRpe,
-          restSeconds: planned.restSeconds,
-          note: planned.note,
-        };
+      const target = await tx.exercise.findUnique({ where: { id: targetExerciseId } });
+      if (!target) {
+        return NextResponse.json({ ok: false, code: "not_found" }, { status: 404 });
       }
-    }
 
-    const log = existingLog
-      ? await db.exerciseLog.update({ where: { id: existingLog.id }, data: { exerciseId: target.id } })
-      : await db.exerciseLog.create({
-          data: {
-            sessionId,
-            exerciseId: target.id,
-            orderIndex: session.exerciseLogs.length,
-          },
+      const existingLog = session.exerciseLogs.find((l) => l.exerciseId === exerciseId);
+      if (existingLog && existingLog._count.sets > 0) {
+        return NextResponse.json(
+          { ok: false, code: "conflict", message: "برای این حرکت ست ثبت شده — جایگزینی ممکن نیست." },
+          { status: 409 },
+        );
+      }
+
+      // Do not create a second log for an exercise already in this session.
+      if (target.id !== exerciseId) {
+        const targetAlready = session.exerciseLogs.find((l) => l.exerciseId === target.id);
+        const plannedTarget = session.planDayId ? await tx.plannedExercise.findFirst({
+          where: { planDayId: session.planDayId, exerciseId: target.id }, select: { id: true },
+        }) : null;
+        if (targetAlready || plannedTarget) {
+          return NextResponse.json(
+            { ok: false, code: "conflict", message: "این حرکت قبلاً در جلسه هست." },
+            { status: 409 },
+          );
+        }
+      }
+
+      // Prefer the plan-day prescription for the replacement when it exists.
+      let prescription = defaultPrescription(target);
+      if (session.planDayId) {
+        const planned = await tx.plannedExercise.findFirst({
+          where: { planDayId: session.planDayId, exerciseId: target.id },
         });
+        if (planned) {
+          prescription = {
+            targetSets: planned.targetSets,
+            targetRepsMin: planned.targetRepsMin,
+            targetRepsMax: planned.targetRepsMax,
+            targetRpe: planned.targetRpe,
+            restSeconds: planned.restSeconds,
+            note: planned.note,
+          };
+        }
+      }
 
-    await db.exerciseSwap.create({
-      data: {
-        userId: sessionUser.id,
-        sourceExerciseId: exerciseId,
-        replacementExerciseId: target.id,
-        reason,
-        workoutSessionId: sessionId,
-      },
-    });
+      const log = existingLog
+        ? await tx.exerciseLog.update({ where: { id: existingLog.id }, data: { exerciseId: target.id } })
+        : await tx.exerciseLog.create({
+            data: {
+              sessionId,
+              exerciseId: target.id,
+              orderIndex: session.exerciseLogs.length,
+            },
+          });
 
-    return NextResponse.json({
-      ok: true,
-      log: {
-        id: log.id,
-        exerciseId: log.exerciseId,
-        name: target.nameFa,
-        slug: target.slug,
-        instructions: target.instructionsFa,
-        equipment: target.equipment,
-        ...prescription,
-      },
+      await tx.exerciseSwap.create({
+        data: {
+          userId: sessionUser.id,
+          sourceExerciseId: exerciseId,
+          replacementExerciseId: target.id,
+          reason,
+          workoutSessionId: sessionId,
+        },
+      });
+
+      return NextResponse.json({
+        ok: true,
+        log: {
+          id: log.id,
+          exerciseId: log.exerciseId,
+          name: target.nameFa,
+          slug: target.slug,
+          instructions: target.instructionsFa,
+          equipment: target.equipment,
+          ...prescription,
+        },
+      });
     });
   } catch (error) {
     return appErrorResponse(error);

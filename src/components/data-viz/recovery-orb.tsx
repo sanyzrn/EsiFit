@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { READINESS_STATE_FA } from "@/lib/domain/body-math";
 import { cn } from "@/lib/utils";

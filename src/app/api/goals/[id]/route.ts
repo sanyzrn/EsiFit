@@ -1,3 +1,7 @@
+import { readJson } from "@/lib/http/read-json";
+import { todayISO, isValidISODate } from "@/lib/dates/jalali";
+import { computeGoalProgress } from "@/lib/domain/goals";
+import { currentValueForGoal } from "@/lib/goal-values";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireMember } from "@/lib/auth/session";
@@ -8,7 +12,7 @@ const patchSchema = z.object({
   status: z.enum(["active", "achieved", "archived"]).optional(),
   title: z.string().max(80).optional(),
   targetValue: z.number().positive().finite().optional(),
-  targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  targetDate: z.string().refine(isValidISODate, "تاریخ معتبر نیست.").optional(),
 });
 
 /** PATCH /api/goals/[id] — update own goal (title/target/status). */
@@ -16,7 +20,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const session = await requireMember();
     const { id } = await params;
-    const parsed = patchSchema.safeParse(await req.json());
+    const parsed = patchSchema.safeParse(await readJson(req));
     if (!parsed.success) {
       return NextResponse.json({ ok: false, code: "validation" }, { status: 400 });
     }
@@ -26,10 +30,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ ok: false, code: "not_found" }, { status: 404 });
     }
 
+    const today = todayISO(session.timezone);
+    if (parsed.data.targetDate && parsed.data.targetDate <= today) {
+      return NextResponse.json({ ok: false, code: "validation", message: "تاریخ هدف باید در آینده باشد." }, { status: 400 });
+    }
+    const changesTarget = parsed.data.targetValue != null;
+    let status = parsed.data.status ?? goal.status;
+    if (status !== "archived" && (changesTarget || parsed.data.status === "active")) {
+      const current = await currentValueForGoal(session.id, goal, today);
+      status = computeGoalProgress({ ...goal, targetValue: parsed.data.targetValue ?? goal.targetValue }, current, today).achieved ? "achieved" : "active";
+    }
+
     const updated = await db.goal.update({
       where: { id },
       data: {
-        ...(parsed.data.status ? { status: parsed.data.status } : {}),
+        status,
         ...(parsed.data.title != null ? { title: parsed.data.title } : {}),
         ...(parsed.data.targetValue != null ? { targetValue: parsed.data.targetValue } : {}),
         ...(parsed.data.targetDate ? { targetDate: parsed.data.targetDate } : {}),

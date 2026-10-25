@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getSessionUser();
     if (!session) return NextResponse.json({ ok: false, code: "authentication" }, { status: 401 });
-    const body = readSchema.parse(await req.json());
+    const body = readSchema.parse(await readJson(req));
     if (body.all) {
       await db.notification.updateMany({ where: { userId: session.id, readAt: null }, data: { readAt: new Date() } });
     } else if (body.id) {

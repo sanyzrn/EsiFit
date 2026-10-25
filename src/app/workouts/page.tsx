@@ -1,6 +1,8 @@
+import { loginPath } from "@/lib/auth/return-path";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
-import { AppShell, PageHeader } from "@/components/layout/app-shell";
+import { AppShell } from "@/components/layout/app-shell";
+import { PageHeader } from "@/components/layout/page-header";
 import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 import { db } from "@/lib/db";
 import { getTodayPlanDay } from "@/features/workouts/data/plan-templates";
@@ -12,7 +14,7 @@ export const metadata = { title: "تمرین" };
 
 export default async function WorkoutsPage() {
   const session = await getSessionUser();
-  if (!session) redirect("/auth/login");
+  if (!session) redirect(loginPath("/workouts"));
   if (session.role !== "member") redirect(session.role === "admin" ? "/admin" : "/coach");
 
   const [planDay, exercises, activePlan] = await Promise.all([

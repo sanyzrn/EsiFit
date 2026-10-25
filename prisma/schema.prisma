@@ -898,3 +898,12 @@ model AiAction {
   actor          User @relation(fields: [actorId], references: [id], onDelete: Cascade)
   @@index([actorId, conversationId, createdAt])
 }
+
+// Atomic, shared counters; server credentials only (no client Data API access).
+model RateLimitBucket {
+  key     String   @id
+  count   Int
+  resetAt DateTime
+
+  @@index([resetAt])
+}

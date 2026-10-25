@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useSessionRefresh } from "@/lib/client/use-session";
 import { formatToman, toPersianDigits } from "@/lib/formatting/numbers";
 import { TIER_LABELS } from "@/lib/entitlements/entitlements";
+import { formatJalaliLong } from "@/lib/dates/jalali";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
 type Plan = {
@@ -25,32 +27,44 @@ type Plan = {
 
 export function PlansView({ currentTier }: { currentTier: string | null }) {
   const [plans, setPlans] = React.useState<Plan[] | null>(null);
+  const [effectiveTier, setEffectiveTier] = React.useState(currentTier);
+  const [subscription, setSubscription] = React.useState<{ id: string; currentPeriodEndsAt: string } | null>(null);
+  const [cancelOpen, setCancelOpen] = React.useState(false);
   const [busy, setBusy] = React.useState<string | null>(null);
   const { toast } = useToast();
   const refresh = useSessionRefresh();
 
-  React.useEffect(() => {
-    void (async () => {
-      try {
-        const res = await api<{ plans: Plan[] }>("/api/plans/subscribe");
-        setPlans(res.plans);
-      } catch {
-        setPlans([]);
-      }
-    })();
+  const loadPlans = React.useCallback(async () => {
+    try {
+      const res = await api<{ plans: Plan[]; currentTier: string | null; currentSubscription: { id: string; currentPeriodEndsAt: string } | null }>("/api/plans/subscribe");
+      setPlans(res.plans); setEffectiveTier(res.currentTier); setSubscription(res.currentSubscription);
+    } catch { setPlans([]); }
   }, []);
+  React.useEffect(() => { void loadPlans(); }, [loadPlans]);
 
   const subscribe = async (code: string) => {
     setBusy(code);
     try {
       const res = await api<{ message: string }>("/api/plans/subscribe", { method: "POST", json: { planCode: code } });
       toast({ title: res.message });
-      await refresh();
+      await loadPlans();
+      refresh();
     } catch (e) {
       toast({ title: "فعال‌سازی ناموفق", description: errorMessage(e), variant: "destructive" });
     } finally {
       setBusy(null);
     }
+  };
+
+  const cancelSubscription = async () => {
+    setBusy("cancel");
+    try {
+      const result = await api<{ message: string }>("/api/plans/subscribe", { method: "DELETE" });
+      toast({ title: result.message });
+      setCancelOpen(false); await loadPlans(); refresh();
+    } catch (error) {
+      toast({ title: "لغو انجام نشد", description: errorMessage(error), variant: "destructive" });
+    } finally { setBusy(null); }
   };
 
   if (!plans) {
@@ -63,6 +77,23 @@ export function PlansView({ currentTier }: { currentTier: string | null }) {
 
   return (
     <div className="px-4 lg:px-8 pb-8 max-w-6xl mx-auto">
+      {subscription && <section aria-label="اشتراک فعال" className="mb-5 rounded-2xl border border-border bg-surface-1 p-5">
+        <h2 className="font-bold">اشتراک فعال شما</h2>
+        <p className="mt-2 text-sm leading-6 text-esi-text-secondary">اعتبار تا {formatJalaliLong(new Date(subscription.currentPeriodEndsAt))} · بدون تمدید خودکار</p>
+        <Button variant="secondary" className="mt-3 min-h-11" disabled={busy !== null} onClick={() => setCancelOpen(true)}>لغو اشتراک و بازگشت به رایگان</Button>
+      </section>}
+      <AlertDialog open={cancelOpen} onOpenChange={open => { if (busy !== "cancel") setCancelOpen(open); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>اشتراک لغو شود؟</AlertDialogTitle>
+            <AlertDialogDescription>مزایای ویژه از همین لحظه پایان می‌یابد و حساب به پلن رایگان برمی‌گردد. داده‌ها و سفارش‌ها حفظ می‌شوند. این اقدام بازپرداخت ایجاد نمی‌کند؛ پرداخت فعلی آزمایشی است.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy === "cancel"}>انصراف</AlertDialogCancel>
+            <AlertDialogAction disabled={busy === "cancel"} onClick={event => { event.preventDefault(); void cancelSubscription(); }}>{busy === "cancel" ? "در حال لغو…" : "تأیید لغو اشتراک"}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {/* Free plan banner */}
       <div className="mb-5 esi-card rounded-3xl p-6 flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -73,9 +104,9 @@ export function PlansView({ currentTier }: { currentTier: string | null }) {
         </div>
         <span className={cn(
           "rounded-full px-4 py-2 text-xs font-bold",
-          currentTier === "free" || !currentTier ? "bg-primary text-primary-foreground" : "bg-surface-2 text-esi-text-muted",
+          effectiveTier === "free" || !effectiveTier ? "bg-primary text-primary-foreground" : "bg-surface-2 text-esi-text-muted",
         )}>
-          {currentTier === "free" || !currentTier ? "پلن فعلی شما" : "همیشه در دسترس"}
+          {effectiveTier === "free" || !effectiveTier ? "پلن فعلی شما" : "همیشه در دسترس"}
         </span>
       </div>
 
@@ -88,7 +119,7 @@ export function PlansView({ currentTier }: { currentTier: string | null }) {
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {plans.map((p, i) => {
-          const isCurrent = currentTier === p.tier;
+          const isCurrent = effectiveTier === p.tier;
           return (
             <motion.article
               key={p.id}
@@ -122,20 +153,20 @@ export function PlansView({ currentTier }: { currentTier: string | null }) {
               <Button
                 className={cn("mt-6 h-11 w-full", p.highlight && "esi-glow")}
                 variant={isCurrent ? "secondary" : "default"}
-                disabled={isCurrent || busy === p.code}
+                disabled={isCurrent || busy !== null}
                 onClick={() => void subscribe(p.code)}
               >
                 {isCurrent ? `پلن فعلی (${TIER_LABELS[p.tier as keyof typeof TIER_LABELS]})` : busy === p.code ? "…" : "انتخاب پلن"}
               </Button>
-              <p className="mt-2 text-center text-[10px] text-esi-text-muted">پرداخت آزمایشی دمو — لغو در هر زمان</p>
+              <p className="mt-2 text-center text-[10px] text-esi-text-muted">پرداخت آزمایشی دمو — بدون تمدید خودکار</p>
             </motion.article>
           );
         })}
       </div>
 
       <p className="mt-6 text-center text-xs leading-6 text-esi-text-muted max-w-xl mx-auto">
-        داده‌های سلامت شما مال شماست: در همه پلن‌ها، خروجی داده و حذف حساب بدون محدودیت در دسترس است.
-        محاسبات پایه هرگز پشت دیگری پرداخت قرار نمی‌گیرند.
+        داده‌های سلامت شما مال شماست: در همهٔ پلن‌ها، خروجی داده‌های ورزشی، سفارش‌ها و اشتراک‌ها در دسترس است. حذف حساب در این نسخه هنوز فعال نیست.
+        محاسبات پایه هرگز پشت دیوار پرداخت قرار نمی‌گیرند.
       </p>
     </div>
   );

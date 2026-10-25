@@ -24,3 +24,34 @@ existing `Exercise.instructionsFa` field. Add/swap responses retain equipment.
 - `features/admin/ai-management-tab.tsx`: connection probe/save, private credential edit, paged per-user grants/usage, action audit.
 - `features/ai/ai-assistant-view.tsx`: role-aware chat, history, quotas and reviewed action cards; reuses shared alert dialog and shell.
 - `lib/ai/{provider-config,provider,transport,secrets,access,quota,prompt,actions,athlete-context,tool-contracts}.ts`: canonical provider, role and execution boundary. See `docs/HAMPA_AI.md` before extending tools.
+
+## Audit phases 1–3 (2026-10-25)
+- `WorkoutSessionHUD`: existing capture form includes a labeled warmup checkbox, persisted in the same offline set payload; resumed sets preserve classification. Warmups do not advance prescribed working-set progress.
+- Auth response: `needsOnboarding` names the existing routing behavior; `isNewUser` remains a compatibility alias.
+- Added server-only `RateLimitBucket` (hashed key/count/expiry); no feature flags or new UI primitives.
+
+## Audit phase 4 (2026-10-25)
+- `AchievementsView`: existing mission cards now identify their period; outstanding completed historical periods remain claimable. Claims are keyed by mission and period, with existing loading/toast/error handling retained.
+- `WorkoutSessionHUD`: completion waits for all queued sets from its own session. Transient failures keep it open. Terminal rejections show a separate explicit action to finish only the saved sets; rejected local records remain preserved.
+- Existing challenge tab is hidden by the server-resolved CHALLENGES flag, default off until scoring/settlement is implemented.
+- Shared `activity-streak` helpers provide current and longest calendar-day streaks; no new visual components or database entities.
+
+## Audit phase 5 (2026-10-25)
+- `StoreView`: owner order history in the shared Sheet, loading/error/retry/empty states, stable cursor pagination, immutable receipt item names/prices and totals. Legacy receipts retain their original recorded totals.
+- `PlansView`: current subscription and end date, immediate cancellation through the shared AlertDialog, disabled pending controls and refreshed session/tier. Current billing is explicitly mock and has no automatic renewal or refunds.
+- `SettingsView`: export available to every member tier, pending download state; truthful unavailable account-deletion copy replaces the fake destructive button. No erasure endpoint exists.
+- `AdminConsoleView`: actual recorded mock order count/total for 30 local calendar days and active subscription count; these are not gateway revenue or MRR.
+- No new UI primitives, dependencies, feature flags or schema fields.
+
+## Audit phases 6–7
+- Reused ThemeToggle in public/mobile/sidebar/auth chrome, preserving dark default and persistent light choice.
+- One root skip link targets focusable main#main-content across public/app/offline/404 shells. Persian not-found reuses the shell, BrandMark and Button.
+- StoreView accepts initialCatalog: Catalog|null; SSR/API share live catalog query/DTO with explicit failure, retry, loading and empty states.
+- AuthCard/OnboardingFlow accept validated returnTo; member/staff page guards preserve destinations and live-workout query values.
+- Shared useReducedMotion uses a consistent hydration snapshot in all animated consumers. Dashboard time also starts consistently; DayFlow preserves full text contrast.
+- Wide social card uses approved logo, existing palette/Lalezar/Vazirmatn and an optional browser renderer.
+- Existing API writes share bounded JSON parsing with explicit 413 response; no parallel UI primitives or runtime browser dependency.
+
+- PageHeader and BrandMark were moved, not duplicated, into presentation-only files. Existing exports remain compatible. PublicPageShell is server-rendered so anonymous pages no longer import the authenticated shell/offline/navigation through its client graph. Vazirmatn weights load on demand; the main display face retains preload. This targets measured public-page critical-path cost without caching private HTML.
+
+- Landing Tile now instantiates decorative motion studies only near the viewport; titles/descriptions remain SSR content and visual space stays reserved. ThemeToggle uses existing CSS button feedback instead of importing a motion engine solely for its icon.

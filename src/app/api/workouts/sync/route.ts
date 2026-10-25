@@ -1,6 +1,10 @@
+import { readJson } from "@/lib/http/read-json";
+import { refreshDerivedMissions } from "@/lib/domain/gamification-engine";
+import { isoDateOnly } from "@/lib/dates/jalali";
+import { db } from "@/lib/db";
+import { withSessionLock } from "@/lib/workout/session-lock";
 import { NextRequest, NextResponse } from "next/server";
 import { requireMember } from "@/lib/auth/session";
-import { db } from "@/lib/db";
 import { toAppError } from "@/lib/errors/app-error";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { z } from "zod";
@@ -23,6 +27,7 @@ const setOp = z.object({
   rpe: z.number().min(1).max(10).nullable().optional(),
   durationSeconds: z.number().int().min(0).max(7200).nullable().optional(),
   completedAt: z.string().datetime().optional(),
+  isWarmup: z.boolean().default(false),
 });
 
 const bodySchema = z.object({ sets: z.array(setOp).max(200) });
@@ -30,7 +35,7 @@ const bodySchema = z.object({ sets: z.array(setOp).max(200) });
 export async function POST(req: NextRequest) {
   try {
     const user = await requireMember();
-    const parsed = bodySchema.safeParse(await req.json());
+    const parsed = bodySchema.safeParse(await readJson(req));
     if (!parsed.success) {
       console.error("[sync] validation failed:", JSON.stringify(parsed.error.issues?.slice(0, 3)));
       throw toAppError(parsed.error);
@@ -45,65 +50,28 @@ export async function POST(req: NextRequest) {
       // errors are failed (retryable) so the offline queue never parks data
       // permanently on a transient DB blip.
       try {
-        // Ownership check: session must belong to user
-        const session = await db.workoutSession.findUnique({
-          where: { id: op.sessionId },
-          select: { userId: true },
-        });
-        if (!session || session.userId !== user.id) {
-          conflicts++;
-          continue;
-        }
-
-        // Ensure the exercise log exists (idempotent by session+exercise+order)
-        let log = await db.exerciseLog.findFirst({
-          where: { sessionId: op.sessionId, exerciseId: op.exerciseId, orderIndex: op.orderIndex },
-        });
-        if (!log) {
-          const exercise = await db.exercise.findUnique({ where: { id: op.exerciseId }, select: { id: true } });
-          if (!exercise) {
-            // Unknown exercise can never apply — terminal conflict.
-            conflicts++;
-            continue;
+        const result = await withSessionLock(op.sessionId, async tx => {
+          const session = await tx.workoutSession.findUnique({ where: { id: op.sessionId }, select: { userId: true, status: true } });
+          if (!session || session.userId !== user.id) return false;
+          const existing = await tx.setLog.findUnique({ where: { userId_clientId: { userId: user.id, clientId: op.clientId } } });
+          if (existing) return true;
+          if (session.status !== "active" && session.status !== "paused") return false;
+          // Order can change after swaps; exercise identity is canonical.
+          let log = await tx.exerciseLog.findFirst({ where: { sessionId: op.sessionId, exerciseId: op.exerciseId }, orderBy: { orderIndex: "asc" } });
+          if (!log) {
+            const exercise = await tx.exercise.findUnique({ where: { id: op.exerciseId }, select: { id: true } });
+            if (!exercise) return false;
+            log = await tx.exerciseLog.create({ data: { sessionId: op.sessionId, exerciseId: op.exerciseId, orderIndex: op.orderIndex } });
           }
-          try {
-            log = await db.exerciseLog.create({
-              data: { sessionId: op.sessionId, exerciseId: op.exerciseId, orderIndex: op.orderIndex },
-            });
-          } catch {
-            // Concurrent create race — re-fetch the winner.
-            log = await db.exerciseLog.findUnique({
-              where: { sessionId_exerciseId_orderIndex: { sessionId: op.sessionId, exerciseId: op.exerciseId, orderIndex: op.orderIndex } },
-            });
-            if (!log) {
-              conflicts++;
-              continue;
-            }
-          }
-        }
-
-        const existing = await db.setLog.findUnique({
-          where: { userId_clientId: { userId: user.id, clientId: op.clientId } },
+          await tx.setLog.create({ data: {
+            exerciseLogId: log.id, userId: user.id, setNumber: op.setNumber,
+            weightKg: op.weightKg ?? null, reps: op.reps ?? null, rpe: op.rpe ?? null,
+            durationSeconds: op.durationSeconds ?? null, isWarmup: op.isWarmup,
+            completedAt: new Date(Math.min(op.completedAt ? new Date(op.completedAt).getTime() : Date.now(), Date.now())), clientId: op.clientId,
+          } });
+          return true;
         });
-        if (existing) {
-          synced++;
-          continue;
-        }
-
-        await db.setLog.create({
-          data: {
-            exerciseLogId: log.id,
-            userId: user.id,
-            setNumber: op.setNumber,
-            weightKg: op.weightKg ?? null,
-            reps: op.reps ?? null,
-            rpe: op.rpe ?? null,
-            durationSeconds: op.durationSeconds ?? null,
-            completedAt: op.completedAt ? new Date(op.completedAt) : new Date(),
-            clientId: op.clientId,
-          },
-        });
-        synced++;
+        if (result) synced++; else conflicts++;
       } catch (error) {
         // Prisma validation / FK issues on a single op → conflict (terminal).
         // Connection or unexpected failures → failed (client should retry).
@@ -117,6 +85,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    if (synced > 0) {
+      const persisted = await db.setLog.findMany({ where: { userId: user.id, clientId: { in: body.sets.map(op => op.clientId) } }, select: { completedAt: true } });
+      for (const day of new Set(persisted.map(set => isoDateOnly(set.completedAt, user.timezone)))) {
+        await refreshDerivedMissions(user.id, user.timezone, day);
+      }
+    }
     return NextResponse.json({ ok: true, synced, conflicts, failed });
   } catch (error) {
     return appErrorResponse(error);

@@ -3,11 +3,12 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { BrandMark } from "@/components/layout/navigation";
+import { BrandMark } from "@/components/layout/brand-mark";
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/components/ui/input-otp";
 import { Button } from "@/components/ui/button";
 import { api, errorMessage } from "@/lib/client/api";
 import { toPersianDigits, toLatinDigits } from "@/lib/formatting/numbers";
+import { safeReturnPath, onboardingPath } from "@/lib/auth/return-path";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 type Step = "phone" | "code";
 
-export function AuthCard() {
+export function AuthCard({ returnTo }: { returnTo?: string | null }) {
   const router = useRouter();
   const [step, setStep] = React.useState<Step>("phone");
   const [phone, setPhone] = React.useState("");
@@ -62,11 +63,12 @@ export function AuthCard() {
     setError(null);
     setLoading(true);
     try {
-      const res = await api<{ isNewUser: boolean }>("/api/auth/verify-otp", {
+      const res = await api<{ needsOnboarding: boolean }>("/api/auth/verify-otp", {
         method: "POST",
         json: { phone: toLatinDigits(phone), code: value },
       });
-      router.push(res.isNewUser ? "/auth/onboarding" : "/dashboard");
+      const next = safeReturnPath(returnTo);
+      router.replace(res.needsOnboarding ? onboardingPath(next) : next ?? "/dashboard");
     } catch (e) {
       setError(errorMessage(e));
       setCode("");

@@ -27,14 +27,15 @@ export async function getAiAccess(actor: SessionUser, providerId?: string) {
   });
   if (
     !grant?.enabled ||
-    !grant.provider.enabled ||
-    !grant.dailyLimit ||
-    !grant.monthlyLimit
+    !grant.provider.enabled
   ) {
     throw new AppError("authorization", {
       userMessage:
         "دسترسی همپا هنوز برای شما فعال نشده است. از مدیر بخواهید دسترسی و سهمیه تعیین کند.",
     });
+  }
+  if (grant.dailyLimit <= 0 || grant.monthlyLimit <= 0) {
+    throw new AppError("quota", { userMessage: "سهمیهٔ همپا برای حساب شما صفر تعیین شده است. از مدیر بخواهید سهمیه را افزایش دهد." });
   }
   if (providerId && providerId !== grant.providerId)
     throw new AppError("authorization");

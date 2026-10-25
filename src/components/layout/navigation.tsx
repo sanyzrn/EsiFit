@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui/icon";
@@ -11,7 +12,7 @@ import { TIER_LABELS, type UserTier } from "@/lib/entitlements/entitlements";
 import { ROLE_LABELS, type Role } from "@/lib/auth/session-types";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
-import Image from "next/image";
+import { BrandMark } from "./brand-mark";
 
 /** One source of navigation truth. Role gates are enforced at the API as well. */
 export type NavItem = {
@@ -100,8 +101,9 @@ export function AppSidebar({ className }: { className?: string }) {
 
   return (
     <aside className={cn("sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-s border-border bg-sidebar lg:flex", className)}>
-      <div className="flex h-20 shrink-0 items-center border-b border-border px-5">
+      <div className="flex h-20 shrink-0 items-center justify-between border-b border-border px-5">
         <BrandMark />
+        <ThemeToggle />
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5" aria-label="ناوبری اصلی">
         <p className="mb-3 px-3 text-xs font-semibold text-esi-text-muted">فضای شما</p>
@@ -193,10 +195,4 @@ export function MobileBottomNav() {
 }
 
 /** Branding preserved while motion effects are removed from app chrome. */
-export function BrandMark() {
-  return (
-    <Link href="/" className="inline-flex items-center justify-center" aria-label="اسی‌فیت — صفحه اصلی">
-      <Image src="/icons/logo-mark.svg" alt="" width={42} height={42} priority />
-    </Link>
-  );
-}
+export { BrandMark } from "./brand-mark";

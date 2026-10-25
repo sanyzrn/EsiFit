@@ -1,6 +1,7 @@
 "use client";
 
-import { motion, useScroll, useSpring, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useSpring } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
 /** Hairline reading-progress bar for long public pages. */
 export function ScrollProgress() {

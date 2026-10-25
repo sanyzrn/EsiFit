@@ -40,7 +40,7 @@ const FREE: Entitlements = {
   historyMonths: 3,
   advancedAnalytics: false,
   weeklyRecap: false,
-  dataExport: false,
+  dataExport: true,
   aiDeepContext: false,
   storeDiscountPercent: 0,
 };

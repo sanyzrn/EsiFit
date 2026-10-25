@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useReducedMotion } from "framer-motion";
+import {  } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { exerciseVisualFor } from "@/features/workouts/data/exercise-media";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
@@ -92,7 +93,6 @@ export function ExerciseVisual({
   }
   const image = (frame: "start" | "finish", src: string) => (
     // Licensed RepDB images are displayed unchanged, retaining visible attribution.
-    // eslint-disable-next-line @next/next/no-img-element
     <img
       key={`${slug}-${frame}`}
       src={src}

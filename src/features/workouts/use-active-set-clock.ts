@@ -34,7 +34,6 @@ export function useActiveSetClock(key: string, enabled: boolean) {
     });
     setNow(timestamp);
     // A new exercise/set has its own persisted clock, not a reset of another one.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
   React.useEffect(() => {
     const before = previous.current;

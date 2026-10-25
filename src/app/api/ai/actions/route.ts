@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth/session";
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
     const { id, confirm } = z
       .object({ id: z.string().min(1), confirm: z.boolean() })
       .strict()
-      .parse(await req.json());
+      .parse(await readJson(req));
     return NextResponse.json({
       ok: true,
       action: await executeAction(actor, id, confirm),

@@ -2,33 +2,24 @@ import { NextResponse } from "next/server";
 import { requireMember } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { appErrorResponse } from "@/lib/errors/respond";
-import { getXpTotal } from "@/lib/domain/gamification-engine";
+import { getXpTotal, refreshDerivedMissions, evaluateBadges } from "@/lib/domain/gamification-engine";
 import { levelFromXp } from "@/lib/domain/body-math";
-import { todayISO } from "@/lib/dates/jalali";
+import { todayISO, weekStartISO } from "@/lib/dates/jalali";
 
 export async function GET() {
   try {
     const session = await requireMember();
+    await Promise.all([refreshDerivedMissions(session.id, session.timezone), evaluateBadges(session.id)]);
     const [xp, badges, earned, missions, progress] = await Promise.all([
       getXpTotal(session.id),
       db.badge.findMany({ orderBy: [{ tier: "asc" }, { criteriaValue: "asc" }] }),
       db.userBadge.findMany({ where: { userId: session.id }, include: { badge: true } }),
       db.mission.findMany({ where: { active: true } }),
-      db.userMissionProgress.findMany({ where: { userId: session.id } }),
+      db.userMissionProgress.findMany({ where: { userId: session.id }, include: { mission: true }, orderBy: { periodKey: "desc" } }),
     ]);
 
     const today = todayISO(session.timezone);
-    // Current ISO week start (Saturday, Tehran) for weekly mission matching.
-    const weekStart = (() => {
-      const d = new Date();
-      // persianWeekdayIndex: 0=شنبه … 6=Friday; go back that many days.
-      const wd = new Intl.DateTimeFormat("en-CA", { timeZone: session.timezone, year: "numeric", month: "2-digit", day: "2-digit" })
-        .format(d);
-      const dayOnly = new Date(`${wd}T12:00:00Z`);
-      const idx = (dayOnly.getUTCDay() + 1) % 7; // 0=Saturday
-      dayOnly.setUTCDate(dayOnly.getUTCDate() - idx);
-      return dayOnly.toISOString().slice(0, 10);
-    })();
+    const weekStart = weekStartISO(today);
 
     const earnedByBadgeId = new Map(earned.map((e) => [e.badgeId, e]));
 
@@ -38,6 +29,8 @@ export async function GET() {
       );
       return {
         id: m.id,
+        periodKey: m.period === "daily" ? today : weekStart,
+        isPast: false,
         name: m.nameFa,
         description: m.descriptionFa,
         period: m.period as "daily" | "weekly",
@@ -48,6 +41,12 @@ export async function GET() {
         criteriaType: m.criteriaType,
       };
     });
+
+    const pendingRewards = progress.filter(p => !p.claimed && p.progress >= p.target && p.periodKey < (p.mission.period === "weekly" ? weekStart : today)).slice(0, 50).map(p => ({
+      id: p.missionId, periodKey: p.periodKey, isPast: true,
+      name: p.mission.nameFa, description: p.mission.descriptionFa, period: p.mission.period,
+      target: p.target, progress: p.progress, claimed: false, xpReward: p.mission.xpReward, criteriaType: p.mission.criteriaType,
+    }));
 
     return NextResponse.json({
       ok: true,
@@ -67,7 +66,7 @@ export async function GET() {
           criteriaType: b.criteriaType,
         };
       }),
-      missions: missionState,
+      missions: [...missionState, ...pendingRewards],
     });
   } catch (error) {
     return appErrorResponse(error);

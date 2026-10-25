@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { motion, useReducedMotion, useScroll, useSpring, useTransform } from "framer-motion";
+import { motion, useScroll, useSpring, useTransform } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { toPersianDigits } from "@/lib/formatting/numbers";
 
 /**
@@ -54,8 +55,8 @@ export function DayFlow() {
           <motion.li
             key={s.time}
             className="relative flex items-start gap-5 ps-20"
-            initial={reduce ? false : { opacity: 0.4, x: 16 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={reduce ? false : { x: 16 }}
+            whileInView={{ x: 0 }}
             viewport={{ margin: "-35% 0px -35% 0px", once: false }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >

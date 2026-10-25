@@ -1,3 +1,5 @@
+import { readJson } from "@/lib/http/read-json";
+import { clientIp } from "@/lib/http/client-ip";
 import { NextRequest, NextResponse } from "next/server";
 import { verifyOtp } from "@/lib/auth/otp";
 import { createSession } from "@/lib/auth/session";
@@ -12,18 +14,9 @@ const bodySchema = z.object({
   deviceLabel: z.string().max(120).optional(),
 });
 
-function clientIp(req: NextRequest): string | null {
-  return (
-    req.headers.get("x-real-ip")?.trim() ||
-    req.headers.get("cf-connecting-ip")?.trim() ||
-    req.headers.get("x-forwarded-for")?.split(",").pop()?.trim() ||
-    null
-  );
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const body = bodySchema.parse(await req.json());
+    const body = bodySchema.parse(await readJson(req));
     const result = await verifyOtp(body.phone, body.code, clientIp(req));
 
     // Create account on first successful verification.
@@ -40,7 +33,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      isNewUser: !profile?.onboardedAt,
+      needsOnboarding: !profile?.onboardedAt,
+      isNewUser: !profile?.onboardedAt, // Backwards-compatible alias; use needsOnboarding.
       user: { id: user.id, displayName: user.displayName, tier: user.tier },
     });
   } catch (error) {

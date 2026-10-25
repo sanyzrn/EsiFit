@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireMember } from "@/lib/auth/session";
@@ -39,7 +40,7 @@ const createSchema = z.object({
 export async function POST(req: Request) {
   try {
     const session = await requireMember();
-    const parsed = createSchema.safeParse(await req.json());
+    const parsed = createSchema.safeParse(await readJson(req));
     if (!parsed.success) {
       return NextResponse.json({ ok: false, code: "validation", message: "گزارش درد کامل نیست." }, { status: 400 });
     }
@@ -71,7 +72,7 @@ const patchSchema = z.object({
 export async function PATCH(req: Request) {
   try {
     const session = await requireMember();
-    const parsed = patchSchema.safeParse(await req.json());
+    const parsed = patchSchema.safeParse(await readJson(req));
     if (!parsed.success) {
       return NextResponse.json({ ok: false, code: "validation" }, { status: 400 });
     }

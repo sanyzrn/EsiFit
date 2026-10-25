@@ -3,6 +3,7 @@ import { toAppError } from "@/lib/errors/app-error";
 
 /** Canonical AppErrorCode → HTTP status mapping (single source for all routes). */
 const STATUS_BY_CODE: Record<string, number> = {
+  payload_too_large: 413,
   validation: 400,
   authentication: 401,
   authorization: 403,

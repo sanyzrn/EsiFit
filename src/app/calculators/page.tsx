@@ -1,13 +1,11 @@
+import { publicMetadata } from "@/lib/seo/site";
 import { getSessionUser } from "@/lib/auth/session";
 import { PublicPageShell } from "@/components/layout/public-page-shell";
 import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 import { CalculatorsHub } from "@/features/calculators/calculators-hub";
 
 export const dynamic = "force-dynamic";
-export const metadata = {
-  title: "ماشین‌حساب‌های تناسب اندام",
-  description: "هشت ماشین‌حساب تخصصی با فرمول‌های استاندارد: BMI، TDEE، ماکرو، ۱RM و بیشتر — نتیجه فوری بدون ثبت‌نام.",
-};
+export const metadata = publicMetadata("/calculators", "ماشین‌حساب‌های تناسب اندام", "هشت ماشین‌حساب تخصصی با فرمول‌های استاندارد: BMI، TDEE، ماکرو، ۱RM و بیشتر — نتیجه فوری بدون ثبت‌نام.");
 
 /**
  * Public calculators — core result is anonymous. Shared PublicPageShell

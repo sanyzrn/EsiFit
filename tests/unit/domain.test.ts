@@ -219,7 +219,7 @@ describe("entitlements", () => {
     expect(vip.advancedAnalytics).toBe(true);
     expect(free.advancedAnalytics).toBe(false);
     expect(free.weeklyRecap).toBe(false);
-    expect(free.dataExport).toBe(false);
+    expect(free.dataExport).toBe(true);
     expect(vip.dataExport).toBe(true);
   });
 });

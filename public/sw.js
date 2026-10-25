@@ -7,7 +7,7 @@
    Update flow: waiting SW is activated immediately; clients reload when idle
    (never mid-workout — see client listener guard). */
 
-const VERSION = "esifit-v5";
+const VERSION = "esifit-v6";
 /* Personalized HTML lives in its own cache so signing out can drop it without
    throwing away the static shell. */
 const PAGES_CACHE = `${VERSION}-pages`;
@@ -53,6 +53,8 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return; // mutations are offline-queued by the app layer
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  // Even an API URL opened directly in the address bar must remain network-only.
+  if (url.pathname === "/api" || url.pathname.startsWith("/api/")) return;
 
   // Navigations: network-first, fallback to cache/offline page
   if (req.mode === "navigate") {

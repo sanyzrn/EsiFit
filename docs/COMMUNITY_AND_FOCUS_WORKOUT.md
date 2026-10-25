@@ -16,10 +16,12 @@ Role and feature-flag filtering still use the existing navigation source.
 
 Community supports public text posts, All/Mine filters, cursor pagination,
 likes restored from the signed-in viewer, paginated comments, text sharing,
-and ownership-scoped delete confirmation. Per-post reaction locks avoid
-rapid-tap races. Whitespace-only posts/comments are rejected server-side.
+and ownership-scoped delete confirmation. Per-post client locks serialize rapid taps in one browser; server-side shared
+quotas also limit write volume. Those client locks do not serialize requests
+from different devices. Whitespace-only posts/comments are rejected server-side.
 Failures remain visible and retryable rather than looking like empty feeds.
-Hidden posts do not expose comments or accept reactions. Personalized feed
+Moderation deletes posts; the schema does not have a hidden-post state.
+Deleted/nonexistent posts do not expose comments or accept reactions. Personalized feed
 responses are private/no-store. Private challenges stay scoped to members or
 owners; membership is read separately from the top-ten leaderboard.
 
@@ -64,7 +66,7 @@ explicit; completion is never inferred from an animated pose or timer.
 - Focused local clock/media tests cover wall-time, pause/resume, reload and
   corrupted clock recovery.
 - CI includes real PostgreSQL community tests: pagination, persisted reactions,
-  whitespace validation, hidden-post access, ownership/cascade delete, and
+  whitespace validation, deleted-post access, ownership/cascade delete, and
   challenge membership below tenth place.
 - Browser UI QA uses disposable visual fixtures, never production user data.
 - Production build and strict TypeScript are required after fixture cleanup.

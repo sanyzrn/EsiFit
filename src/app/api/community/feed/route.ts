@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
@@ -52,10 +53,10 @@ export async function POST(req: NextRequest) {
     const session = await getSessionUser();
     if (!session) return NextResponse.json({ ok: false, code: "authentication", message: "برای انتشار پست وارد شوید." }, { status: 401 });
     if (session.role !== "member") return NextResponse.json({ ok: false, code: "authorization" }, { status: 403 });
-    if (!rateLimit(`community:post:${session.id}`, 10, 60 * 60 * 1000).ok) {
+    if (!(await rateLimit(`community:post:${session.id}`, 10, 60 * 60 * 1000)).ok) {
       return NextResponse.json({ ok: false, code: "rate_limit", message: "تعداد پست‌ها زیاد بوده است. کمی بعد تلاش کنید." }, { status: 429 });
     }
-    const body = postSchema.parse(await req.json());
+    const body = postSchema.parse(await readJson(req));
     const post = await db.post.create({
       data: { userId: session.id, content: body.content, visibility: "public" },
       include: { user: { select: { id: true, displayName: true, tier: true } } },
@@ -73,7 +74,7 @@ export async function DELETE(req: NextRequest) {
     const session = await getSessionUser();
     if (!session) return NextResponse.json({ ok: false, code: "authentication" }, { status: 401 });
     if (session.role !== "member") return NextResponse.json({ ok: false, code: "authorization" }, { status: 403 });
-    const { postId } = z.object({ postId: z.string().min(1).max(100) }).parse(await req.json());
+    const { postId } = z.object({ postId: z.string().min(1).max(100) }).parse(await readJson(req));
     // Scope the mutation itself to its owner. Comments and likes cascade in Prisma.
     const result = await db.post.deleteMany({ where: { id: postId, userId: session.id } });
     if (!result.count) return NextResponse.json({ ok: false, code: "not_found", message: "پست یافت نشد." }, { status: 404 });

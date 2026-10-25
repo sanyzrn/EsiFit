@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { Icon } from "@/components/ui/icon";
 import { formatNumber, toPersianDigits } from "@/lib/formatting/numbers";
 import { cn } from "@/lib/utils";

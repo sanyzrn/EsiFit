@@ -1,3 +1,4 @@
+import { loginPath } from "@/lib/auth/return-path";
 import { redirect } from "next/navigation";
 import { getSessionUser, listSessions } from "@/lib/auth/session";
 import { AppShell } from "@/components/layout/app-shell";
@@ -9,7 +10,7 @@ export const metadata = { title: "تنظیمات" };
 
 export default async function SettingsPage() {
   const session = await getSessionUser();
-  if (!session) redirect("/auth/login");
+  if (!session) redirect(loginPath("/settings"));
   const sessions = await listSessions(session.id);
   return (
     <AppShell session={session} flags={resolveEnabledFlags()}>

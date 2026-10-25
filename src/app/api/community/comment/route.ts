@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -14,14 +15,14 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ ok: false, code: "authentication", message: "برای نظر دادن وارد شوید." }, { status: 401 });
     }
-    const rl = rateLimit(`community:comment:${session.id}`, 30, 60 * 60 * 1000);
+    const rl = await rateLimit(`community:comment:${session.id}`, 30, 60 * 60 * 1000);
     if (!rl.ok) {
       return NextResponse.json(
         { ok: false, code: "rate_limit", message: "نظرات زیادی ثبت کرده‌اید. کمی بعد تلاش کنید." },
         { status: 429 },
       );
     }
-    const body = commentSchema.parse(await req.json());
+    const body = commentSchema.parse(await readJson(req));
     const post = await db.post.findUnique({ where: { id: body.postId } });
     if (!post || post.visibility !== "public") return NextResponse.json({ ok: false, code: "not_found", message: "پست یافت نشد." }, { status: 404 });
 

@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { KhatamDial } from "@/components/motion/khatam";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { MuscleBody } from "@/components/data-viz/anatomy/muscle-body";
@@ -28,10 +29,22 @@ function Tile({
   delay?: number;
   children: React.ReactNode;
 }) {
+  const visualRef = React.useRef<HTMLDivElement>(null);
+  const [showVisual, setShowVisual] = React.useState(false);
+  React.useEffect(() => {
+    const element = visualRef.current;
+    if (!element) return;
+    if (!("IntersectionObserver" in window)) { setShowVisual(true); return; }
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) { setShowVisual(true); observer.disconnect(); }
+    }, { rootMargin: "200px" });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   return (
     <RevealOnScroll delay={delay} className={className}>
       <article className="esi-card esi-card-lift group flex h-full flex-col overflow-hidden rounded-3xl p-6 lg:p-7">
-        <div className="relative mb-5 flex-1 min-h-44">{children}</div>
+        <div ref={visualRef} className="relative mb-5 flex-1 min-h-44">{showVisual ? children : null}</div>
         <h3 className="font-display text-2xl leading-tight">{title}</h3>
         <p className="mt-2 text-sm leading-7 text-esi-text-secondary">{text}</p>
       </article>

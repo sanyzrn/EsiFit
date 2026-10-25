@@ -1,3 +1,4 @@
+import { loginPath } from "@/lib/auth/return-path";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
 import { AppShell } from "@/components/layout/app-shell";
@@ -9,7 +10,7 @@ export const metadata = { title: "تغذیه" };
 
 export default async function NutritionPage() {
   const session = await getSessionUser();
-  if (!session) redirect("/auth/login");
+  if (!session) redirect(loginPath("/nutrition"));
   if (session.role !== "member") redirect(session.role === "admin" ? "/admin" : "/coach");
   return (
     <AppShell session={session} flags={resolveEnabledFlags()}>

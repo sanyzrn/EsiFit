@@ -1,5 +1,6 @@
 import { requireRolePage } from "@/lib/auth/page-guard";
-import { AppShell, PageHeader } from "@/components/layout/app-shell";
+import { AppShell } from "@/components/layout/app-shell";
+import { PageHeader } from "@/components/layout/page-header";
 import { CoachWorkspaceView } from "@/features/coach/coach-workspace-view";
 import { getCoachRoster } from "@/lib/coach/data";
 import { db } from "@/lib/db";
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "ورزشکاران من — مربی" };
 
 export default async function CoachPage() {
-  const session = await requireRolePage("coach");
+  const session = await requireRolePage("/coach", "coach");
 
   // Admins supervise every linked roster (read-only console entry point).
   const roster = await getCoachRoster(session.id);

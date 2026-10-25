@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { generateText, isStepCount } from "ai";
@@ -115,7 +116,7 @@ export async function POST(req: Request) {
   try {
     const actor = await getSessionUser();
     if (!actor) throw new AppError("authentication");
-    const body = bodySchema.parse(await req.json());
+    const body = bodySchema.parse(await readJson(req));
     const access = await getAiAccess(actor, body.providerId);
     if (body.conversationId) {
       const conversation = await db.aiConversation.findFirst({

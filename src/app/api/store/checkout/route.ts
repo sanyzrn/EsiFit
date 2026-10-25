@@ -1,3 +1,6 @@
+import { readJson } from "@/lib/http/read-json";
+import { rateLimit } from "@/lib/http/rate-limit";
+import { orderReceipt } from "@/lib/commerce/orders";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -30,13 +33,16 @@ export async function POST(req:NextRequest) {
         { status: 502 },
       );
     }
-    const body = schema.parse(await req.json());
+    const body = schema.parse(await readJson(req));
 
     // Reject duplicate productIds — otherwise stock math double-counts.
     const ids = body.items.map((i) => i.productId);
     if (new Set(ids).size !== ids.length) {
       return NextResponse.json({ ok: false, code: "validation", message: "اقلام تکراری در سبد خرید هستند." }, { status: 400 });
     }
+
+    const limit = await rateLimit(`store:checkout:${session.id}`, 10, 60 * 60 * 1000);
+    if (!limit.ok) return NextResponse.json({ ok: false, code: "rate_limit", message: "تعداد درخواست‌های خرید زیاد است؛ کمی بعد تلاش کنید.", retryAfterSeconds: limit.retryAfterSeconds }, { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } });
 
     const ent = getEntitlements(session.tier as UserTier);
     const products = await db.product.findMany({ where: { id: { in: ids }, status: "active" } });
@@ -53,13 +59,13 @@ export async function POST(req:NextRequest) {
       const unitPrice = Math.round(p.priceToman * (1 - ent.storeDiscountPercent / 100));
       subtotal += p.priceToman * i.qty;
       total += unitPrice * i.qty;
-      return { productId: p.id, nameFa: p.nameFa, priceToman: p.priceToman, qty: i.qty, emoji: p.emoji };
+      return { productId: p.id, nameFa: p.nameFa, priceToman: p.priceToman, unitPriceToman: unitPrice, lineTotalToman: unitPrice * i.qty, qty: i.qty, emoji: p.emoji };
     });
     const discount = subtotal - total;
 
     // Decrement stock atomically; abort if any item oversells.
     const order = await db.$transaction(async (tx) => {
-      for (const item of body.items) {
+      for (const item of [...body.items].sort((a, b) => a.productId.localeCompare(b.productId))) {
         const updated = await tx.product.updateMany({
           where: { id: item.productId, status: "active", stock: { gte: item.qty } },
           data: { stock: { decrement: item.qty } },
@@ -81,7 +87,7 @@ export async function POST(req:NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      order: { id: order.id, totalToman: total, discountToman: discount, items: itemsJson },
+      order: orderReceipt(order),
       message: "سفارش ثبت شد (پرداخت آزمایشی محیط دمو).",
     });
   } catch (error) {

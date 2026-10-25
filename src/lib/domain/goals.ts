@@ -92,9 +92,9 @@ export function computeGoalProgress(
       ? goal.startValue - currentValue
       : currentValue - goal.startValue;
   const rawPercent = total <= 0 ? (currentValue >= goal.targetValue ? 100 : 0) : (done / total) * 100;
-  const percent = Math.max(0, Math.min(100, Math.round(rawPercent)));
   const achieved =
     direction === "down" ? currentValue <= goal.targetValue : currentValue >= goal.targetValue;
+  const percent = achieved ? 100 : Math.max(0, Math.min(100, Math.round(rawPercent)));
 
   // Pace from elapsed time (linear); forecast remaining days at same pace.
   const elapsed = Math.max(1, daysBetween(todayISO, goal.startDate));

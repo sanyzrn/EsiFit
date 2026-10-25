@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { BrandMark } from "@/components/layout/navigation";
+import { BrandMark } from "@/components/layout/brand-mark";
 import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/client/use-session";
@@ -64,6 +65,7 @@ export function PublicNavbar() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             {session ? (
               <Button asChild size="sm" className="h-10">
                 <Link href="/dashboard">داشبورد</Link>

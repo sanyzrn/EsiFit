@@ -10,7 +10,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const session = await requireRole("coach_or_admin");
     const { id } = await params;
 
-    // Authorization: coach must own the link; admin supervises anyone.
+    // Authorization: coach must own the link; admin supervises member athletes only.
     if (session.role !== "admin") {
       const link = await db.coachClient.findUnique({
         where: { coachId_athleteId: { coachId: session.id, athleteId: id } },

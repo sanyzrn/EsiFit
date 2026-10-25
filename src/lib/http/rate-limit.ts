@@ -1,46 +1,30 @@
-/**
- * In-process sliding-window rate limiter.
- * Suitable for a single Node deployment. Multi-instance production should
- * replace this with Redis (or platform) counters behind the same interface.
- */
+import "server-only";
+import { createHash } from "node:crypto";
+import { db } from "@/lib/db";
 
-type Bucket = { count: number; resetAt: number };
+export type RateLimitResult = { ok: boolean; retryAfterSeconds?: number };
 
-const buckets = new Map<string, Bucket>();
-
-export type RateLimitResult = {
-  ok: boolean;
-  retryAfterSeconds?: number;
-};
-
-const MAX_BUCKETS = 5_000;
-
-/** Drop expired windows so a long-lived process never grows the map without bound. */
-function prune(now: number): void {
-  for (const [key, bucket] of buckets) {
-    if (bucket.resetAt <= now) buckets.delete(key);
-  }
-}
-
-export function rateLimit(key: string, limit: number, windowMs: number): RateLimitResult {
-  const now = Date.now();
-  if (buckets.size >= MAX_BUCKETS) prune(now);
-  const existing = buckets.get(key);
-  if (!existing || existing.resetAt <= now) {
-    buckets.set(key, { count: 1, resetAt: now + windowMs });
+/** Shared fixed window, serialized across instances including first-use/reset.
+ * Database failures fail closed through the caller. Keys hash IPs at rest. */
+export async function rateLimit(key: string, limit: number, windowMs: number): Promise<RateLimitResult> {
+  const bucketKey = createHash("sha256").update(key).digest("hex");
+  return db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('esifit-rate-limit'), hashtext(${bucketKey}))`;
+    const now = new Date();
+    const bucket = await tx.rateLimitBucket.findUnique({ where: { key: bucketKey } });
+    if (!bucket || bucket.resetAt <= now) {
+      // Bounded indexed cleanup; avoid an indefinitely growing IP counter table.
+      await tx.$executeRaw`DELETE FROM "RateLimitBucket" WHERE "key" IN
+        (SELECT "key" FROM "RateLimitBucket" WHERE "resetAt" < ${now} ORDER BY "resetAt" LIMIT 100 FOR UPDATE SKIP LOCKED)`;
+      await tx.rateLimitBucket.upsert({
+        where: { key: bucketKey },
+        create: { key: bucketKey, count: 1, resetAt: new Date(now.getTime() + windowMs) },
+        update: { count: 1, resetAt: new Date(now.getTime() + windowMs) },
+      });
+      return { ok: true };
+    }
+    if (bucket.count >= limit) return { ok: false, retryAfterSeconds: Math.max(1, Math.ceil((bucket.resetAt.getTime() - now.getTime()) / 1000)) };
+    await tx.rateLimitBucket.update({ where: { key: bucketKey }, data: { count: { increment: 1 } } });
     return { ok: true };
-  }
-  if (existing.count >= limit) {
-    return {
-      ok: false,
-      retryAfterSeconds: Math.max(1, Math.ceil((existing.resetAt - now) / 1000)),
-    };
-  }
-  existing.count += 1;
-  return { ok: true };
-}
-
-/** Test helper — clear all buckets. */
-export function resetRateLimits(): void {
-  buckets.clear();
+  });
 }

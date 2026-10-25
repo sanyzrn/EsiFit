@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/http/read-json";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireMember } from "@/lib/auth/session";
@@ -6,7 +7,7 @@ import { db } from "@/lib/db";
 import { EQUIPMENT_KEYS, parseAvailableEquipment, serializeAvailableEquipment } from "@/lib/workout/equipment";
 
 const patchSchema = z.object({
-  availableEquipment: z.array(z.string()).max(20),
+  availableEquipment: z.array(z.enum(EQUIPMENT_KEYS)).max(20),
 });
 
 /** GET /api/settings/profile — current equipment availability for the signed-in user. */
@@ -32,7 +33,7 @@ export async function GET() {
 export async function PATCH(req: NextRequest) {
   try {
     const session = await requireMember();
-    const parsed = patchSchema.safeParse(await req.json());
+    const parsed = patchSchema.safeParse(await readJson(req));
     if (!parsed.success) {
       return NextResponse.json({ ok: false, code: "validation", message: "فهرست وسایل نامعتبر است." }, { status: 400 });
     }

@@ -1,11 +1,13 @@
+import { readJson } from "@/lib/http/read-json";
+import { evaluateBadges, refreshDerivedMissions } from "@/lib/domain/gamification-engine";
 import { NextRequest, NextResponse } from "next/server";
 import { requireMember } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { z } from "zod";
-import { todayISO, addDaysISO } from "@/lib/dates/jalali";
+import { todayISO, addDaysISO, isValidISODate } from "@/lib/dates/jalali";
 
-const getSchema = z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() });
+const getSchema = z.object({ date: z.string().refine(isValidISODate, "تاریخ معتبر نیست.").optional() });
 
 const mealOrder = ["breakfast", "lunch", "snack", "dinner"] as const;
 export const MEAL_SLOT_FA: Record<string, string> = {
@@ -83,7 +85,7 @@ export async function GET(req: NextRequest) {
 }
 
 const addSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  date: z.string().refine(isValidISODate, "تاریخ معتبر نیست.").optional(),
   foodId: z.string(),
   mealSlot: z.enum(["breakfast", "lunch", "snack", "dinner"]),
   quantity: z.number().min(0.1).max(20).default(1),
@@ -93,8 +95,10 @@ const addSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const session = await requireMember();
-    const body = addSchema.parse(await req.json());
-    const date = body.date ?? todayISO(session.timezone);
+    const body = addSchema.parse(await readJson(req));
+    const today = todayISO(session.timezone);
+    const date = body.date ?? today;
+    if (date > today) return NextResponse.json({ ok: false, code: "validation", message: "ثبت وعدهٔ مصرف‌شده در آینده ممکن نیست." }, { status: 400 });
 
     const food = await db.food.findUnique({ where: { id: body.foodId } });
     if (!food) return NextResponse.json({ ok: false, code: "not_found", message: "غذا یافت نشد." }, { status: 404 });
@@ -125,6 +129,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    await refreshDerivedMissions(session.id, session.timezone, date);
+    await evaluateBadges(session.id);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return appErrorResponse(error);
@@ -136,7 +142,7 @@ const deleteSchema = z.object({ entryId: z.string() });
 export async function DELETE(req: NextRequest) {
   try {
     const session = await requireMember();
-    const body = deleteSchema.parse(await req.json());
+    const body = deleteSchema.parse(await readJson(req));
     const entry = await db.mealEntry.findUnique({
       where: { id: body.entryId },
       include: { nutritionDay: true },
@@ -145,6 +151,8 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ ok: false, code: "not_found", message: "یافت نشد." }, { status: 404 });
     }
     await db.mealEntry.delete({ where: { id: entry.id } });
+    await refreshDerivedMissions(session.id, session.timezone, entry.nutritionDay.logDate);
+    await evaluateBadges(session.id);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return appErrorResponse(error);

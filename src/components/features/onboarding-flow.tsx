@@ -1,4 +1,5 @@
 "use client";
+import { safeReturnPath } from "@/lib/auth/return-path";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -48,7 +49,7 @@ const EQUIPMENT_OPTIONS = [
   { value: "cardio", label: "کاردیو" },
 ];
 
-export function OnboardingFlow({ displayName }: { displayName: string }) {
+export function OnboardingFlow({ displayName, returnTo }: { displayName: string; returnTo?: string | null }) {
   const router = useRouter();
   const cleanupPromise = React.useRef<Promise<void> | null>(null);
   const ensureFreshOfflineState = React.useCallback(() => {
@@ -112,7 +113,7 @@ export function OnboardingFlow({ displayName }: { displayName: string }) {
           availableEquipment: fullGym ? [] : equipment,
         },
       });
-      router.push("/dashboard");
+      router.replace(safeReturnPath(returnTo) ?? "/dashboard");
     } catch (e) {
       setError(errorMessage(e));
       setLoading(false);

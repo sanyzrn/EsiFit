@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { motion, useReducedMotion } from "framer-motion";
-import { PageHeader } from "@/components/layout/app-shell";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { PageHeader } from "@/components/layout/page-header";
 import { RadialGauge } from "@/components/data-viz/radial-gauge";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, errorMessage } from "@/lib/client/api";
 import { toPersianDigits, formatNumber } from "@/lib/formatting/numbers";
-import { formatRelative } from "@/lib/dates/jalali";
+import { formatRelative, formatJalaliNumeric } from "@/lib/dates/jalali";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { MOTION } from "@/lib/motion/motion";
@@ -23,7 +24,7 @@ type Overview = {
     tier: "bronze" | "silver" | "gold"; earnedAt: string | null; criteriaValue: number;
   }>;
   missions: Array<{
-    id: string; name: string; description: string; period: "daily" | "weekly";
+    id: string; periodKey: string; isPast: boolean; name: string; description: string; period: "daily" | "weekly";
     target: number; progress: number; claimed: boolean; xpReward: number; criteriaType: string;
   }>;
 };
@@ -61,10 +62,10 @@ export function AchievementsView() {
     void load();
   }, [load]);
 
-  const claim = async (missionId: string) => {
-    setClaiming(missionId);
+  const claim = async (missionId: string, periodKey: string) => {
+    setClaiming(`${missionId}:${periodKey}`);
     try {
-      const res = await api<{ xp: number }>("/api/gamification/claim", { method: "POST", json: { missionId } });
+      const res = await api<{ xp: number }>("/api/gamification/claim", { method: "POST", json: { missionId, periodKey } });
       toast({ title: `+${toPersianDigits(res.xp)} امتیاز تجربه`, description: "ماموریت با موفقیت جمع‌آوری شد." });
       await load();
     } catch (e) {
@@ -136,12 +137,12 @@ export function AchievementsView() {
                 const pct = Math.min(100, (m.progress / m.target) * 100);
                 const done = m.progress >= m.target;
                 return (
-                  <div key={m.id} className="flex items-center gap-4 rounded-2xl bg-surface-2 px-4 py-3.5">
+                  <div key={`${m.id}:${m.periodKey}`} className="flex items-center gap-4 rounded-2xl bg-surface-2 px-4 py-3.5">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-semibold truncate">{m.name}</p>
                         <span className="rounded-full bg-surface-3 px-2 py-0.5 text-[10px] text-esi-text-muted shrink-0">
-                          {m.period === "daily" ? "روزانه" : "هفتگی"}
+                          {m.isPast ? `پاداش دریافت‌نشده · ${formatJalaliNumeric(m.periodKey)}` : m.period === "daily" ? "روزانه" : "هفتگی"}
                         </span>
                       </div>
                       <p className="text-[11px] text-esi-text-muted mt-0.5">{m.description}</p>
@@ -168,8 +169,8 @@ export function AchievementsView() {
                       <Button
                         size="sm"
                         className="h-9 shrink-0 esi-glow"
-                        disabled={claiming === m.id}
-                        onClick={() => void claim(m.id)}
+                        disabled={claiming === `${m.id}:${m.periodKey}`}
+                        onClick={() => void claim(m.id, m.periodKey)}
                       >
                         +{toPersianDigits(m.xpReward)} امتیاز
                       </Button>

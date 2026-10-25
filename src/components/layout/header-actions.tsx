@@ -1,16 +1,18 @@
 "use client";
 
 import * as React from "react";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { useSession } from "@/lib/client/use-session";
 import { Button } from "@/components/ui/button";
 
-/** Header actions for mobile: notifications and account. Theme switch is temporarily hidden. */
+/** Header actions for mobile: notifications and account. Theme selection is available. */
 export function MobileHeaderActions({ onBellClick }: { onBellClick?: () => void }) {
   const session = useSession();
   return (
     <div className="flex items-center gap-1.5">
+      <ThemeToggle />
       {session ? (
         <>
           <Link
