@@ -73,6 +73,7 @@ export async function createPlanFromTemplate(
   }
 
   return db.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`;
     // Archive any previous active plan so "today" resolves to the new one. Done in
     // the same transaction: a failed build must never leave the user plan-less.
     await tx.workoutPlan.updateMany({

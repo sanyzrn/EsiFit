@@ -9,12 +9,12 @@ export const coachDayInput = z.object({
   exercises: z.array(coachExerciseInput).max(12),
 }).strict().refine(x => x.isRest ? x.exercises.length === 0 : x.exercises.length > 0, "روز استراحت باید خالی و روز تمرین باید دارای حرکت باشد.")
   .refine(x => new Set(x.exercises.map(e => e.slug)).size === x.exercises.length, "حرکت تکراری در یک روز مجاز نیست.");
-export const coachProgramInput = z.object({
-  athleteId: z.string().min(1), sourcePlanId: z.string().nullable(),
+export const programDraftSchema = z.object({
   name: z.string().trim().min(3).max(100), description: z.string().trim().max(1000),
   goalType: z.enum(["build_muscle", "lose_weight", "endurance", "health", "recomp"]),
   weeks: z.number().int().min(1).max(8), days: z.array(coachDayInput).length(7),
 }).strict().refine(x => x.days.some(d => !d.isRest) && x.days.some(d => d.isRest), "حداقل یک روز تمرین و یک روز استراحت لازم است.");
+export const coachProgramInput = programDraftSchema.safeExtend({athleteId:z.string().min(1),sourcePlanId:z.string().nullable()});
 export type CoachProgramInput = z.infer<typeof coachProgramInput>;
 export type CoachProgramDraft = Omit<CoachProgramInput, "athleteId" | "sourcePlanId">;
 export type CoachExerciseOption = { id: string; slug: string; nameFa: string; equipment: string };

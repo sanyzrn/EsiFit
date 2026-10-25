@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import { PlanningSettings } from "./planning-settings";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -139,6 +140,7 @@ export function AiManagementTab() {
   }
   return (
     <div className="space-y-5">
+      <PlanningSettings />
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-primary/5 p-5">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-bold">

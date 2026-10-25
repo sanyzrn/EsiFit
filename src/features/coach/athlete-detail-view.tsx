@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { TrainingPlanner } from "@/features/planning/training-planner";
 import { ProgramEditor } from "./program-editor";
 import { CoachNote } from "./coach-note";
 import type { CoachExerciseOption } from "@/lib/coach/program-contract";
@@ -196,6 +197,7 @@ export function AthleteDetailView({ detail, backHref, catalog = [], coachNote = 
           {detail.readiness14.length > 0 && <p className="mt-4 text-sm text-esi-text-secondary">آخرین آمادگی ثبت‌شده: {toPersianDigits(detail.readiness14.at(-1)!.score)} از ۱۰۰ · {formatJalaliLong(detail.readiness14.at(-1)!.scoreDate)}</p>}
         </section>
         {detail.activePlan && <section className="esi-card rounded-3xl p-5" aria-label="برنامه فعلی"><h2 className="font-bold">برنامه فعلی</h2><p className="mt-2 text-sm">{detail.activePlan.name} · {toPersianDigits(detail.activePlan.weeks)} هفته</p><p className="mt-2 whitespace-pre-line text-xs leading-6 text-esi-text-secondary">{detail.activePlan.description}</p><div className="mt-4 space-y-2">{detail.activePlan.days.map((d,i)=><details key={i} className="rounded-xl bg-surface-2 p-3"><summary className="min-h-11 cursor-pointer text-sm font-semibold">{d.name} {d.isRest ? "· استراحت" : ""}</summary><ul className="space-y-2 text-xs">{d.exercises.map((e,j)=><li key={j} className="flex justify-between gap-3"><span>{catalog.find(x=>x.slug===e.slug)?.nameFa ?? e.slug}</span><span>{toPersianDigits(e.sets)} ست · {toPersianDigits(e.repsMin)}–{toPersianDigits(e.repsMax)} تکرار</span></li>)}</ul></details>)}</div></section>}
+        <TrainingPlanner key={`planner-${detail.athlete.id}`} athleteId={detail.athlete.id} staff/>
         {canManage && <><CoachNote key={detail.athlete.id} athleteId={detail.athlete.id} initialNote={coachNote}/><ProgramEditor key={detail.athlete.id} athleteId={detail.athlete.id} activePlan={detail.activePlan} catalog={catalog} equipment={detail.profile?.availableEquipment ?? ""}/></>}
 
         {/* Recent sessions */}

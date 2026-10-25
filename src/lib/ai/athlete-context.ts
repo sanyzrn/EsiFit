@@ -11,6 +11,7 @@ export async function readAthleteContext(userId: string) {
     readiness,
     measurement,
     goals,
+    painReports,
     nutritionTarget,
   ] = await Promise.all([
     db.userProfile.findUnique({ where: { userId } }),
@@ -75,6 +76,7 @@ export async function readAthleteContext(userId: string) {
       orderBy: { measuredOn: "desc" },
     }),
     db.goal.findMany({ where: { userId, status: "active" }, take: 5 }),
+    db.painReport.findMany({where:{userId,status:{in:["active","improving"]}},take:20,select:{bodyRegion:true,severity:true,note:true,status:true}}),
     db.nutritionTarget.findFirst({
       where: { userId },
       orderBy: { effectiveFrom: "desc" },
@@ -82,6 +84,7 @@ export async function readAthleteContext(userId: string) {
   ]);
   return {
     profile,
+    painReports,
     measurement,
     readiness,
     nutritionTarget,

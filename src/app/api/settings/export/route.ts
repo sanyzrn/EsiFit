@@ -15,7 +15,7 @@ export async function GET() {
     }
     const [
       profile, measurements, goals, sessions, prs, nutritionDays, waterLogs,
-      sleepLogs, readiness, calculatorResults, badges, xpLogs, swaps, painReports, orders, subscriptions, accountSettings,
+      sleepLogs, readiness, calculatorResults, badges, xpLogs, swaps, painReports, orders, subscriptions, accountSettings, planningRuns,
     ] = await Promise.all([
       db.userProfile.findUnique({ where: { userId: session.id } }),
       db.bodyMeasurement.findMany({ where: { userId: session.id }, orderBy: { measuredOn: "asc" } }),
@@ -38,6 +38,7 @@ export async function GET() {
       db.order.findMany({ where: { userId: session.id }, orderBy: { createdAt: "asc" } }),
       db.subscription.findMany({ where: { userId: session.id }, orderBy: { startsAt: "asc" } }),
       db.user.findUnique({ where: { id: session.id }, select: { locale: true, theme: true, reducedMotion: true, createdAt: true } }),
+      db.aiPlanRun.findMany({where:{athleteId:session.id},orderBy:{createdAt:"asc"},select:{id:true,status:true,source:true,requestNote:true,planJson:true,explanationJson:true,riskJson:true,appliedPlanId:true,reviewRequestedAt:true,createdAt:true,updatedAt:true}}),
     ]);
 
     const payload = {
@@ -68,6 +69,7 @@ export async function GET() {
       painReports,
       orders: orders.map(orderReceipt),
       subscriptions,
+      planningRuns,
     };
 
     const stamp = new Date().toISOString().slice(0, 10);

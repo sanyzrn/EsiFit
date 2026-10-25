@@ -104,13 +104,11 @@ describe("profile equipment API", () => {
     expect(j2.availableEquipment.sort()).toEqual(["bodyweight", "dumbbell"]);
   });
 
-  it("regenerate endpoint builds a 4-week plan", async () => {
+  it("regenerate endpoint rejects an unreviewed legacy template write", async () => {
     await patchProfile(patch("/api/settings/profile", { availableEquipment: ["bodyweight"] }));
     const res = await regenerate(post("/api/workouts/plan/regenerate", { template: "ppl" }));
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.weeks).toBe(4);
-    expect(json.dayCount).toBeGreaterThan(4);
+    expect(res.status).toBe(400);
+    expect(await db.workoutPlan.count()).toBe(0);
   });
 
   it("alternatives respect profile equipment", async () => {

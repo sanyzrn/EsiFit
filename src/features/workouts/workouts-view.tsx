@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { TrainingPlanner } from "@/features/planning/training-planner";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { PageHeader } from "@/components/layout/page-header";
@@ -103,25 +104,9 @@ export function WorkoutsView({
   const [selectedMuscles, setSelectedMuscles] = React.useState<Set<BodySlug>>(new Set());
   const [alternatives, setAlternatives] = React.useState<Alternative[] | null>(null);
   const [altsLoading, setAltsLoading] = React.useState(false);
-  const [regenerating, setRegenerating] = React.useState(false);
+  const [plannerOpen, setPlannerOpen] = React.useState(!activePlanName);
   const reduce = useReducedMotion();
   const { toast } = useToast();
-
-  const regeneratePlan = async () => {
-    setRegenerating(true);
-    try {
-      const res = await api<{ message?: string }>("/api/workouts/plan/regenerate", {
-        method: "POST",
-        json: { template: "ppl" },
-      });
-      toast({ title: "برنامه بازسازی شد", description: res.message ?? "برنامه ۴ هفته‌ای جدید فعال شد." });
-      router.refresh();
-    } catch (e) {
-      toast({ title: "بازسازی ناموفق", description: errorMessage(e), variant: "destructive" });
-    } finally {
-      setRegenerating(false);
-    }
-  };
 
   const loadAlternatives = async (exerciseId: string) => {
     // Toggle closed when already showing this exercise's alternatives.
@@ -194,8 +179,8 @@ export function WorkoutsView({
         description={activePlanName ?? "برنامه فعال ندارید — از حرکات پایین جلسه دلخواه بسازید"}
         action={
           <div className="flex items-center gap-2">
-            <Button variant="secondary" className="h-11" onClick={() => void regeneratePlan()} disabled={regenerating}>
-              {regenerating ? "…" : "بازسازی برنامه"}
+            <Button variant="secondary" className="h-11" onClick={() => setPlannerOpen(value=>!value)}>
+              {plannerOpen ? "بستن برنامه‌ریز" : "برنامه‌ریز هوشمند"}
             </Button>
             <Button className="h-11 esi-glow" onClick={() => void startToday()} disabled={starting || checkingSession}>
               {starting || checkingSession ? "…" : activeSession ? "ادامه تمرین" : "شروع تمرین"}
@@ -204,6 +189,7 @@ export function WorkoutsView({
         }
       />
 
+      {plannerOpen && <div className="mx-4 mb-6 lg:mx-8"><TrainingPlanner /></div>}
       {activeSession && (
         <section className="mx-4 mb-5 rounded-3xl border border-primary/35 bg-primary/10 p-4 lg:mx-8" aria-label="جلسه فعال">
           <div className="flex items-center justify-between gap-3">

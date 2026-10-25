@@ -45,7 +45,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, code: "validation", message: "گزارش درد کامل نیست." }, { status: 400 });
     }
 
-    const report = await db.painReport.create({
+    const report = await db.$transaction(async tx=>{
+      await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id"=${session.id} FOR UPDATE`;
+      return tx.painReport.create({
       data: {
         userId: session.id,
         reportedOn: todayISO(session.timezone),
@@ -55,6 +57,7 @@ export async function POST(req: Request) {
         note: parsed.data.note?.trim() ?? "",
         status: "active",
       },
+      });
     });
 
     return NextResponse.json({ ok: true, report: { id: report.id, bodyRegion: report.bodyRegion } });
@@ -80,7 +83,7 @@ export async function PATCH(req: Request) {
     if (!report || report.userId !== session.id) {
       return NextResponse.json({ ok: false, code: "not_found" }, { status: 404 });
     }
-    await db.painReport.update({ where: { id: report.id }, data: { status: parsed.data.status } });
+    await db.$transaction(async tx=>{await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id"=${session.id} FOR UPDATE`;await tx.painReport.updateMany({where:{id:report.id,userId:session.id},data:{status:parsed.data.status}});});
     return NextResponse.json({ ok: true });
   } catch (error) {
     return appErrorResponse(error);

@@ -14,7 +14,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { api, errorMessage } from "@/lib/client/api";
+import { api, errorMessage, isApiError } from "@/lib/client/api";
 import { toPersianDigits } from "@/lib/formatting/numbers";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +35,7 @@ type Quota = {
 type ChatState = {
   available: boolean;
   reason?: string;
+  recoveryStatus?:string;
   conversations: { id: string; title: string }[];
   conversationId?: string;
   messages: Message[];
@@ -65,7 +66,8 @@ const SUGGESTIONS: Record<string, string[]> = {
     "وضعیت کلی سایت را گزارش بده",
     "مربی‌ها و تخصیص ورزشکاران را بررسی کن",
     "اتصال‌ها و دسترسی‌های همپا را نشان بده",
-    "محتوای اخیر انجمن را برای بررسی نشان بده",
+    "گزارش عملیاتی هفت روز اخیر و وضعیت برنامه‌ریز را نشان بده",
+    "محصول‌ها و مقاله‌ها را برای ویرایش نشان بده",
   ],
 };
 const STATUS: Record<string, string> = {
@@ -76,7 +78,11 @@ const STATUS: Record<string, string> = {
   cancelled: "لغو شد",
 };
 
-export function AIAssistantView({ role }: { role: string }) {
+export function AIAssistantView({ role, userId }: { role: string; userId:string }) {
+  const pendingRequest=React.useRef<{id:string;content:string}|null>(null);
+  const [recoveryId,setRecoveryId]=React.useState<string>();
+  const [online,setOnline]=React.useState(true);
+  React.useEffect(()=>{try{setRecoveryId(sessionStorage.getItem(`esifit:hampa-request:${userId}`)??undefined)}catch{}const update=()=>setOnline(navigator.onLine);update();window.addEventListener("online",update);window.addEventListener("offline",update);return()=>{window.removeEventListener("online",update);window.removeEventListener("offline",update)}},[userId]);
   const [state, setState] = React.useState<ChatState | null>(null);
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [actions, setActions] = React.useState<Action[]>([]);
@@ -89,13 +95,14 @@ export function AIAssistantView({ role }: { role: string }) {
   const [confirmation, setConfirmation] = React.useState<Action>();
   const [error, setError] = React.useState<string>();
   const scrollRef = React.useRef<HTMLDivElement>(null);
-  const load = React.useCallback(async (id?: string) => {
+  const load = React.useCallback(async (id?: string, recover?:string) => {
     setLoading(true);
     setError(undefined);
     try {
       const res = await api<ChatState>(
-        `/api/ai/chat${id ? `?conversationId=${encodeURIComponent(id)}` : ""}`,
+        `/api/ai/chat${recover?`?requestId=${encodeURIComponent(recover)}`:id ? `?conversationId=${encodeURIComponent(id)}` : ""}`,
       );
+      if(recover&&res.recoveryStatus==="success"){pendingRequest.current=null;setInput("");}
       setState(res);
       setMessages(res.messages);
       setActions(res.actions);
@@ -116,7 +123,9 @@ export function AIAssistantView({ role }: { role: string }) {
 
   async function send(text?: string) {
     const content = (text ?? input).trim();
-    if (!content || sending || !state?.available) return;
+    if (!content || sending || !state?.available || !online) return;
+    if(!pendingRequest.current||pendingRequest.current.content!==content)pendingRequest.current={id:crypto.randomUUID(),content};
+    const requestId=pendingRequest.current.id;setRecoveryId(requestId);try{sessionStorage.setItem(`esifit:hampa-request:${userId}`,requestId)}catch{}
     setSending(true);
     setError(undefined);
     setInput("");
@@ -124,6 +133,7 @@ export function AIAssistantView({ role }: { role: string }) {
     setMessages((items) => [...items, optimistic]);
     try {
       const res = await api<{
+        pending?:boolean;
         conversationId: string;
         userMessageId: string;
         message: { id: string; content: string };
@@ -132,11 +142,14 @@ export function AIAssistantView({ role }: { role: string }) {
       }>("/api/ai/chat", {
         method: "POST",
         json: {
+          requestId,
           conversationId,
           message: content,
           ...(role === "admin" && providerId ? { providerId } : {}),
         },
       });
+      if(res.pending){setMessages(items=>items.filter(item=>item.id!==optimistic.id));setInput(content);setError("درخواست قبلی هنوز در حال انجام است؛ با بازیابی گفتگو نتیجه را ببین. پیام دوباره برای مدل ارسال نشد.");if(res.conversationId)setConversationId(res.conversationId);return;}
+      pendingRequest.current=null;
       setConversationId(res.conversationId);
       setMessages((items) => [
         ...items.map((item) =>
@@ -167,7 +180,8 @@ export function AIAssistantView({ role }: { role: string }) {
           : current,
       );
     } catch (e) {
-      setError(errorMessage(e));
+      if(isApiError(e)&&e.status!==0)pendingRequest.current=null;
+      setError(`${errorMessage(e)} پیش از تکرار، «بازیابی گفتگو» را بزن؛ ممکن است پاسخ در سرور ذخیره شده باشد.`);
       setInput(content);
       setMessages((items) => items.filter((item) => item.id !== optimistic.id));
     } finally {
@@ -217,11 +231,13 @@ export function AIAssistantView({ role }: { role: string }) {
         }
       />
       <div className="mb-5 space-y-3 px-4 lg:px-8">
+        <div className="flex flex-wrap gap-2"><Button variant="secondary" size="sm" asChild><Link href={role === "admin" ? "/admin?tab=ai" : role === "coach" ? "/coach" : "/workouts"}>{role === "admin" ? "مدیریت برنامه‌ریز مستقل" : role === "coach" ? "برنامه‌ریز در پروندهٔ ورزشکار" : "ساخت و بازسازی برنامهٔ تمرین"}</Link></Button>{recoveryId&&<Button variant="ghost" size="sm" disabled={sending||loading||!online} onClick={()=>void load(undefined,recoveryId)}>بازیابی گفتگو</Button>}</div>
+        {!online&&<p role="status" className="rounded-2xl bg-surface-2 p-3 text-xs leading-6">اینترنت قطع است؛ متن پیام در همین صفحه حفظ می‌شود. ارسال مجدد خودکار انجام نمی‌شود.</p>}
         <div className="flex flex-wrap gap-2">
           <select
             aria-label="گفت‌وگوهای قبلی"
             value={conversationId ?? ""}
-            disabled={sending || loading || Boolean(acting)}
+            disabled={!online || sending || loading || Boolean(acting)}
             onChange={(e) => void load(e.target.value || undefined)}
             className="h-10 min-w-0 flex-1 rounded-xl border border-border bg-surface-1 px-3 text-xs"
           >
@@ -235,8 +251,8 @@ export function AIAssistantView({ role }: { role: string }) {
           <Button
             variant="secondary"
             size="sm"
-            disabled={sending || loading || Boolean(acting)}
-            onClick={() => void load()}
+            disabled={!online || sending || loading || Boolean(acting)}
+            onClick={() => {pendingRequest.current=null;setInput("");void load()}}
           >
             گفت‌وگوی جدید
           </Button>

@@ -81,3 +81,9 @@ existing `Exercise.instructionsFa` field. Add/swap responses retain equipment.
 - Signed-in landing restores the shared hero and FeatureBento; role-correct continuation, day demo/sign-up CTA/footer remain suppressed.
 - PlansView distinguishes load errors from an unconfigured catalog, retries in place, and shows unavailable payment as coming soon. API validates feature strings defensively; role-based subscription policy is unchanged.
 - Eight original editorial articles with linked primary sources, a clearly identified editorial author and five category routes; unfilled stories and disabled magazine show coming-soon states. No new UI family, flag or schema.
+
+## Independent planning and HamPa operations
+- TrainingPlanner({athleteId?,staff?}): shared onboarding/member/coach/admin preview, actual profile summary, independent quota, consent/revocation, durable request recovery, source labels, seven-day details, human review and explicit activation dialog; loading/offline/error/empty/review/applied states. Existing Button/Textarea/AlertDialog/Icon tokens.
+- PlanningSettings: independent provider policy, daily/monthly caps, recent requests and refresh/error states within the existing admin AI tab. Credentials remain in the existing tested provider form.
+- OnboardingFlow: four profile steps (identity/body/goal/schedule and limitations), edit-prefill, then shared planning review; saving a profile never silently archives a program.
+- HamPa: role-specific reports/catalog edits with trusted confirmation previews; offline unsent-message preservation in current view, opaque request recovery per account, and no automatic duplicate provider requests. No new component family or package dependency.

@@ -7,18 +7,20 @@ import type { Prisma } from "@prisma/client";
 
 const PENDING_TTL_MS = 5 * 60 * 1000;
 export type QuotaClaim =
-  | { ok: true; requestId: string; dayKey: string; used: number; limit: number }
+  | { ok: true; requestId: string; dayKey: string; used: number; limit: number; duplicate?: boolean }
   | { ok: false; used: number; limit: number };
 export const newQuotaRequestId = () => `aiq-${randomUUID()}`;
 function usageWhere(
   userId: string,
   timezone: string,
   monthly = false,
+  purpose = "chat",
 ): Prisma.AiUsageLogWhereInput {
   const today = todayISO(timezone);
   const start = monthly ? `${today.slice(0, 7)}-01` : today;
   return {
     userId,
+    purpose,
     OR: [
       { dayKey: { gte: start, lte: today }, status: "success" },
       {
@@ -45,25 +47,26 @@ export async function claimAiQuotaSlot(params: {
   conversationId?: string | null;
   provider?: string;
   model?: string;
+  purpose?: "chat" | "planner";
 }): Promise<QuotaClaim> {
   const requestId = params.requestId ?? newQuotaRequestId();
   const dayKey = todayISO(params.timezone);
   return db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`ai-quota:${params.userId}`}, 0))`;
     const used = await tx.aiUsageLog.count({
-      where: usageWhere(params.userId, params.timezone),
+      where: usageWhere(params.userId, params.timezone, false, params.purpose),
     });
     const existing = await tx.aiUsageLog.findUnique({ where: { requestId } });
     if (existing) {
       return existing.userId === params.userId && existing.status === "pending"
-        ? { ok: true, requestId, dayKey, used, limit: params.limit }
+        ? { ok: true, requestId, dayKey, used, limit: params.limit, duplicate: true }
         : { ok: false, used, limit: params.limit };
     }
     const monthUsed =
       params.monthlyLimit == null
         ? 0
         : await tx.aiUsageLog.count({
-            where: usageWhere(params.userId, params.timezone, true),
+            where: usageWhere(params.userId, params.timezone, true, params.purpose),
           });
     if (
       used >= params.limit ||
@@ -78,6 +81,7 @@ export async function claimAiQuotaSlot(params: {
         dayKey,
         status: "pending",
         conversationId: params.conversationId,
+        purpose: params.purpose ?? "chat",
         provider: params.provider ?? "unconfigured",
         model: params.model ?? "unconfigured",
       },
@@ -113,8 +117,9 @@ export async function countAiQuotaUsage(
   userId: string,
   timezone: string,
   monthly = false,
+  purpose = "chat",
 ) {
-  return db.aiUsageLog.count({ where: usageWhere(userId, timezone, monthly) });
+  return db.aiUsageLog.count({ where: usageWhere(userId, timezone, monthly, purpose) });
 }
 export function assertQuotaClaim(
   claim: QuotaClaim,
