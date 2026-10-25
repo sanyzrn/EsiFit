@@ -2,16 +2,16 @@ import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { db } from "@/lib/db";
-import { lastNDaysISO } from "@/lib/dates/jalali";
+import { lastNDaysISO, localDayStartUTC } from "@/lib/dates/jalali";
 import { resolveEnabledFlags } from "@/lib/feature-flags/registry";
 
 /** GET /api/admin/overview — console metrics (admin-only). */
 export async function GET() {
   try {
-    await requireRole("admin");
+    const admin = await requireRole("admin");
 
-    const since7 = new Date(`${lastNDaysISO(7)[0]}T00:00:00Z`);
-    const since30 = new Date(`${lastNDaysISO(30)[0]}T00:00:00Z`);
+    const since7 = localDayStartUTC(lastNDaysISO(7)[0], admin.timezone);
+    const since30 = localDayStartUTC(lastNDaysISO(30)[0], admin.timezone);
 
     const [users, usersByRole, usersByTier, usersByStatus, sessions7d, newUsers30d, posts, comments, exercises, foods, recentUsers] =
       await Promise.all([
@@ -39,9 +39,16 @@ export async function GET() {
       db.workoutSession.count({ where: { status: "active" } }),
     ]);
 
+    const now = new Date();
+    const [orders30d, activeSubscriptions] = await Promise.all([
+      db.order.aggregate({ where: { status: "paid", createdAt: { gte: since30, lte: now } }, _count: { id: true }, _sum: { totalToman: true } }),
+      db.subscription.count({ where: { status: "active", startsAt: { lte: now }, currentPeriodEndsAt: { gte: now }, user: { role: "member" } } }),
+    ]);
+
     return NextResponse.json({
       ok: true,
       overview: {
+        commerce: { mode: "mock", currency: "IRT", orders30d: orders30d._count.id, recordedOrderTotal30dToman: orders30d._sum.totalToman ?? 0, activeSubscriptions },
         users,
         usersByRole: Object.fromEntries(usersByRole.map((r) => [r.role, r._count.role])),
         usersByTier: Object.fromEntries(usersByTier.map((r) => [r.tier, r._count.tier])),

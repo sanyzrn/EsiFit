@@ -12,10 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { api, errorMessage } from "@/lib/client/api";
-import { toPersianDigits } from "@/lib/formatting/numbers";
+import { toPersianDigits, formatToman } from "@/lib/formatting/numbers";
 import { formatRelative } from "@/lib/dates/jalali";
 
 type Overview = {
+  commerce: { mode: "mock"; currency: "IRT"; orders30d: number; recordedOrderTotal30dToman: number; activeSubscriptions: number };
   users: number;
   usersByRole: Record<string, number>;
   usersByTier: Record<string, number>;
@@ -148,6 +149,16 @@ export function AdminConsoleView({ adminName }: { adminName: string }) {
                     <p className="mt-1 text-[10px] text-esi-text-muted">{metric.hint}</p>
                   </div>
                 ))}
+              </section>
+
+              <section aria-label="وضعیت فروش آزمایشی" className="rounded-2xl border border-border bg-surface-1 p-4">
+                <h2 className="text-sm font-bold">وضعیت فروش آزمایشی</h2>
+                <p className="mt-1 text-xs leading-6 text-esi-text-muted">این اعداد از سفارش‌های ثبت‌شده می‌آیند؛ درآمد واقعی یا تمدید خودکار نیستند.</p>
+                <dl className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-xl bg-surface-2 p-3"><dt className="text-xs text-esi-text-secondary">سفارش‌های آزمایشی ۳۰ روز</dt><dd className="mt-2 font-bold tabular-nums">{toPersianDigits(overview.commerce.orders30d)}</dd></div>
+                  <div className="rounded-xl bg-surface-2 p-3"><dt className="text-xs text-esi-text-secondary">جمع مبلغ ثبت‌شدهٔ ۳۰ روز</dt><dd className="mt-2 font-bold tabular-nums">{formatToman(overview.commerce.recordedOrderTotal30dToman)}</dd></div>
+                  <div className="rounded-xl bg-surface-2 p-3"><dt className="text-xs text-esi-text-secondary">اشتراک‌های فعال و منقضی‌نشده</dt><dd className="mt-2 font-bold tabular-nums">{toPersianDigits(overview.commerce.activeSubscriptions)}</dd></div>
+                </dl>
               </section>
 
               <button

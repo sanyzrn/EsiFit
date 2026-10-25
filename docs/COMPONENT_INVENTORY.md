@@ -35,3 +35,10 @@ existing `Exercise.instructionsFa` field. Add/swap responses retain equipment.
 - `WorkoutSessionHUD`: completion waits for all queued sets from its own session. Transient failures keep it open. Terminal rejections show a separate explicit action to finish only the saved sets; rejected local records remain preserved.
 - Existing challenge tab is hidden by the server-resolved CHALLENGES flag, default off until scoring/settlement is implemented.
 - Shared `activity-streak` helpers provide current and longest calendar-day streaks; no new visual components or database entities.
+
+## Audit phase 5 (2026-10-25)
+- `StoreView`: owner order history in the shared Sheet, loading/error/retry/empty states, stable cursor pagination, immutable receipt item names/prices and totals. Legacy receipts retain their original recorded totals.
+- `PlansView`: current subscription and end date, immediate cancellation through the shared AlertDialog, disabled pending controls and refreshed session/tier. Current billing is explicitly mock and has no automatic renewal or refunds.
+- `SettingsView`: export available to every member tier, pending download state; truthful unavailable account-deletion copy replaces the fake destructive button. No erasure endpoint exists.
+- `AdminConsoleView`: actual recorded mock order count/total for 30 local calendar days and active subscription count; these are not gateway revenue or MRR.
+- No new UI primitives, dependencies, feature flags or schema fields.

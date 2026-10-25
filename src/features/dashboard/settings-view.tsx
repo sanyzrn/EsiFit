@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { useToast } from "@/hooks/use-toast";
 import { useSession } from "@/lib/client/use-session";
-import { TIER_LABELS, getEntitlements, type UserTier } from "@/lib/entitlements/entitlements";
+import { TIER_LABELS, type UserTier } from "@/lib/entitlements/entitlements";
 import { toPersianDigits, parseLocaleNumber } from "@/lib/formatting/numbers";
 import { formatRelative } from "@/lib/dates/jalali";
 import { clearLocalUserData, getQueuedOperations } from "@/lib/offline/adapter";
@@ -29,10 +29,9 @@ export function SettingsView({
   const router = useRouter();
   const { toast } = useToast();
   const [reducedMotion, setReducedMotion] = React.useState(false);
-  const [confirmingDelete, setConfirmingDelete] = React.useState(false);
+  const [exporting, setExporting] = React.useState(false);
   const [loggingOut, setLoggingOut] = React.useState(false);
   const memberAccount = session.role === "member";
-  const ent = getEntitlements(session.tier as UserTier);
 
   React.useEffect(() => {
     const stored = localStorage.getItem("esifit-reduced-motion");
@@ -109,13 +108,8 @@ export function SettingsView({
   };
 
   const exportData = async () => {
-    if (!ent.dataExport) {
-      toast({
-        title: "خروجی داده در پلن وی‌آی‌پی",
-        description: "خروجی کامل داده‌ها یکی از مزایای اشتراک وی‌آی‌پی است.",
-      });
-      return;
-    }
+    if (exporting) return;
+    setExporting(true);
     try {
       const res = await fetch("/api/settings/export", { credentials: "same-origin" });
       if (!res.ok) {
@@ -132,9 +126,11 @@ export function SettingsView({
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast({ title: "خروجی داده آماده شد", description: "فایل JSON کامل داده‌های شما دانلود شد." });
+      toast({ title: "خروجی داده آماده شد", description: "فایل JSON داده‌های ورزشی، سفارش‌ها و اشتراک‌های شما دانلود شد." });
     } catch (e) {
       toast({ title: "خروجی ناموفق بود", description: errorMessage(e), variant: "destructive" });
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -263,30 +259,11 @@ export function SettingsView({
               : "حساب مدیریتی فقط برای دسترسی به ابزارهای کاری استفاده می‌شود. داده‌های ورزشکاران در بخش مربوط به نقش شما مدیریت می‌شوند."}
           </p>
           <div className="flex flex-wrap gap-2">
-            {memberAccount && <Button variant="secondary" size="sm" className="h-9" onClick={exportData}>
+            {memberAccount && <Button variant="secondary" size="sm" className="h-9" onClick={exportData} disabled={exporting}>
               <Icon name="Download" size={15} />
-              خروجی داده‌ها
+              {exporting ? "در حال آماده‌سازی…" : "خروجی داده‌ها (همهٔ پلن‌ها)"}
             </Button>}
-            {!confirmingDelete ? (
-              <Button variant="ghost" size="sm" className="h-9 text-destructive" onClick={() => setConfirmingDelete(true)}>
-                حذف حساب
-              </Button>
-            ) : (
-              <div className="flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/5 px-3 py-1.5">
-                <span className="text-xs text-esi-text-secondary">مطمئنید؟ این اقدام بازگشت‌پذیر نیست.</span>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="h-7 text-[11px]"
-                  onClick={() => toast({ title: "حذف حساب", description: "در محیط دمو غیرفعال است — در نسخه تولیدی با تأیید پیامکی انجام می‌شود." })}
-                >
-                  بله، حذف کن
-                </Button>
-                <Button variant="ghost" size="sm" className="h-7 text-[11px]" onClick={() => setConfirmingDelete(false)}>
-                  انصراف
-                </Button>
-              </div>
-            )}
+            <p className="w-full text-xs leading-6 text-esi-text-muted">حذف حساب در این نسخه هنوز در دسترس نیست.</p>
           </div>
         </section>
 

@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { EQUIPMENT_KEYS, parseAvailableEquipment, serializeAvailableEquipment } from "@/lib/workout/equipment";
 
 const patchSchema = z.object({
-  availableEquipment: z.array(z.string()).max(20),
+  availableEquipment: z.array(z.enum(EQUIPMENT_KEYS)).max(20),
 });
 
 /** GET /api/settings/profile — current equipment availability for the signed-in user. */

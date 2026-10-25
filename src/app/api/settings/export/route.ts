@@ -2,13 +2,10 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { db } from "@/lib/db";
-import { getEntitlements, type UserTier } from "@/lib/entitlements/entitlements";
+import { orderReceipt } from "@/lib/commerce/orders";
 
-/**
- * GET /api/settings/export — full personal-data export (GDPR-style portability).
- * Entitlement `dataExport` is enforced server-side; free users get a clear
- * Persian pointer (never a dark pattern).
- */
+/** Member fitness/account/commerce export, available independently of paid tier.
+ * Session tokens, credentials and other people's records are never exported. */
 export async function GET() {
   try {
     const session = await getSessionUser();
@@ -16,21 +13,9 @@ export async function GET() {
     if (!session) {
       return NextResponse.json({ ok: false, code: "authentication" }, { status: 401 });
     }
-    const ent = getEntitlements(session.tier as UserTier);
-    if (!ent.dataExport) {
-      return NextResponse.json(
-        {
-          ok: false,
-          code: "authorization",
-          message: "خروجی کامل داده‌ها از پلن وی‌آی‌پی فعال می‌شود؛ حساب و جلسات فعال همیشه از همین صفحه در دسترس است.",
-        },
-        { status: 403 },
-      );
-    }
-
     const [
       profile, measurements, goals, sessions, prs, nutritionDays, waterLogs,
-      sleepLogs, readiness, calculatorResults, badges, xpLogs, swaps, painReports,
+      sleepLogs, readiness, calculatorResults, badges, xpLogs, swaps, painReports, orders, subscriptions, accountSettings,
     ] = await Promise.all([
       db.userProfile.findUnique({ where: { userId: session.id } }),
       db.bodyMeasurement.findMany({ where: { userId: session.id }, orderBy: { measuredOn: "asc" } }),
@@ -50,6 +35,9 @@ export async function GET() {
       db.xpLog.findMany({ where: { userId: session.id } }),
       db.exerciseSwap.findMany({ where: { userId: session.id } }),
       db.painReport.findMany({ where: { userId: session.id } }),
+      db.order.findMany({ where: { userId: session.id }, orderBy: { createdAt: "asc" } }),
+      db.subscription.findMany({ where: { userId: session.id }, orderBy: { startsAt: "asc" } }),
+      db.user.findUnique({ where: { id: session.id }, select: { locale: true, theme: true, reducedMotion: true, createdAt: true } }),
     ]);
 
     const payload = {
@@ -62,6 +50,7 @@ export async function GET() {
         tier: session.tier,
         timezone: session.timezone,
         unitSystem: session.unitSystem,
+        ...accountSettings,
       },
       profile,
       measurements,
@@ -77,6 +66,8 @@ export async function GET() {
       xpLedger: xpLogs,
       exerciseSwaps: swaps,
       painReports,
+      orders: orders.map(orderReceipt),
+      subscriptions,
     };
 
     const stamp = new Date().toISOString().slice(0, 10);
@@ -84,6 +75,7 @@ export async function GET() {
       status: 200,
       headers: {
         "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "private, no-store",
         "Content-Disposition": `attachment; filename="esifit-export-${stamp}.json"`,
       },
     });
