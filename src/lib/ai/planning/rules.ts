@@ -1,3 +1,4 @@
+import { parseLocaleNumber } from "@/lib/formatting/numbers";
 import type { CoachProgramDraft } from "@/lib/coach/program-contract";
 import { planDraftInput } from "./contract";
 import { PLAN_PRESETS, type PlanTemplateKey } from "@/lib/workout/plan-presets";
@@ -8,7 +9,7 @@ export type PlanningContext = {
   goal:string|null; level:string|null; days:number; minutes:number; equipment:string;
   medicalReviewRequired:boolean; healthNotes:string; pains:Array<{bodyRegion:string;severity:number;note:string}>;
   readiness:{score:number;date:string}|null;
-  recentWorkouts:Array<{date:string;volume:number;duration:number|null;exercises:Array<{slug:string;sets:Array<{reps:number|null;weightKg:number|null;rpe:number|null}>}>}>;
+  recentWorkouts:Array<{date:string;volume:number;duration:number|null;exercises:Array<{slug:string;sets:Array<{reps:number|null;weightKg:number|null;rpe:number|null;durationSeconds:number|null}>}>}>;
   activePlan:{id:string;name:string;days:Array<{name:string;isRest:boolean;exercises:Array<{slug:string;sets:number;repsMin:number;repsMax:number}>}>}|null;
 };
 export function reviewReasons(c:Pick<PlanningContext,"age"|"heightCm"|"weightKg"|"goal"|"level"|"medicalReviewRequired"|"healthNotes"|"pains">):string[] {
@@ -29,9 +30,14 @@ export function allowedMovements(c:PlanningContext,catalog:PlanningMovement[]) {
   return catalog.filter(e=>(!eq||eq.has(e.equipment)) && (c.level==='advanced'||e.difficulty!=='advanced') &&
     (!eq||!['pull-up','chin-up','inverted-row','hanging-leg-raise','leg-raise-machine'].includes(e.slug)));
 }
+export function timedSetSeconds(note?:string):number|null {
+  const match=note?.match(/^زمان: ([0-9۰-۹٠-٩]{1,3}) ثانیه(?:\s|$)/);
+  const seconds=match?parseLocaleNumber(match[1]):null;
+  return seconds!=null&&seconds>=10&&seconds<=600?seconds:null;
+}
 export function estimatedMinutes(day:CoachProgramDraft['days'][number]) {
   if(day.isRest)return 0;
-  return Math.ceil((300+day.exercises.reduce((sum,e)=>sum+e.sets*(Math.max(30,e.repsMax*4)+e.rest),0))/60);
+  return Math.ceil((300+day.exercises.reduce((sum,e)=>sum+e.sets*((e.repsMin===1&&e.repsMax===1?(timedSetSeconds(e.note)??30):Math.max(30,e.repsMax*4))+e.rest),0))/60);
 }
 /** Hard product bounds, not a medical certification. Unknown exercises never reach storage. */
 export function validatePlanningDraft(raw:unknown,c:PlanningContext,catalog:PlanningMovement[]):CoachProgramDraft {
@@ -47,6 +53,10 @@ export function validatePlanningDraft(raw:unknown,c:PlanningContext,catalog:Plan
   for(const day of p.days){
     if(day.exercises.length>(c.level==='beginner'?6:8)||estimatedMinutes(day)>c.minutes)throw new Error("Session budget exceeded");
     for(const e of day.exercises){
+      const movement=allowed.get(e.slug);
+      const timed=e.repsMin===1&&e.repsMax===1;
+      if(timed&&movement?.movementPattern!=="conditioning"&&movement?.movementPattern!=="carry"&&!["plank","side-plank","reverse-plank","wall-sit"].includes(e.slug))throw new Error("Repetition-based movement cannot become an invented timed variant");
+      if((timed&&timedSetSeconds(e.note)==null)||(movement?.movementPattern==='conditioning'&&!timed))throw new Error("Timed prescription missing structured duration");
       if(!allowed.has(e.slug)||e.sets>(c.level==='beginner'?3:5)||e.rpe>(c.level==='beginner'?7.5:8.5)||e.rest<30)throw new Error("Prescription outside bounds");
     }
   }
@@ -67,7 +77,7 @@ export function rulesDraft(c:PlanningContext,catalog:PlanningMovement[]):CoachPr
       const replacement=allowed.find(x=>x.slug===e.slug&&!selected.has(x.slug))??allowed.find(x=>!selected.has(x.slug)&&x.movementPattern===original?.movementPattern&&x.primaryMuscles.some(m=>original?.primaryMuscles.includes(m)))??allowed.find(x=>!selected.has(x.slug)&&x.primaryMuscles.some(m=>original?.primaryMuscles.includes(m)));
       if(!replacement)return [];
       selected.add(replacement.slug);
-      return [{...e,slug:replacement.slug,sets:2,rpe:6.5,rest:Math.max(60,Math.min(120,e.rest)),note:e.repsMax===1?'هر ست ۲۰ ثانیه با کنترل؛ در صورت ناراحتی توقف کن.':'با اجرای کنترل‌شده؛ افزایش وزنه خودکار نیست.'}];
+      return [{...e,slug:replacement.slug,sets:2,rpe:6.5,rest:Math.max(60,Math.min(120,e.rest)),note:e.repsMax===1?'زمان: 20 ثانیه · با کنترل؛ در صورت ناراحتی توقف کن.':'با اجرای کنترل‌شده؛ افزایش وزنه خودکار نیست.'}];
     }).slice(0,5);
     while(estimatedMinutes(d)>c.minutes && d.exercises.length>2)d.exercises.pop();
     if(d.exercises.length<2)return null;

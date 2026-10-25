@@ -1,6 +1,6 @@
 import { describe,it,expect } from 'vitest';
 import { EXERCISES } from '@/features/workouts/data/exercise-dataset';
-import { reviewReasons,requestNeedsReview,rulesDraft,validatePlanningDraft,allowedMovements,estimatedMinutes,type PlanningContext,type PlanningMovement } from '@/lib/ai/planning/rules';
+import { timedSetSeconds,reviewReasons,requestNeedsReview,rulesDraft,validatePlanningDraft,allowedMovements,estimatedMinutes,type PlanningContext,type PlanningMovement } from '@/lib/ai/planning/rules';
 const catalog:PlanningMovement[]=EXERCISES.map(e=>({id:e.slug,slug:e.slug,nameFa:e.nameFa,equipment:e.equipment,movementPattern:e.movementPattern,difficulty:e.difficulty,primaryMuscles:e.muscles.filter(m=>m.role==='primary').map(m=>m.slug)}));
 const context:PlanningContext={age:35,sex:'undisclosed',heightCm:180,weightKg:80,goal:'health',level:'beginner',days:3,minutes:45,equipment:'',medicalReviewRequired:false,healthNotes:'',pains:[],readiness:null,recentWorkouts:[],activePlan:null};
 describe('independent training planner constraints',()=>{
@@ -23,6 +23,7 @@ describe('independent training planner constraints',()=>{
  it('keeps goal and schedule bounded instead of promising automatic progression',()=>{
    const p=rulesDraft(context,catalog)!;expect(p.goalType).toBe('health');expect(p.days.filter(d=>!d.isRest)).toHaveLength(3);
    expect(()=>validatePlanningDraft({...p,goalType:'build_muscle'},context,catalog)).toThrow();
+   expect(timedSetSeconds('زمان: ۲۰ ثانیه · کنترل')).toBe(20);expect(timedSetSeconds('تا خستگی ادامه بده')).toBeNull();
    expect(requestNeedsReview('درد زانو دارم')).toBe(true);expect(requestNeedsReview('روزهای آزاد من عوض شده')).toBe(false);
  });
 });

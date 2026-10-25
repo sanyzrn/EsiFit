@@ -14,7 +14,7 @@ export async function planningSnapshot(athleteId:string,reader:Reader=db) {
     reader.painReport.findMany({where:{userId:athleteId,status:{in:['active','improving']}},orderBy:[{reportedOn:'desc'},{id:'asc'}],take:30,select:{bodyRegion:true,severity:true,note:true}}),
     reader.readinessDaily.findFirst({where:{userId:athleteId},orderBy:{scoreDate:'desc'},select:{score:true,scoreDate:true}}),
     reader.workoutPlan.findFirst({where:{userId:athleteId,status:'active'},orderBy:{createdAt:'desc'},include:{days:{where:{weekNumber:1},orderBy:{dayNumber:'asc'},include:{exercises:{orderBy:{orderIndex:'asc'},include:{exercise:{select:{slug:true}}}}}}}}),
-    reader.workoutSession.findMany({where:{userId:athleteId,status:'completed'},orderBy:{startedAt:'desc'},take:5,select:{startedAt:true,totalVolumeKg:true,durationSeconds:true,exerciseLogs:{take:8,orderBy:{orderIndex:"asc"},select:{exercise:{select:{slug:true}},sets:{where:{isWarmup:false},orderBy:{setNumber:"desc"},take:4,select:{reps:true,weightKg:true,rpe:true}}}}}}),
+    reader.workoutSession.findMany({where:{userId:athleteId,status:'completed'},orderBy:{startedAt:'desc'},take:5,select:{startedAt:true,totalVolumeKg:true,durationSeconds:true,exerciseLogs:{take:8,orderBy:{orderIndex:"asc"},select:{exercise:{select:{slug:true}},sets:{where:{isWarmup:false},orderBy:{setNumber:"desc"},take:4,select:{reps:true,weightKg:true,rpe:true,durationSeconds:true}}}}}}),
     reader.workoutSession.findFirst({where:{userId:athleteId,status:{in:['active','paused']}},select:{id:true}}),
   ]);
   if(!athlete)throw AppError.from('not_found');

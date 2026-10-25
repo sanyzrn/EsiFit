@@ -24,6 +24,7 @@ it('recovers the same draft and applies it once, preserving the old plan',async(
  const old=await db.workoutPlan.create({data:{userId:actor.id,name:'old',goalType:'health',weeks:4,startsOn:todayISO()}});
  const request=input();const first=await prepareTrainingPlan(actor,request);expect(first.status).toBe('ready');expect(first.source).toBe('rules');
  expect((await prepareTrainingPlan(actor,request)).id).toBe(first.id);expect(await db.workoutPlan.count()).toBe(1);
+ await prepareTrainingPlan(actor,input());const recovered=await GET(new Request(`https://esifit.internal/api/ai/planning?requestId=${request.requestId}`));expect((await recovered.json()).run.id).toBe(first.id);
  const [a,b]=await Promise.all([applyTrainingPlan(actor,first.id),applyTrainingPlan(actor,first.id)]);expect(a.appliedPlanId).toBe(b.appliedPlanId);
  expect(await db.workoutPlan.count({where:{status:'active'}})).toBe(1);expect((await db.workoutPlan.findUniqueOrThrow({where:{id:old.id}})).status).toBe('archived');
  expect(await db.notification.count()).toBe(1);

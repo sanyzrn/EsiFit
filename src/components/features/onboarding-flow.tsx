@@ -75,7 +75,7 @@ export function OnboardingFlow({ displayName, returnTo, initialProfile }: { disp
 
   const [name, setName] = React.useState(displayName === "ورزشکار اسی‌فیت" ? "" : displayName);
   const [birthYear, setBirthYear] = React.useState(initialProfile?.birthYear?.toString()??"");
-  const [sex, setSex] = React.useState<"male" | "female" | "undisclosed">((initialProfile?.sexAtBirth as "male"|"female"|"undisclosed")??"undisclosed");
+  const [sex, setSex] = React.useState<"male" | "female" | "undisclosed">(initialProfile?.sexAtBirth === "male" ? "male" : initialProfile?.sexAtBirth === "female" ? "female" : "undisclosed");
   const [height, setHeight] = React.useState(initialProfile?.heightCm?.toString()??"");
   const [weight, setWeight] = React.useState(initialProfile?.weightKg?.toString()??"");
   const [goal, setGoal] = React.useState(initialProfile?.primaryGoal??"build_muscle");
@@ -182,7 +182,7 @@ export function OnboardingFlow({ displayName, returnTo, initialProfile }: { disp
                     placeholder="۱۳۷۴"
                   />
                 </Field>
-                <Field label="جنسیت" hint="فقط برای فرمول‌های فیزیولوژیک استفاده می‌شود">
+                <Field label="جنسیت" hint="برای برآوردهای فیزیولوژیک و برنامه‌ریزی با رضایت شما">
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       { v: "male", l: "مرد" },
