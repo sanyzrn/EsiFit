@@ -62,7 +62,7 @@ export default async function BlogCategoryPage({ params }: CategoryParams) {
           ))}
           {articles.length === 0 && (
             <div className="col-span-full py-12 text-center space-y-4">
-              <p className="text-sm text-esi-text-muted">هنوز مقاله‌ای در این دسته منتشر نشده است.</p>
+              <p className="text-sm text-esi-text-muted">محتوای این بخش به‌زودی منتشر می‌شود؛ فعلاً مقاله‌های دیگر مجله را بخوان.</p>
               <Button asChild variant="secondary">
                 <Link href="/blog">بازگشت به مجله</Link>
               </Button>

@@ -26,6 +26,8 @@ type Plan = {
 };
 
 export function PlansView({ currentTier }: { currentTier: string | null }) {
+  const [loadError, setLoadError] = React.useState("");
+  const [paymentAvailable, setPaymentAvailable] = React.useState(false);
   const [plans, setPlans] = React.useState<Plan[] | null>(null);
   const [effectiveTier, setEffectiveTier] = React.useState(currentTier);
   const [subscription, setSubscription] = React.useState<{ id: string; currentPeriodEndsAt: string } | null>(null);
@@ -35,10 +37,11 @@ export function PlansView({ currentTier }: { currentTier: string | null }) {
   const refresh = useSessionRefresh();
 
   const loadPlans = React.useCallback(async () => {
+    setLoadError(""); setPlans(null);
     try {
-      const res = await api<{ plans: Plan[]; currentTier: string | null; currentSubscription: { id: string; currentPeriodEndsAt: string } | null }>("/api/plans/subscribe");
-      setPlans(res.plans); setEffectiveTier(res.currentTier); setSubscription(res.currentSubscription);
-    } catch { setPlans([]); }
+      const res = await api<{ paymentAvailable: boolean; plans: Plan[]; currentTier: string | null; currentSubscription: { id: string; currentPeriodEndsAt: string } | null }>("/api/plans/subscribe");
+      setPaymentAvailable(res.paymentAvailable); setPlans(res.plans); setEffectiveTier(res.currentTier); setSubscription(res.currentSubscription);
+    } catch (error) { setLoadError(errorMessage(error)); setPlans([]); }
   }, []);
   React.useEffect(() => { void loadPlans(); }, [loadPlans]);
 
@@ -112,8 +115,8 @@ export function PlansView({ currentTier }: { currentTier: string | null }) {
 
       {plans.length === 0 && (
         <div className="rounded-3xl border border-destructive/30 bg-destructive/8 p-8 text-center space-y-3">
-          <p className="text-sm text-destructive">بارگذاری پلن‌ها ناموفق بود.</p>
-          <Button variant="secondary" onClick={() => window.location.reload()}>تلاش دوباره</Button>
+          <p className="text-sm text-destructive">{loadError || "پلن‌های اشتراک به‌زودی در دسترس قرار می‌گیرند."}</p>
+          <Button variant="secondary" onClick={() => void loadPlans()}>تلاش دوباره</Button>
         </div>
       )}
 
@@ -153,12 +156,12 @@ export function PlansView({ currentTier }: { currentTier: string | null }) {
               <Button
                 className={cn("mt-6 h-11 w-full", p.highlight && "esi-glow")}
                 variant={isCurrent ? "secondary" : "default"}
-                disabled={isCurrent || busy !== null}
+                disabled={!paymentAvailable || isCurrent || busy !== null}
                 onClick={() => void subscribe(p.code)}
               >
-                {isCurrent ? `پلن فعلی (${TIER_LABELS[p.tier as keyof typeof TIER_LABELS]})` : busy === p.code ? "…" : "انتخاب پلن"}
+                {!paymentAvailable ? "پرداخت به‌زودی" : isCurrent ? `پلن فعلی (${TIER_LABELS[p.tier as keyof typeof TIER_LABELS]})` : busy === p.code ? "…" : "انتخاب پلن"}
               </Button>
-              <p className="mt-2 text-center text-[10px] text-esi-text-muted">پرداخت آزمایشی دمو — بدون تمدید خودکار</p>
+              <p className="mt-2 text-center text-[10px] text-esi-text-muted">{paymentAvailable ? "پرداخت آزمایشی دمو — بدون تمدید خودکار" : "خرید آنلاین هنوز فعال نیست"}</p>
             </motion.article>
           );
         })}

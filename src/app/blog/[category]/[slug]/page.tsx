@@ -59,7 +59,7 @@ export default async function ArticlePage({
     image: `${siteOrigin()}${SOCIAL_IMAGE.url}`,
     datePublished: article.publishedAt?.toISOString(),
     dateModified: article.updatedAt.toISOString(),
-    author: { "@type": "Person", name: article.author.name },
+    author: { "@type": article.author.id === "esifit-editorial" ? "Organization" : "Person", name: article.author.name },
     ...(article.reviewer ? { reviewedBy: { "@type": "Person", name: article.reviewer.name } } : {}),
     publisher: { "@type": "Organization", name: "اسی‌فیت" },
     inLanguage: "fa",
@@ -166,7 +166,7 @@ export default async function ArticlePage({
             <ol className="space-y-2">
               {article.sources.map((s) => (
                 <li key={s.id} className="text-xs leading-6 text-esi-text-muted">
-                  {s.title} — <span className="text-esi-text-secondary">{s.publisher}</span>
+                  {s.url ? <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">{s.title}</a> : s.title} — <span className="text-esi-text-secondary">{s.publisher}</span>
                   {s.publishedOn ? ` (${toPersianDigits(s.publishedOn)})` : ""}
                   {s.doi ? ` — DOI: ${s.doi}` : ""}
                 </li>

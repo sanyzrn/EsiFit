@@ -33,18 +33,8 @@ export default async function LandingPage() {
 
   return (
     <PublicPageShell session={session} flags={flags} showFooter flush backHref={undefined}>
-      {session && <section className="mx-auto max-w-6xl px-4 py-8 lg:px-8">
-        <p className="text-sm text-esi-text-secondary">خوش برگشتی، {session.displayName}</p>
-        <h1 className="mt-2 font-display text-3xl">ادامهٔ مسیرت در اسی‌فیت</h1>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Button asChild><Link href={session.role === "admin" ? "/admin" : session.role === "coach" ? "/coach" : "/dashboard"}>رفتن به فضای من</Link></Button>
-          <Button asChild variant="secondary"><Link href="/calculators">ابزارهای محاسبه</Link></Button>
-          <Button asChild variant="secondary"><Link href="/blog">مطالب آموزشی</Link></Button>
-        </div>
-      </section>}
-      {!session && <>
       <ScrollProgress />
-      <LandingHero signedIn={Boolean(session)} />
+      <LandingHero signedIn={Boolean(session)} continueHref={session?.role === "admin" ? "/admin" : session?.role === "coach" ? "/coach" : "/dashboard"} />
 
       {/* ============ FEATURES ============ */}
       <section className="mx-auto max-w-6xl px-4 lg:px-8 py-16">
@@ -57,6 +47,7 @@ export default async function LandingPage() {
         <FeatureBento />
       </section>
 
+      {!session && <>
       {/* ============ A DAY ============ */}
       <section className="relative overflow-hidden border-y border-border bg-surface-1">
         <div aria-hidden className="absolute inset-0 [mask-image:linear-gradient(to_left,black,transparent_70%)]">
