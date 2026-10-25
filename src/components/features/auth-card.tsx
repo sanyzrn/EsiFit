@@ -62,11 +62,11 @@ export function AuthCard() {
     setError(null);
     setLoading(true);
     try {
-      const res = await api<{ isNewUser: boolean }>("/api/auth/verify-otp", {
+      const res = await api<{ needsOnboarding: boolean }>("/api/auth/verify-otp", {
         method: "POST",
         json: { phone: toLatinDigits(phone), code: value },
       });
-      router.push(res.isNewUser ? "/auth/onboarding" : "/dashboard");
+      router.push(res.needsOnboarding ? "/auth/onboarding" : "/dashboard");
     } catch (e) {
       setError(errorMessage(e));
       setCode("");

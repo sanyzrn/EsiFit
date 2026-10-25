@@ -59,10 +59,10 @@ const deleteSchema = z.object({
   reason: z.string().max(200).optional(),
 });
 
-/** DELETE /api/admin/moderation — remove a post or comment (admin + coach for own scope). */
+/** DELETE /api/admin/moderation — remove a post or comment (admin-only). */
 export async function DELETE(req: Request) {
   try {
-    const session = await requireRole("coach_or_admin");
+    await requireRole("admin");
     const parsed = deleteSchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json({ ok: false, code: "validation" }, { status: 400 });
@@ -72,16 +72,6 @@ export async function DELETE(req: Request) {
     if (kind === "post") {
       const post = await db.post.findUnique({ where: { id }, include: { user: true } });
       if (!post) return NextResponse.json({ ok: false, code: "not_found" }, { status: 404 });
-
-      // Coaches may only moderate their own roster athletes' content.
-      if (session.role !== "admin") {
-        const link = await db.coachClient.findUnique({
-          where: { coachId_athleteId: { coachId: session.id, athleteId: post.userId } },
-        });
-        if (!link || link.status !== "active") {
-          return NextResponse.json({ ok: false, code: "authorization" }, { status: 403 });
-        }
-      }
 
       await db.post.delete({ where: { id } });
       await db.notification.create({
@@ -97,13 +87,6 @@ export async function DELETE(req: Request) {
 
     const comment = await db.comment.findUnique({ where: { id } });
     if (!comment) return NextResponse.json({ ok: false, code: "not_found" }, { status: 404 });
-
-    if (session.role !== "admin") {
-      const link = await db.coachClient.findUnique({
-        where: { coachId_athleteId: { coachId: session.id, athleteId: comment.userId } },
-      });
-      if (!link || link.status !== "active") return NextResponse.json({ ok: false, code: "authorization" }, { status: 403 });
-    }
 
     await db.comment.delete({ where: { id } });
     await db.notification.create({

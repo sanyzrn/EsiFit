@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     const session = await getSessionUser();
     if (!session) return NextResponse.json({ ok: false, code: "authentication", message: "برای انتشار پست وارد شوید." }, { status: 401 });
     if (session.role !== "member") return NextResponse.json({ ok: false, code: "authorization" }, { status: 403 });
-    if (!rateLimit(`community:post:${session.id}`, 10, 60 * 60 * 1000).ok) {
+    if (!(await rateLimit(`community:post:${session.id}`, 10, 60 * 60 * 1000)).ok) {
       return NextResponse.json({ ok: false, code: "rate_limit", message: "تعداد پست‌ها زیاد بوده است. کمی بعد تلاش کنید." }, { status: 429 });
     }
     const body = postSchema.parse(await req.json());

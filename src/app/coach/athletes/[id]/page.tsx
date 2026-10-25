@@ -17,7 +17,7 @@ export default async function CoachAthletePage({ params }: { params: Promise<{ i
     const link = await db.coachClient.findUnique({
       where: { coachId_athleteId: { coachId: session.id, athleteId: id } },
     });
-    if (!link) redirect("/coach");
+    if (!link || link.status !== "active") redirect("/coach");
   }
 
   const detail = await getCoachAthleteDetail(id);

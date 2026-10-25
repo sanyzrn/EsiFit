@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { activityStreak } from "@/lib/domain/gamification-engine";
-import { todayISO, lastNDaysISO } from "@/lib/dates/jalali";
+import { todayISO, lastNDaysISO, addDaysISO, localDayStartUTC, isoDateOnly, daysBetweenISO } from "@/lib/dates/jalali";
 import { computeGoalProgress } from "@/lib/domain/goals";
 import { currentValueForGoal } from "@/lib/goal-values";
 import { formatWorkoutDayTitle, formatWorkoutPlanTitle } from "@/lib/workout/plan-titles";
@@ -46,10 +46,10 @@ export async function getCoachRoster(coachId: string): Promise<RosterEntry[]> {
   const ids = links.map((l) => l.athleteId);
 
   const [athletes, profiles, sessions, readiness, prs, goals, activePlans] = await Promise.all([
-    db.user.findMany({ where: { id: { in: ids }, status: "active" } }),
+    db.user.findMany({ where: { id: { in: ids }, status: "active", role: "member" } }),
     db.userProfile.findMany({ where: { userId: { in: ids } } }),
     db.workoutSession.findMany({
-      where: { userId: { in: ids }, status: "completed", startedAt: { gte: new Date(`${iso28}T00:00:00Z`) } },
+      where: { userId: { in: ids }, status: "completed", startedAt: { gte: localDayStartUTC(iso28), lte: new Date() } },
       select: { userId: true, startedAt: true, totalVolumeKg: true },
       orderBy: { startedAt: "asc" },
     }),
@@ -58,7 +58,7 @@ export async function getCoachRoster(coachId: string): Promise<RosterEntry[]> {
       select: { userId: true, score: true, state: true },
     }),
     db.personalRecord.findMany({
-      where: { userId: { in: ids }, achievedAt: { gte: new Date(`${lastNDaysISO(30)[0]}T00:00:00Z`) } },
+      where: { userId: { in: ids }, achievedAt: { gte: localDayStartUTC(lastNDaysISO(30)[0]) } },
       select: { userId: true },
     }),
     db.goal.findMany({ where: { userId: { in: ids }, status: "active" } }),
@@ -74,7 +74,7 @@ export async function getCoachRoster(coachId: string): Promise<RosterEntry[]> {
   const prByUser = new Map<string, number>();
   for (const pr of prs) prByUser.set(pr.userId, (prByUser.get(pr.userId) ?? 0) + 1);
 
-  const iso7Time = new Date(`${iso7}T00:00:00Z`).getTime();
+  const iso7Time = localDayStartUTC(iso7).getTime();
 
   return links
     .map((link) => {
@@ -149,12 +149,13 @@ export type AthleteDetail = {
 
 export async function getCoachAthleteDetail(athleteId: string): Promise<AthleteDetail | null> {
   const athlete = await db.user.findUnique({
-    where: { id: athleteId },
-    select: { id: true, displayName: true, tier: true, status: true, createdAt: true },
+    where: { id: athleteId, role: "member" },
+    select: { id: true, displayName: true, tier: true, status: true, timezone: true, createdAt: true },
   });
   if (!athlete || athlete.status !== "active") return null;
 
-  const today = todayISO();
+  const now = new Date();
+  const today = todayISO(athlete.timezone);
   const [profile, plan, streak, measurements, sessions, prs, goals, readiness, pain, allSessions] =
     await Promise.all([
       db.userProfile.findUnique({ where: { userId: athleteId } }),
@@ -167,7 +168,7 @@ export async function getCoachAthleteDetail(athleteId: string): Promise<AthleteD
         select: { measuredOn: true, weightKg: true },
       }),
       db.workoutSession.findMany({
-        where: { userId: athleteId, status: "completed" },
+        where: { userId: athleteId, status: "completed", startedAt: { lte: now } },
         orderBy: { startedAt: "desc" },
         take: 12,
         select: { id: true, name: true, startedAt: true, totalVolumeKg: true, durationSeconds: true },
@@ -191,7 +192,7 @@ export async function getCoachAthleteDetail(athleteId: string): Promise<AthleteD
         take: 5,
       }),
       db.workoutSession.findMany({
-        where: { userId: athleteId, status: "completed", startedAt: { gte: new Date(Date.now() - 8 * 7 * 86_400_000) } },
+        where: { userId: athleteId, status: "completed", startedAt: { gte: localDayStartUTC(addDaysISO(today, -55), athlete.timezone), lte: now } },
         select: { startedAt: true, totalVolumeKg: true },
         orderBy: { startedAt: "asc" },
       }),
@@ -200,11 +201,11 @@ export async function getCoachAthleteDetail(athleteId: string): Promise<AthleteD
   // Weekly tonnage buckets (last 8 weeks).
   const buckets = new Map<string, number>();
   for (const s of allSessions) {
-    const weeksAgo = Math.floor((Date.now() - s.startedAt.getTime()) / (7 * 86_400_000));
-    const d = new Date();
-    d.setUTCHours(12, 0, 0, 0);
-    d.setUTCDate(d.getUTCDate() - weeksAgo * 7);
-    const weekStart = d.toISOString().slice(0, 10);
+    if (s.startedAt > now) continue;
+    const daysAgo = daysBetweenISO(today, isoDateOnly(s.startedAt, athlete.timezone));
+    const weeksAgo = Math.floor(daysAgo / 7);
+    if (weeksAgo < 0 || weeksAgo >= 8) continue;
+    const weekStart = addDaysISO(today, -(weeksAgo * 7 + 6));
     buckets.set(weekStart, (buckets.get(weekStart) ?? 0) + s.totalVolumeKg);
   }
   const weeklyTonnage = [...buckets.entries()]

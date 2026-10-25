@@ -47,7 +47,11 @@ describe("workout completion records real elapsed time", () => {
     const s = await db.workoutSession.create({
       data: { userId: user.id, startedAt: started, status: "active" },
     });
-    await complete(post("/api/workouts/complete", { sessionId: s.id }));
+    const exercise = await db.exercise.findUniqueOrThrow({ where: { slug: "barbell-bench-press" } });
+    const log = await db.exerciseLog.create({ data: { sessionId: s.id, exerciseId: exercise.id, orderIndex: 0 } });
+    await db.setLog.create({ data: { userId: user.id, exerciseLogId: log.id, setNumber: 1, weightKg: 60, reps: 8, completedAt: new Date() } });
+    const result = await complete(post("/api/workouts/complete", { sessionId: s.id }));
+    expect(result.status).toBe(200);
     const stored = await db.workoutSession.findUnique({ where: { id: s.id } });
     // ~1800s, allowing a second of test runtime drift.
     expect(stored!.durationSeconds).toBeGreaterThan(1750);

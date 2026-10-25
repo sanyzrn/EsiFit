@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { api, errorMessage, isApiError } from "@/lib/client/api";
@@ -43,7 +44,7 @@ export type LiveExercise = {
   equipment?: string;
   instructions?: string;
   history?: ExerciseHistoryView;
-  sets?: Array<{ id?: string; setNumber: number; weightKg: number | null; reps: number | null; rpe?: number | null; isPr?: boolean }>;
+  sets?: Array<{ id?: string; setNumber: number; weightKg: number | null; reps: number | null; rpe?: number | null; isPr?: boolean; isWarmup?: boolean }>;
 };
 
 export type LiveSession = {
@@ -52,7 +53,7 @@ export type LiveSession = {
   startedAt: string;
   planDayId?: string | null;
   exercises: LiveExercise[];
-  exerciseLogs?: Array<{ exerciseId: string; sets: Array<{ id: string; setNumber: number; weightKg: number | null; reps: number | null; rpe: number | null; isPr: boolean }> }>;
+  exerciseLogs?: Array<{ exerciseId: string; sets: Array<{ id: string; setNumber: number; weightKg: number | null; reps: number | null; rpe: number | null; isPr: boolean; isWarmup?: boolean }> }>;
 };
 
 type SwapAlternative = {
@@ -84,17 +85,19 @@ export function WorkoutSessionHUD({
 }: {
   initialSession: LiveSession;
 }) {
+  const router = useRouter();
   const reduced = useReducedMotion();
   const voiceFlag = useFeatureFlag("VOICE_LOGGING");
   const swapFlag = useFeatureFlag("EXERCISE_SWAP");
   const [session, setSession] = React.useState<LiveSession>(() => hydrateSets(initialSession));
   const [currentIdx, setCurrentIdx] = React.useState(() => {
     const exercises = hydrateSets(initialSession).exercises;
-    const firstIncomplete = exercises.findIndex((ex) => (ex.sets?.length ?? 0) < Math.max(1, ex.targetSets));
+    const firstIncomplete = exercises.findIndex((ex) => (ex.sets?.filter(s => !s.isWarmup).length ?? 0) < Math.max(1, ex.targetSets));
     return firstIncomplete === -1 ? Math.max(0, exercises.length - 1) : firstIncomplete;
   });
   const [focusMode, setFocusMode] = React.useState(true);
   const [captureOpen, setCaptureOpen] = React.useState(false);
+  const [isWarmup, setIsWarmup] = React.useState(false);
   const [weight, setWeight] = React.useState("");
   const [reps, setReps] = React.useState("");
   const [rpe, setRpe] = React.useState<number | null>(null);
@@ -167,6 +170,7 @@ export function WorkoutSessionHUD({
 
   React.useEffect(() => {
     setAllowExtraSet(false);
+    setIsWarmup(false);
     setConfirmSkipRest(false);
   }, [currentIdx]);
 
@@ -174,22 +178,24 @@ export function WorkoutSessionHUD({
   const loggedSets = React.useMemo(() => {
     const fromServer = session.exerciseLogs?.find((l) => l.exerciseId === exercise?.exerciseId)?.sets ?? [];
     const local = exercise?.sets ?? [];
-    const map = new Map<number, { setNumber: number; weightKg: number | null; reps: number | null; rpe?: number | null; isPr?: boolean }>();
+    const map = new Map<number, { setNumber: number; weightKg: number | null; reps: number | null; rpe?: number | null; isPr?: boolean; isWarmup?: boolean }>();
     for (const s of [...fromServer, ...local]) map.set(s.setNumber, s);
     return [...map.values()].sort((a, b) => a.setNumber - b.setNumber);
   }, [session, exercise, loggedVersion]);
   const nextSetNumber = (loggedSets[loggedSets.length - 1]?.setNumber ?? 0) + 1;
   const targetSets = Math.max(1, exercise?.targetSets ?? 1);
-  const targetComplete = loggedSets.length >= targetSets;
+  const workingSetCount = loggedSets.filter(s => !s.isWarmup).length;
+  const targetComplete = workingSetCount >= targetSets;
   const restRemaining = restRemainingSeconds(rest, restClock);
   const isResting = Boolean(rest && exercise && rest.exerciseId === exercise.exerciseId && restRemaining > 0);
   const restReady = Boolean(rest && restRemaining === 0);
   const restPaused = Boolean(rest && rest.pausedRemaining !== undefined);
   const restExercise = session.exercises.find((ex) => ex.exerciseId === rest?.exerciseId);
   const totalPlannedSets = session.exercises.reduce((sum, ex) => sum + Math.max(1, ex.targetSets), 0);
+  const totalWorkingSets = session.exercises.reduce((sum, ex) => sum + (ex.sets?.filter(s => !s.isWarmup).length ?? 0), 0);
   const totalLoggedSets = session.exercises.reduce((sum, ex) => sum + (ex.sets?.length ?? 0), 0);
   const workoutProgress = totalPlannedSets > 0
-    ? Math.min(100, Math.round(session.exercises.reduce((sum, ex) => sum + Math.min(ex.sets?.length ?? 0, Math.max(1, ex.targetSets)), 0) / totalPlannedSets * 100))
+    ? Math.min(100, Math.round(session.exercises.reduce((sum, ex) => sum + Math.min(ex.sets?.filter(s => !s.isWarmup).length ?? 0, Math.max(1, ex.targetSets)), 0) / totalPlannedSets * 100))
     : 0;
   const isLastExercise = currentIdx === session.exercises.length - 1;
   const setClock = useActiveSetClock(`esifit:set-clock:${session.id}:${exercise?.exerciseId ?? "empty"}:${nextSetNumber}`, !rest && (!targetComplete || allowExtraSet) && !completed && !captureOpen);
@@ -349,6 +355,7 @@ export function WorkoutSessionHUD({
       weightKg: w,
       reps: r,
       rpe: rpe ?? undefined,
+      isWarmup,
       completedAt: new Date().toISOString(),
     };
 
@@ -360,7 +367,7 @@ export function WorkoutSessionHUD({
         ...previous,
         exercises: previous.exercises.map((ex, i) =>
           i === currentIdx
-            ? { ...ex, sets: [...(ex.sets ?? []), { setNumber: nextSetNumber, weightKg: w, reps: r, rpe }] }
+            ? { ...ex, sets: [...(ex.sets ?? []), { setNumber: nextSetNumber, weightKg: w, reps: r, rpe, isWarmup }] }
             : ex,
         ),
       }));
@@ -370,7 +377,7 @@ export function WorkoutSessionHUD({
       setCaptureOpen(false);
 
       // Rest between sets and movements, but never after the final planned set.
-      if ((nextSetNumber < targetSets || !isLastExercise) && exercise.restSeconds > 0) {
+      if ((workingSetCount + (isWarmup ? 0 : 1) < targetSets || !isLastExercise) && exercise.restSeconds > 0) {
         saveRest(startWorkoutRest(exercise.exerciseId, Math.max(30, exercise.restSeconds), Date.now()));
       } else {
         saveRest(null);
@@ -390,7 +397,7 @@ export function WorkoutSessionHUD({
     try {
       await api("/api/workouts/sessions", { method: "DELETE", json: { sessionId: session.id } });
       saveRest(null);
-      window.location.assign("/workouts");
+      router.push("/workouts");
     } catch (e) {
       setError(errorMessage(e));
       setBusy(false);
@@ -493,7 +500,7 @@ export function WorkoutSessionHUD({
                 </p>
               </div>
               <span className="shrink-0 rounded-xl bg-surface-2 px-2.5 py-1.5 text-xs font-bold tabular-nums text-esi-text-secondary">
-                {toPersianDigits(loggedSets.length)} / {toPersianDigits(targetSets)}
+                {toPersianDigits(workingSetCount)} / {toPersianDigits(targetSets)}
               </span>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -511,6 +518,10 @@ export function WorkoutSessionHUD({
                 integer
               />
             </div>
+            <label className="flex min-h-10 items-center gap-2 text-sm text-esi-text-secondary">
+              <input type="checkbox" checked={isWarmup} onChange={event => setIsWarmup(event.target.checked)} className="accent-primary" />
+              ست گرم‌کردن (بدون رکورد و پیشرفت ست‌های اصلی)
+            </label>
             {exercise.equipment === "barbell" && (parseLocaleNumber(weight) ?? 0) > 0 && (
               <button
                 type="button"
@@ -626,7 +637,7 @@ export function WorkoutSessionHUD({
             </button>
           )}
           {session.exercises.map((ex, i) => {
-            const done = (ex.sets?.length ?? 0) >= ex.targetSets;
+            const done = (ex.sets?.filter(s => !s.isWarmup).length ?? 0) >= ex.targetSets;
             return (
               <button
                 key={ex.exerciseId}
@@ -657,7 +668,7 @@ export function WorkoutSessionHUD({
           </div>
           <div className="flex flex-col justify-center gap-4 px-4 py-4 sm:px-6 lg:gap-6 lg:px-10">
             <div className="flex items-center justify-between gap-3 text-xs text-esi-text-secondary">
-              <span>ست {toPersianDigits(Math.min(nextSetNumber, targetSets))} از {toPersianDigits(targetSets)}</span>
+              <span>ست {toPersianDigits(Math.min(workingSetCount + 1, targetSets))} از {toPersianDigits(targetSets)}</span>
               <span>{toPersianDigits(exercise.targetRepsMin)} تا {toPersianDigits(exercise.targetRepsMax)} تکرار</span>
             </div>
             <div className="text-center">
@@ -716,25 +727,25 @@ export function WorkoutSessionHUD({
                 </button>
               )}
             </div>
-            <div className="mt-5 flex items-center gap-2" aria-label={`${loggedSets.length} ست از ${targetSets} ست برنامه تکمیل شده`}>
+            <div className="mt-5 flex items-center gap-2" aria-label={`${workingSetCount} ست اصلی از ${targetSets} ست برنامه تکمیل شده`}>
               {Array.from({ length: Math.min(12, targetSets) }, (_, i) => (
                 <div
                   key={i}
                   className={cn(
                     "flex h-8 min-w-0 flex-1 items-center justify-center rounded-xl border text-xs font-semibold tabular-nums transition-colors",
-                    i < loggedSets.length
+                    i < workingSetCount
                       ? "border-primary bg-primary/15 text-primary"
-                      : i === loggedSets.length && !targetComplete
+                      : i === workingSetCount && !targetComplete
                         ? "border-primary/40 bg-surface-2 text-esi-text-primary"
                         : "border-border bg-surface-2 text-esi-text-muted",
                   )}
                 >
-                  {i < loggedSets.length ? <Icon name="Check" size={14} /> : toPersianDigits(i + 1)}
+                  {i < workingSetCount ? <Icon name="Check" size={14} /> : toPersianDigits(i + 1)}
                 </div>
               ))}
             </div>
             <p className="mt-2 text-[11px] text-esi-text-muted">
-              {targetComplete ? "ست‌های برنامه این حرکت کامل شد" : `${toPersianDigits(loggedSets.length)} از ${toPersianDigits(targetSets)} ست کامل شده`}
+              {targetComplete ? "ست‌های برنامه این حرکت کامل شد" : `${toPersianDigits(workingSetCount)} از ${toPersianDigits(targetSets)} ست کامل شده`}
             </p>
           </section>
 
@@ -788,7 +799,7 @@ export function WorkoutSessionHUD({
                 </span>
                 <div className="min-w-0">
                   <p className="text-sm font-bold">این حرکت تموم شد!</p>
-                  <p className="mt-0.5 text-xs text-esi-text-secondary">{toPersianDigits(loggedSets.length)} ست انجام‌شده؛ نوبت مرحله بعده.</p>
+                  <p className="mt-0.5 text-xs text-esi-text-secondary">{toPersianDigits(workingSetCount)} ست انجام‌شده؛ نوبت مرحله بعده.</p>
                 </div>
               </div>
               <button
@@ -934,8 +945,8 @@ export function WorkoutSessionHUD({
             >
               <p className="font-display text-2xl">پایان جلسه تمرین؟</p>
               <p className="mt-2 text-sm leading-7 text-esi-text-secondary">
-                {toPersianDigits(totalLoggedSets)} ست از {toPersianDigits(totalPlannedSets)} ست برنامه ثبت شده.
-                {totalLoggedSets < totalPlannedSets
+                {toPersianDigits(totalWorkingSets)} ست اصلی از {toPersianDigits(totalPlannedSets)} ست برنامه ثبت شده.
+                {totalWorkingSets < totalPlannedSets
                   ? " هنوز بخشی از برنامه انجام نشده؛ اگر تمام کنی، همان ست‌های واقعی ذخیره می‌شوند."
                   : " همه ست‌های برنامه تمام شده؛ آماده ثبت نتیجه هستی."}
               </p>
@@ -943,12 +954,12 @@ export function WorkoutSessionHUD({
                 <div className="flex justify-between"><span>زمان جلسه</span><strong>{formatClock(elapsed)}</strong></div>
                 <div className="mt-2 flex justify-between"><span>پیشرفت</span><strong>{toPersianDigits(workoutProgress)}٪</strong></div>
               </div>
-              {totalLoggedSets === 0 && (
-                <p className="mt-3 text-xs text-primary">هنوز ستی ثبت نشده؛ می‌تونی جلسه رو برای ادامه بعدی نگه داری.</p>
+              {totalWorkingSets === 0 && (
+                <p className="mt-3 text-xs text-primary">هنوز ست اصلی ثبت نشده؛ می‌تونی جلسه رو برای ادامه بعدی نگه داری.</p>
               )}
               <div className="mt-5 grid gap-2">
                 <Button
-                  disabled={busy || totalLoggedSets === 0}
+                  disabled={busy || totalWorkingSets === 0}
                   onClick={() => void finish()}
                   className="h-12 font-bold"
                 >
@@ -1116,6 +1127,7 @@ function hydrateSets(session: LiveSession): LiveSession {
         reps: s.reps,
         rpe: s.rpe,
         isPr: s.isPr,
+        isWarmup: s.isWarmup,
       })),
     })),
   };

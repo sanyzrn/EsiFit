@@ -3,9 +3,9 @@ import { requireMember } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { appErrorResponse } from "@/lib/errors/respond";
 import { z } from "zod";
-import { todayISO, addDaysISO } from "@/lib/dates/jalali";
+import { todayISO, addDaysISO, isValidISODate } from "@/lib/dates/jalali";
 
-const getSchema = z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() });
+const getSchema = z.object({ date: z.string().refine(isValidISODate, "تاریخ معتبر نیست.").optional() });
 
 const mealOrder = ["breakfast", "lunch", "snack", "dinner"] as const;
 export const MEAL_SLOT_FA: Record<string, string> = {
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
 }
 
 const addSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  date: z.string().refine(isValidISODate, "تاریخ معتبر نیست.").optional(),
   foodId: z.string(),
   mealSlot: z.enum(["breakfast", "lunch", "snack", "dinner"]),
   quantity: z.number().min(0.1).max(20).default(1),
@@ -94,7 +94,9 @@ export async function POST(req: NextRequest) {
   try {
     const session = await requireMember();
     const body = addSchema.parse(await req.json());
-    const date = body.date ?? todayISO(session.timezone);
+    const today = todayISO(session.timezone);
+    const date = body.date ?? today;
+    if (date > today) return NextResponse.json({ ok: false, code: "validation", message: "ثبت وعدهٔ مصرف‌شده در آینده ممکن نیست." }, { status: 400 });
 
     const food = await db.food.findUnique({ where: { id: body.foodId } });
     if (!food) return NextResponse.json({ ok: false, code: "not_found", message: "غذا یافت نشد." }, { status: 404 });

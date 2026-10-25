@@ -24,3 +24,8 @@ existing `Exercise.instructionsFa` field. Add/swap responses retain equipment.
 - `features/admin/ai-management-tab.tsx`: connection probe/save, private credential edit, paged per-user grants/usage, action audit.
 - `features/ai/ai-assistant-view.tsx`: role-aware chat, history, quotas and reviewed action cards; reuses shared alert dialog and shell.
 - `lib/ai/{provider-config,provider,transport,secrets,access,quota,prompt,actions,athlete-context,tool-contracts}.ts`: canonical provider, role and execution boundary. See `docs/HAMPA_AI.md` before extending tools.
+
+## Audit phases 1–3 (2026-10-25)
+- `WorkoutSessionHUD`: existing capture form includes a labeled warmup checkbox, persisted in the same offline set payload; resumed sets preserve classification. Warmups do not advance prescribed working-set progress.
+- Auth response: `needsOnboarding` names the existing routing behavior; `isNewUser` remains a compatibility alias.
+- Added server-only `RateLimitBucket` (hashed key/count/expiry); no feature flags or new UI primitives.

@@ -48,11 +48,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, alreadyCompleted: true, summary: existingSummary });
     }
 
+    if (session.status !== "active" && session.status !== "paused") {
+      return NextResponse.json({ ok: false, code: "conflict", message: "جلسه فعال نیست." }, { status: 409 });
+    }
+    const workingSets = allSets.filter(s => !s.isWarmup && ((s.reps ?? 0) > 0 || (s.durationSeconds ?? 0) > 0));
+    if (workingSets.length === 0) {
+      return NextResponse.json({ ok: false, code: "validation", message: "برای پایان تمرین، حداقل یک ست اصلی با تکرار یا زمان ثبت کنید." }, { status: 400 });
+    }
+
     // Atomic completion: only one concurrent complete wins.
     // One write claims the completion AND stores its results: a crash between two
     // writes would otherwise leave a "completed" session with no volume/duration.
     const claimed = await db.workoutSession.updateMany({
-      where: { id: session.id, status: { notIn: ["completed"] } },
+      where: { id: session.id, status: { in: ["active", "paused"] } },
       data: {
         status: "completed",
         endedAt: session.endedAt ?? new Date(),
@@ -70,7 +78,7 @@ export async function POST(req: NextRequest) {
     const prResults: Array<{ exerciseName: string; value: number; unit: string }> = [];
     for (const log of session.exerciseLogs) {
       const best = log.sets
-        .filter((s) => s.weightKg != null && s.reps != null && !s.isWarmup)
+        .filter((s) => s.weightKg != null && s.weightKg > 0 && s.reps != null && s.reps > 0 && !s.isWarmup)
         .map((s) => ({ set: s, orm: oneRepMax(s.weightKg!, s.reps!).recommended }))
         .sort((a, b) => b.orm - a.orm)[0];
       if (!best) continue;

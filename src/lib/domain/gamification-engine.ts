@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors/app-error";
-import { todayISO, isoDateOnly } from "@/lib/dates/jalali";
+import { todayISO, isoDateOnly, weekStartISO, localDayStartUTC } from "@/lib/dates/jalali";
 
 /**
  * Gamification engine — XP is an append-only ledger with idempotent
@@ -115,8 +115,12 @@ export async function evaluateAfterWorkout(userId: string, sessionId: string): P
 export async function claimMission(userId: string, missionId: string) {
   const tz = await userTimezone(userId);
   const today = todayISO(tz);
+  const mission = await db.mission.findUnique({ where: { id: missionId } });
+  if (!mission?.active) throw new AppError("not_found", { userMessage: "این ماموریت فعال نیست." });
+  await refreshDerivedMissions(userId, tz);
+  const periodKey = mission.period === "weekly" ? weekStartISO(today) : today;
   const progress = await db.userMissionProgress.findUnique({
-    where: { userId_missionId_periodKey: { userId, missionId, periodKey: today } },
+    where: { userId_missionId_periodKey: { userId, missionId, periodKey } },
   });
   if (!progress) throw new AppError("not_found", { userMessage: "این ماموریت امروز فعال نیست." });
   if (progress.claimed) throw new AppError("conflict", { userMessage: "این ماموریت قبلاً جمع‌آوری شده است." });
@@ -131,8 +135,7 @@ export async function claimMission(userId: string, missionId: string) {
   if (claimed.count === 0) {
     throw new AppError("conflict", { userMessage: "این ماموریت قبلاً جمع‌آوری شده است." });
   }
-  const mission = await db.mission.findUniqueOrThrow({ where: { id: missionId } });
-  await awardXp({ userId, amount: mission.xpReward, sourceType: "mission", sourceId: `${missionId}-${today}` });
+  await awardXp({ userId, amount: mission.xpReward, sourceType: "mission", sourceId: `${missionId}-${periodKey}` });
   return { xp: mission.xpReward };
 }
 
@@ -162,4 +165,32 @@ export async function activityStreak(userId: string): Promise<number> {
     cursor.setUTCDate(cursor.getUTCDate() - 1);
   }
   return streak;
+}
+
+/** Recompute derived missions from real data; replay and deletion cannot inflate
+ * progress. A claimed reward remains claimed for its period. */
+export async function refreshDerivedMissions(userId: string, timezone: string) {
+  const today = todayISO(timezone);
+  const week = weekStartISO(today);
+  const [missions, sets, profile, days] = await Promise.all([
+    db.mission.findMany({ where: { active: true, slug: { in: ["daily-sets", "weekly-protein"] } } }),
+    db.setLog.count({ where: { userId, isWarmup: false,
+      OR: [{ reps: { gt: 0 } }, { durationSeconds: { gt: 0 } }],
+      completedAt: { gte: localDayStartUTC(today, timezone), lte: new Date() } } }),
+    db.userProfile.findUnique({ where: { userId }, select: { dailyProteinTarget: true } }),
+    db.nutritionDay.findMany({ where: { userId, logDate: { gte: week, lte: today } }, include: { entries: { include: { food: true } } } }),
+  ]);
+  const proteinTarget = profile?.dailyProteinTarget ?? 150;
+  const proteinDays = days.filter(day => proteinTarget > 0 && day.entries.reduce((sum, entry) =>
+    sum + entry.food.proteinG * entry.quantity * entry.servingMultiplier, 0) >= proteinTarget).length;
+  for (const mission of missions) {
+    const periodKey = mission.period === "weekly" ? week : today;
+    const progress = mission.slug === "daily-sets" ? sets : proteinDays;
+    const completedAt = progress >= mission.target ? new Date() : null;
+    await db.userMissionProgress.upsert({
+      where: { userId_missionId_periodKey: { userId, missionId: mission.id, periodKey } },
+      create: { userId, missionId: mission.id, periodKey, target: mission.target, progress, completedAt },
+      update: { target: mission.target, progress, completedAt },
+    });
+  }
 }

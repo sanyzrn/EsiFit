@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ ok: false, code: "authentication", message: "برای نظر دادن وارد شوید." }, { status: 401 });
     }
-    const rl = rateLimit(`community:comment:${session.id}`, 30, 60 * 60 * 1000);
+    const rl = await rateLimit(`community:comment:${session.id}`, 30, 60 * 60 * 1000);
     if (!rl.ok) {
       return NextResponse.json(
         { ok: false, code: "rate_limit", message: "نظرات زیادی ثبت کرده‌اید. کمی بعد تلاش کنید." },

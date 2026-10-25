@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireMember } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { appErrorResponse } from "@/lib/errors/respond";
-import { todayISO, parseISODateOnly, isoDateOnly, addDaysISO } from "@/lib/dates/jalali";
+import { todayISO, localDayStartUTC, localDayEndUTC, isoDateOnly, addDaysISO } from "@/lib/dates/jalali";
 import { oneRepMax } from "@/lib/domain/body-math";
 import { buildProgressInsights, type StrengthSeries } from "@/lib/domain/plateau";
 import { computeEsiScore } from "@/lib/domain/esi-score";
@@ -30,7 +30,7 @@ export async function GET(_req: NextRequest) {
     const start91 = addDaysISO(today, -90);
 
     const sessions = await db.workoutSession.findMany({
-      where: { userId: session.id, status: "completed", startedAt: { gte: parseISODateOnly(startWindow) } },
+      where: { userId: session.id, status: "completed", startedAt: { gte: localDayStartUTC(startWindow, tz), lte: new Date() } },
       include: {
         exerciseLogs: {
           include: {
@@ -48,7 +48,7 @@ export async function GET(_req: NextRequest) {
     const muscleVolume: Record<string, number> = {};
     if (advanced) {
       for (const s of sessions) {
-        if (s.startedAt < parseISODateOnly(start30)) continue;
+        if (s.startedAt < localDayStartUTC(start30, tz)) continue;
         for (const log of s.exerciseLogs) {
           const vol = log.sets.reduce((a, st) => a + (st.weightKg != null && st.reps != null ? st.weightKg * st.reps : 0), 0);
           for (const m of log.exercise.muscles) {
@@ -66,7 +66,7 @@ export async function GET(_req: NextRequest) {
     const lastTrainedAt: Record<string, number> = {};
     const groupNames: Record<string, string> = {};
     if (advanced) {
-      const start28 = parseISODateOnly(addDaysISO(today, -27));
+      const start28 = localDayStartUTC(addDaysISO(today, -27), tz);
       for (const s of sessions) {
         for (const log of s.exerciseLogs) {
           const working = log.sets.filter((st) => !st.isWarmup && ((st.reps ?? 0) > 0 || (st.durationSeconds ?? 0) > 0)).length;
@@ -98,8 +98,8 @@ export async function GET(_req: NextRequest) {
       for (const s of sessions) {
         for (const log of s.exerciseLogs) {
           for (const st of log.sets) {
-            if (st.weightKg != null && st.reps != null) {
-              const orm = st.weightKg * (1 + st.reps / 30);
+            if (!st.isWarmup && st.weightKg != null && st.reps != null) {
+              const orm = oneRepMax(st.weightKg, st.reps).recommended;
               const p = log.exercise.movementPattern;
               patternBest[p] = Math.max(patternBest[p] ?? 0, orm);
             }
@@ -117,7 +117,7 @@ export async function GET(_req: NextRequest) {
       activityByDay[key] = (activityByDay[key] ?? 0) + Math.round(s.totalVolumeKg / 100) + 10;
     }
     const waters = await db.waterLog.findMany({
-      where: { userId: session.id, loggedAt: { gte: parseISODateOnly(startWindow) } },
+      where: { userId: session.id, loggedAt: { gte: localDayStartUTC(startWindow, tz), lte: new Date() } },
       select: { logDate: true, ml: true },
     });
     for (const w of waters) activityByDay[w.logDate] = (activityByDay[w.logDate] ?? 0) + 4;
@@ -136,7 +136,7 @@ export async function GET(_req: NextRequest) {
       const weekStart = addDaysISO(today, -(w * 7 + 6));
       const weekEnd = addDaysISO(today, -(w * 7));
       const vol = sessions
-        .filter((s) => s.startedAt >= parseISODateOnly(weekStart) && s.startedAt <= parseISODateOnly(weekEnd))
+        .filter((s) => s.startedAt >= localDayStartUTC(weekStart, tz) && s.startedAt < localDayEndUTC(weekEnd, tz))
         .reduce((a, s) => a + s.totalVolumeKg, 0);
       weekly.push({ weekStart, volume: Math.round(vol) });
     }
@@ -178,7 +178,7 @@ export async function GET(_req: NextRequest) {
       .map(([slug, v]) => ({ exerciseSlug: slug, exerciseName: v.name, dates: v.points.map((p) => p.date), bestKg: v.points.map((p) => p.best) }));
 
     // ---- Insights (plateau detector) — advanced only ----
-    const last30 = sessions.filter((s) => s.startedAt >= parseISODateOnly(start30));
+    const last30 = sessions.filter((s) => s.startedAt >= localDayStartUTC(start30, tz));
     const lastSessionDate = sessions.length > 0 ? isoDateOnly(sessions[sessions.length - 1].startedAt, tz) : null;
     const daysSinceLast = lastSessionDate
       ? Math.round((Date.parse(today) - Date.parse(lastSessionDate)) / 86_400_000)
@@ -194,12 +194,12 @@ export async function GET(_req: NextRequest) {
       const weekEnd = addDaysISO(today, -(w * 7));
       adherenceWeeks.push(weekStart);
       adherenceCounts.push(
-        sessions.filter((s) => s.startedAt >= parseISODateOnly(weekStart) && s.startedAt <= parseISODateOnly(weekEnd)).length,
+        sessions.filter((s) => s.startedAt >= localDayStartUTC(weekStart, tz) && s.startedAt < localDayEndUTC(weekEnd, tz)).length,
       );
     }
 
     const prs30d = await db.personalRecord.count({
-      where: { userId: session.id, achievedAt: { gte: parseISODateOnly(start30) } },
+      where: { userId: session.id, achievedAt: { gte: localDayStartUTC(start30, tz) } },
     });
 
     const insights = advanced
@@ -214,7 +214,7 @@ export async function GET(_req: NextRequest) {
       : [];
 
     // ---- EsiScore — advanced only ----
-    const sessions28 = sessions.filter((s) => s.startedAt >= parseISODateOnly(addDaysISO(today, -27))).length;
+    const sessions28 = sessions.filter((s) => s.startedAt >= localDayStartUTC(addDaysISO(today, -27), tz)).length;
     const readinessAvg = await db.readinessDaily.aggregate({
       where: { userId: session.id, scoreDate: { gte: addDaysISO(today, -13) } },
       _avg: { score: true },

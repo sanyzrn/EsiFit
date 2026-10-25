@@ -93,6 +93,18 @@ export function parseISODateOnly(iso: string): Date {
   return new Date(Date.UTC(y, m - 1, d));
 }
 
+/** Calendar validity, including leap years; reject JS Date's overflow normalization. */
+export function isValidISODate(iso: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
+  const date = new Date(`${iso}T00:00:00Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === iso;
+}
+
+/** Saturday date key shared by weekly mission display, derivation and claims. */
+export function weekStartISO(day: string): string {
+  return addDaysISO(day, -persianWeekdayIndex(day));
+}
+
 /** ISO date-only + N days. */
 export function addDaysISO(iso: string, days: number): string {
   const d = parseISODateOnly(iso);

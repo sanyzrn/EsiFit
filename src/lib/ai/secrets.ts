@@ -10,7 +10,7 @@ import { serverSecret } from "@/lib/auth/session";
 function key() {
   return createHash("sha256")
     .update(
-      `esifit-ai-provider:v1:${process.env.AI_ENCRYPTION_SECRET ?? serverSecret()}`,
+      `esifit-ai-provider:v1:${process.env.AI_ENCRYPTION_SECRET || serverSecret()}`,
     )
     .digest();
 }

@@ -1,3 +1,4 @@
+import { rateLimit } from "@/lib/http/rate-limit";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/session";
@@ -36,6 +37,9 @@ export async function POST(req: Request) {
     if (!athlete || athlete.status !== "active" || athlete.role !== "member") {
       return NextResponse.json({ ok: false, code: "not_found" }, { status: 404 });
     }
+
+    const rl = await rateLimit(`coach:assign:${athleteId}`, 10, 24 * 60 * 60 * 1000);
+    if (!rl.ok) return NextResponse.json({ ok: false, code: "rate_limit", message: "سقف تغییر برنامهٔ این ورزشکار پر شده است. بعداً تلاش کنید.", retryAfterSeconds: rl.retryAfterSeconds }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } });
 
     // Coach-prescribed programs start tomorrow (matches UI copy).
     const startsOn = addDaysISO(todayISO(athlete.timezone), 1);
