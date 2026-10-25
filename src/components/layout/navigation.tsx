@@ -11,7 +11,8 @@ import type { FeatureFlag } from "@/lib/feature-flags/registry";
 import { TIER_LABELS, type UserTier } from "@/lib/entitlements/entitlements";
 import { ROLE_LABELS, type Role } from "@/lib/auth/session-types";
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import { BrandMark } from "./brand-mark";
 
 /** One source of navigation truth. Role gates are enforced at the API as well. */
@@ -177,13 +178,18 @@ export function MobileBottomNav() {
                 بیشتر
               </button>
             </SheetTrigger>
-            <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-3xl pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+            <SheetContent side="bottom" showCloseButton={false} className="max-h-[85dvh] overflow-y-auto rounded-t-3xl pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
               <SheetHeader className="px-6 pt-6 text-start">
                 <SheetTitle>همه بخش‌های اسی‌فیت</SheetTitle>
                 <SheetDescription>پیشرفت، دستاوردها و بقیه ابزارهای مسیرت</SheetDescription>
               </SheetHeader>
               <div className="grid gap-1 px-4 sm:grid-cols-2">
                 {extraItems.map((item) => <NavLink key={item.href} item={item} active={isCurrentPath(pathname, item.href)} onClick={() => setMoreOpen(false)} />)}
+              </div>
+              <div className="border-t border-border px-6 pt-4">
+                <SheetClose asChild>
+                  <Button variant="secondary" className="min-h-11 w-full">بستن فهرست</Button>
+                </SheetClose>
               </div>
             </SheetContent>
           </Sheet>
