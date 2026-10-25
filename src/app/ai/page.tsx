@@ -13,7 +13,7 @@ export default async function AIPage() {
   if (!session) redirect(loginPath("/ai"));
   return (
     <AppShell session={session} flags={resolveEnabledFlags()}>
-      <AIAssistantView role={session.role} />
+      <AIAssistantView role={session.role} userId={session.id} />
     </AppShell>
   );
 }

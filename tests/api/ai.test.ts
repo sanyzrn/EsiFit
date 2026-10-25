@@ -20,6 +20,7 @@ import { proposeAction, assistantTools } from "@/lib/ai/actions";
 import { encryptProviderKey } from "@/lib/ai/secrets";
 import { probeProvider, configuredModel } from "@/lib/ai/provider";
 import { todayISO } from "@/lib/dates/jalali";
+vi.mock("next/cache",async original=>({...await original<typeof import("next/cache")>(),revalidateTag:vi.fn()}));
 vi.mock("@/lib/ai/provider", async (original) => ({
   ...(await original<typeof import("@/lib/ai/provider")>()),
   probeProvider: vi.fn(),
@@ -532,4 +533,38 @@ describe("SDK tool execution boundary", () => {
     );
     expect(denied).toMatchObject({ ok: false });
   });
+});
+
+it("recovers a completed chat request without a second provider call or quota charge",async()=>{
+  await grant(member.id);await login(member.id);
+  const requestId=crypto.randomUUID();const before=vi.mocked(configuredModel).mock.calls.length;
+  const body={requestId,message:"برنامهٔ تمرینم را از کجا بررسی کنم؟"};
+  const first=await chat(send('/api/ai/chat',body));expect(first.status).toBe(200);const original=await first.json();
+  const retry=await chat(send('/api/ai/chat',body));expect(retry.status).toBe(200);expect((await retry.json()).message.id).toBe(original.message.id);
+  expect(vi.mocked(configuredModel).mock.calls.length).toBe(before+1);expect(await db.aiMessage.count()).toBe(2);
+  const recovered=await chatState(new Request(`https://esifit.internal/api/ai/chat?requestId=${requestId}`));expect((await recovered.json()).conversationId).toBe(original.conversationId);
+  expect((await chat(send('/api/ai/chat',{...body,message:'پیام متفاوت'}))).status).toBe(409);
+});
+it("reports an in-flight chat retry without starting another generation",async()=>{
+  await grant(member.id);await login(member.id);const requestId=crypto.randomUUID();
+  await db.aiUsageLog.create({data:{userId:member.id,requestId:`chat:${member.id}:${requestId}`,purpose:'chat',status:'pending',dayKey:todayISO(),provider:provider.id,model:provider.model}});
+  const before=vi.mocked(configuredModel).mock.calls.length;const response=await chat(send('/api/ai/chat',{requestId,message:'سلام'}));
+  expect(response.status).toBe(202);expect((await response.json()).pending).toBe(true);expect(vi.mocked(configuredModel).mock.calls.length).toBe(before);
+});
+
+it("restricts catalog edits to administrators and rejects a stale product preview",async()=>{
+ const a=await login(admin.id);const c=await conversation(admin.id);const p=await db.product.create({data:{slug:crypto.randomUUID(),nameFa:'fixture product',priceToman:10000,stock:10}});
+ await expect(proposeAction({...a,id:member.id,role:'member'},c.id,{kind:'edit_product',id:p.id,priceToman:12000})).rejects.toMatchObject({code:'authorization'});
+ const stale=await proposeAction(a,c.id,{kind:'edit_product',id:p.id,priceToman:12000});await db.product.update({where:{id:p.id},data:{stock:9}});
+ expect((await confirm(send('/api/ai/actions',{id:stale.id,confirm:true}))).status).toBe(409);expect((await db.product.findUniqueOrThrow({where:{id:p.id}})).priceToman).toBe(10000);
+ const fresh=await proposeAction(a,c.id,{kind:'edit_product',id:p.id,priceToman:12000});expect((await confirm(send('/api/ai/actions',{id:fresh.id,confirm:true}))).status).toBe(200);expect((await db.product.findUniqueOrThrow({where:{id:p.id}})).priceToman).toBe(12000);
+});
+it("stores approved article edits with sources, revision and refreshed metadata",async()=>{
+ const a=await login(admin.id);const c=await conversation(admin.id);const author=await db.author.create({data:{name:'fixture editorial'}});const category=await db.category.create({data:{slug:crypto.randomUUID(),nameFa:'fixture'}});
+ const article=await db.article.create({data:{slug:crypto.randomUUID(),title:'عنوان قدیمی',authorId:author.id,categoryId:category.id,contentType:'guide',status:'published'}});
+ try{
+  const action=await proposeAction(a,c.id,{kind:'edit_article',id:article.id,title:'عنوان جدید بررسی شده',excerpt:'خلاصهٔ تازه و قابل بررسی',contentBlocks:[{type:'p',text:'محتوای مورد تأیید مدیر'}],sources:[{title:'WHO activity',publisher:'WHO',url:'https://www.who.int/initiatives/behealthy/physical-activity/',sourceType:'organization'}]});
+  expect((await confirm(send('/api/ai/actions',{id:action.id,confirm:true}))).status).toBe(200);
+  const updated=await db.article.findUniqueOrThrow({where:{id:article.id},include:{sources:true}});expect(updated.revision).toBe(2);expect(updated.metaTitle).toBe('عنوان جدید بررسی شده');expect(updated.sources).toHaveLength(1);
+ }finally{await db.article.delete({where:{id:article.id}});await db.category.delete({where:{id:category.id}});await db.author.delete({where:{id:author.id}});}
 });

@@ -1,0 +1,29 @@
+# EsiFit planning and HamPa — implementation contract
+
+HamPa is the conversational/operator assistant. The training planner is a separate, bounded generation service with separate access policy, quotas, persistent requests and activation. A chat answer does not change a workout program.
+
+## Data and authority
+- Only administrators configure existing Gemini/custom HTTPS connections. Existing URL normalization, encrypted server credentials, public-DNS enforcement, redirect rejection, bounded responses and actual tool-capability tests are reused.
+- An administrator selects the independent planning connection and per-requester limits. Chat grants/paid membership do not silently authorize planning. Each athlete explicitly consents to sending the bounded planning context; consent is revocable. Account names, phone numbers, database IDs and secrets are omitted from the model context. User-written request text is explicitly included.
+- Members access only themselves; coaches only their active athletes; administrators supervise members. A member cannot overwrite a program while a human coach is active; the coach reviews/applies it. Role/relationship, current context, provider policy and consent are checked again at activation.
+- Context includes approximate age from birth year, declared sex, height/weight, goal, experience, equipment, time/schedule, active prescription, recorded readiness and recent actual sets/reps/loads/RPE. Missing data is not fabricated. Sex or body size alone never assigns strength or a working weight.
+
+## Workflow and failure behavior
+1. Capture/update profile and actual pain reports; profile saving preserves any current plan and leads to the shared planner.
+2. Create an idempotent durable AiPlanRun. A bounded forced function call returns structured data; it has no write executor or external tools. The server validates against the shared prescription schema, real catalog/equipment, goal, duration, session count, rest/intensity/volume ceilings and movement variety.
+3. Display actual seven-day prescriptions, provenance and rationale. The user or authorized coach confirms the exact version. Archive/create/target/notification/run result are atomic; repeat confirmation returns the existing result. Starting a workout or changing profile/pain/history invalidates a stale draft. Active sessions block replacement.
+4. A provider outage, malformed output, unavailable admin connection or exhausted planner quota can yield an explicitly labelled rules-based preset adaptation. No claim that this is AI; no silent program replacement. Unknown network outcomes are recovered by request identity before another attempt. No automatic repeated billable generations or new provider fallback outside the admin's chosen connection.
+5. Age outside the product's 18–64 self-service scope, missing base data, active/improving pain, declared medical restrictions/notes or extreme input combinations go to human review, with no AI exercise prescription. Request text mentioning possible injury also escalates conservatively; this heuristic is not diagnosis or a complete symptom detector. These are product rollout limits, not claims of medically certified screening.
+6. Review handoff creates a real in-app notification to the assigned active coach, otherwise to active administrators. It never promises immediate response, SMS or an external referral. A coach's manual reviewed prescription closes pending handoffs. Existing programs and tracker behavior remain available when AI fails; offline access depends on previously cached app/tracker data.
+
+## HamPa administration
+Read-only operational reports summarize actual seven-day activity, usage/failures, pending planning, catalog states and unassigned athletes. Order sums are sandbox records, not verified gateway revenue. Existing account/role/coach/grant/moderation actions and reviewed product/article/member-plan edits use trusted DB previews and authorization. New record edits recheck their fingerprint under a lock. No arbitrary SQL, secret access, external messaging, payment execution or medical diagnosis tools exist. API credentials are entered only through the admin settings form.
+
+## Evidence and maintained sources
+- [ACSM 2026 resistance-training update](https://acsm.org/resistance-training-guidelines-update-2026/): individualize to goals, available resources and adherence; do not equate complexity with benefit. The app does not claim these broad recommendations medically validate a generated program.
+- [WHO activity guidance](https://www.who.int/initiatives/behealthy/physical-activity/): distinguishes adult/older populations; specialized cases are outside automatic prescribing in this rollout.
+- [OWASP LLM prompt-injection prevention](https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html): enforce roles/parameters in code, treat retrieved text as data and review sensitive changes.
+- Installed AI SDK 7 docs/source (forced tool choice, Zod input schemas, no automatic retries); established stack retained instead of adding a second agent framework.
+- Nex's existing optional/nonblocking-AI design and EsiFit's already ported gateway URL semantics; NexaChat's `class-ssc-stream.php` preserves known completed/partial outcomes instead of blindly issuing a second paid generation after a transport failure. The same recovery principle is applied here. No unrelated app code or credentials are copied.
+
+Schema changes are additive and recorded in docs/sql/independent_planning.sql; new private tables use RLS and no client grants. Existing session/API-key values are not read or rotated. Planning history is included in the athlete's own data export. Validation and deployment evidence are recorded in the release PR.

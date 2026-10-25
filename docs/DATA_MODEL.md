@@ -37,3 +37,10 @@ Catalog is the shared client-safe SSR/API product DTO. Product stock and member 
 
 ## Coach/catalog/engagement — no schema changes
 POST /api/coach/program uses a bounded seven-day CoachProgramDraft and sourcePlanId. It serializes by User/CoachClient, rechecks active ownership, archives the previous plan, persists explicit weekly rows and updates weeklyWorkoutTarget plus notification atomically. Sessions/history are retained. PATCH /api/coach/note edits only the existing active relationship's note. The athlete DTO includes current first-week prescription and seven-day nutrition totals, without inventing a stored entity. Catalog additions preserve existing IDs and historical food values. Install engagement/cooldown is local device state, not a new user database field.
+
+## Independent planning and resilient chat
+- UserProfile adds workoutMinutes, medicalReviewRequired, healthNotes and revocable aiPlanningConsentAt; weeklyWorkoutTarget remains the scheduling target. PainReport remains the source of active/improving limitations.
+- AiPlanningPolicy selects an admin-tested AiProvider and independent per-requester daily/monthly limits. AiUsageLog.purpose separates chat and planner reservations.
+- AiPlanRun stores actor/athlete ownership, request identity/note/mode, the context fingerprint and baseline plan, structured draft/rationale/risk, lifecycle, usage claim, review handoff and final plan reference. It survives disconnected clients; generation never writes a live WorkoutPlan.
+- AiMessage.requestId plus role uniqueness and existing AiUsageLog request claims make chat retries/recovery idempotent. Conversation ownership and actor role are rechecked.
+- Explicit plan persistence is shared by coach and planner. User-row locks serialize plan replacement, profile/pain changes and starting workouts. Existing plans/sessions remain; source changes, live sessions and stale snapshots reject activation.

@@ -55,7 +55,7 @@ const STATUS_FA: Record<string, string> = { active: "فعال", suspended: "مع
 
 export function AdminConsoleView({ adminName }: { adminName: string }) {
   const [tab, setTab] = React.useState("overview");
-  React.useEffect(() => { if (new URLSearchParams(window.location.search).get("tab") === "ai") setTab("ai"); }, []);
+  React.useEffect(() => { const requested = new URLSearchParams(window.location.search).get("tab"); if (requested && ["overview","coaches","users","moderation","ai"].includes(requested)) setTab(requested); }, []);
   const [overview, setOverview] = React.useState<Overview | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);

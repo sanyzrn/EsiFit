@@ -69,7 +69,7 @@ export function CoachAssignmentsTab() {
         athletes: prev.athletes.map((a) => a.id === athleteId ? { ...a, coachId } : a),
       }));
       toast({
-        title: coachId === AI_COACH_ID ? "مربی AI رزرو شد" : coachId ? "مربی تعیین شد" : "تخصیص حذف شد",
+        title: coachId === AI_COACH_ID ? "مسیر برنامه‌ریزی هوشمند انتخاب شد" : coachId ? "مربی تعیین شد" : "تخصیص حذف شد",
         description: coachId === AI_COACH_ID
           ? "موتور AI هنوز فعال نیست؛ فعلاً برنامه خودکار ارسال نمی‌شود."
           : "رابطه مربی و ورزشکار ثبت شد؛ سوابق تمرینی حفظ شده‌اند.",
@@ -215,11 +215,11 @@ export function CoachAssignmentsTab() {
                         {human.map((coach) => (
                           <SelectItem key={coach.id} value={coach.id}>{coach.displayName}</SelectItem>
                         ))}
-                        {ai && <SelectItem value={AI_COACH_ID}>مربی هوشمند EsiFit (آزمایشی)</SelectItem>}
+                        {ai && <SelectItem value={AI_COACH_ID}>برنامه‌ریز هوشمند اسی‌فیت</SelectItem>}
                       </SelectContent>
                     </Select>
                     <p className={cn("mt-1 text-[10px]", current?.type === "ai" ? "text-primary" : "text-esi-text-muted")}>
-                      {saving === athlete.id ? "در حال ذخیره…" : current ? current.type === "ai" ? "رزرو شده؛ برنامه هوشمند هنوز غیرفعال است" : "مربی انسانی فعال" : "در انتظار مربی"}
+                      {saving === athlete.id ? "در حال ذخیره…" : current ? current.type === "ai" ? current.status === "active" ? "برنامه‌ریز مستقل؛ فعال‌سازی هر نسخه با تأیید" : "منتظر فعال‌سازی برنامه‌ریز در مدیریت هوش" : "مربی انسانی فعال" : "در انتظار مربی"}
                     </p>
                   </div>
                 </li>

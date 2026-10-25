@@ -64,6 +64,8 @@ model User {
   weeklyRecaps        WeeklyRecap[]
   aiGrant             AiGrant?
   aiActions           AiAction[]
+  planningRequested   AiPlanRun[] @relation("PlanRequester")
+  planningReceived    AiPlanRun[] @relation("PlanAthlete")
 }
 
 model UserProfile {
@@ -83,6 +85,10 @@ model UserProfile {
   weeklyWorkoutTarget Int     @default(4)
   /** JSON array of equipment keys the user can use; empty = unrestricted gym. */
   availableEquipment  String  @default("")
+  workoutMinutes      Int @default(45)
+  medicalReviewRequired Boolean @default(false)
+  healthNotes         String @default("")
+  aiPlanningConsentAt DateTime?
   onboardedAt         DateTime?
   user                User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -736,6 +742,7 @@ model AiConversation {
 model AiMessage {
   id             String   @id @default(cuid())
   conversationId String
+  requestId      String?
   role           String // user | assistant | system_notice
   content        String
   status         String   @default("complete") // streaming | complete | failed | blocked
@@ -743,6 +750,7 @@ model AiMessage {
   conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, createdAt])
+  @@unique([requestId, role])
 }
 
 model AiUsageLog {
@@ -750,6 +758,7 @@ model AiUsageLog {
   userId           String
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   conversationId   String?
+  purpose          String   @default("chat") // chat | planner: independent quotas
   provider         String   @default("z-ai")
   model            String   @default("glm-4-flash")
   promptTokens     Int      @default(0)
@@ -817,7 +826,7 @@ model ExerciseSwap {
 // ------------------------- Coaching & insights -------------------------
 
 /** An AI coach is NOT a User and cannot authenticate, view rosters or issue
- * coaching plans before the separate safety-reviewed AI coach rollout. */
+ * coaching plans. Independent planning runs require policy, consent and review. */
 model AiCoachEnrollment {
   id        String   @id @default(cuid())
   athleteId String   @unique
@@ -868,6 +877,7 @@ model AiProvider {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   grants       AiGrant[]
+  planningPolicies AiPlanningPolicy[]
 }
 
 model AiGrant {
@@ -906,4 +916,45 @@ model RateLimitBucket {
   resetAt DateTime
 
   @@index([resetAt])
+}
+
+// Separate from HamPa chat grants. Credentials always belong to an admin-tested AiProvider.
+model AiPlanningPolicy {
+  id String @id @default("default")
+  enabled Boolean @default(false)
+  providerId String?
+  dailyLimit Int @default(3)
+  monthlyLimit Int @default(30)
+  updatedAt DateTime @updatedAt
+  provider AiProvider? @relation(fields:[providerId],references:[id],onDelete:Restrict)
+  @@index([providerId])
+}
+
+// Durable preview and recovery; generating a draft never mutates an active workout plan.
+model AiPlanRun {
+  id String @id @default(cuid())
+  actorId String
+  athleteId String
+  requestKey String @unique
+  requestNote String @default("")
+  requestedMode String @default("ai")
+  status String @default("generating") // generating | ready | needs_review | applied | cancelled | failed
+  source String @default("ai") // ai | rules
+  baselinePlanId String?
+  contextHash String
+  planJson String?
+  explanationJson String @default("[]")
+  riskJson String @default("[]")
+  failureCode String?
+  providerId String?
+  appliedPlanId String?
+  usageRequestId String?
+  reviewRequestedAt DateTime?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  actor User @relation("PlanRequester",fields:[actorId],references:[id],onDelete:Cascade)
+  athlete User @relation("PlanAthlete",fields:[athleteId],references:[id],onDelete:Cascade)
+  @@index([athleteId,createdAt])
+  @@index([actorId,status,createdAt])
 }

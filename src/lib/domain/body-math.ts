@@ -48,12 +48,16 @@ export function bmrMifflinStJeor(input: {
 }
 
 /** Age from birth year — accepts Jalali (1300–1420) or Gregorian years. */
-export function ageFromBirthYear(birthYear: number): number {
+export function ageEstimateFromBirthYear(birthYear: number): number {
   const nowGy = new Date().getUTCFullYear();
   const nowJy = toJalali(new Date()).jy;
   const isJalaliYear = birthYear >= 1300 && birthYear <= 1420;
   const age = isJalaliYear ? nowJy - birthYear : nowGy - birthYear;
-  return Math.min(Math.max(age, 10), 100);
+  return age;
+}
+
+export function ageFromBirthYear(birthYear: number): number {
+  return Math.min(Math.max(ageEstimateFromBirthYear(birthYear), 10), 100);
 }
 
 /** TDEE = BMR × activity multiplier. */

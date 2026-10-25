@@ -15,7 +15,7 @@ export const db = new PrismaClient();
 export function ensureSeed(): Promise<void> {
   return (async () => {
     const tables = [
-      db.challengeParticipant, db.challenge, db.rateLimitBucket, db.aiAction, db.aiGrant, db.aiProvider, db.coachClient, db.weeklyRecap, db.setLog, db.exerciseLog, db.workoutSession,
+      db.aiPlanRun, db.aiPlanningPolicy, db.challengeParticipant, db.challenge, db.rateLimitBucket, db.aiAction, db.aiGrant, db.aiProvider, db.coachClient, db.weeklyRecap, db.setLog, db.exerciseLog, db.workoutSession,
       db.plannedExercise, db.workoutPlanDay, db.workoutPlan, db.personalRecord,
       db.painReport, db.exerciseSwap, db.mealEntry, db.nutritionDay, db.nutritionTarget,
       db.waterLog, db.sleepLog, db.calculatorResult, db.readinessDaily, db.bodyMeasurement,

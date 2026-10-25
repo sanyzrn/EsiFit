@@ -22,6 +22,7 @@ export const maxDuration = 60;
 const bodySchema = z
   .object({
     conversationId: z.string().optional(),
+    requestId: z.string().uuid().optional(),
     providerId: z.string().optional(),
     message: z.string().trim().min(1).max(1200),
   })
@@ -38,29 +39,20 @@ export async function GET(req: Request) {
   try {
     const actor = await getSessionUser();
     if (!actor) throw new AppError("authentication");
-    let access;
-    try {
-      access = await getAiAccess(actor);
-    } catch (error) {
-      if (error instanceof AppError)
-        return NextResponse.json({
-          ok: true,
-          available: false,
-          reason: error.userMessage,
-          conversations: [],
-          messages: [],
-          actions: [],
-          providers: [],
-        });
-      throw error;
-    }
+    let access:Awaited<ReturnType<typeof getAiAccess>>|undefined;
+    let unavailableReason:string|undefined;
+    try { access=await getAiAccess(actor); }
+    catch(error){if(error instanceof AppError)unavailableReason=error.userMessage;else throw error;}
     const conversations = await db.aiConversation.findMany({
       where: { userId: actor.id, contextType: `hampa:${actor.role}` },
       orderBy: { updatedAt: "desc" },
       take: 30,
       select: { id: true, title: true },
     });
-    const selected = new URL(req.url).searchParams.get("conversationId");
+    const url = new URL(req.url);
+    const recoveryId = url.searchParams.get("requestId");
+    const recovery = recoveryId ? await db.aiUsageLog.findFirst({where:{requestId:`chat:${actor.id}:${recoveryId}`,userId:actor.id,purpose:"chat"},select:{conversationId:true,status:true}}) : null;
+    const selected = recovery?.conversationId ?? url.searchParams.get("conversationId");
     const conversation = conversations.find((item) => item.id === selected);
     if (selected && !conversation) throw new AppError("not_found");
     const [messages, actions, used, monthUsed, providers] = await Promise.all([
@@ -90,19 +82,21 @@ export async function GET(req: Request) {
     ]);
     return NextResponse.json({
       ok: true,
-      available: true,
+      available: Boolean(access),
+      reason: unavailableReason,
+      recoveryStatus: recovery?.status,
       conversations,
       conversationId: conversation?.id,
       messages: messages.reverse(),
       actions,
-      provider: { id: access.provider.id, label: access.provider.label },
+      provider: access ? { id: access.provider.id, label: access.provider.label } : undefined,
       providers,
-      quota: {
+      quota: access ? {
         used,
         limit: access.dailyLimit,
         monthUsed,
         monthlyLimit: access.monthlyLimit,
-      },
+      } : undefined,
     });
   } catch (error) {
     return appErrorResponse(error);
@@ -129,8 +123,26 @@ export async function POST(req: Request) {
       if (!conversation) throw new AppError("not_found");
       conversationId = conversation.id;
     }
+    const clientKey=body.requestId?`chat:${actor.id}:${body.requestId}`:undefined;
+    if(clientKey){
+      const previous=await db.aiUsageLog.findUnique({where:{requestId:clientKey}});
+      if(previous){
+        if(previous.userId!==actor.id)throw AppError.from("authorization");
+        const previousConversation=previous.conversationId?await db.aiConversation.findFirst({where:{id:previous.conversationId,userId:actor.id,contextType:`hampa:${actor.role}`}}):null;
+        if(previous.conversationId&&!previousConversation)throw AppError.from("authorization");
+        const saved=await db.aiMessage.findMany({where:{requestId:clientKey},select:{id:true,role:true,content:true}});
+        const oldUser=saved.find(m=>m.role==='user');
+        if(oldUser&&oldUser.content!==body.message)throw AppError.from("conflict","شناسهٔ درخواست برای پیام دیگری استفاده شده است.");
+        const reply=saved.find(m=>m.role==='assistant');
+        if(reply&&previous.status==='success')return NextResponse.json({ok:true,conversationId:previous.conversationId,userMessageId:oldUser?.id,message:{id:reply.id,content:reply.content},actions:await db.aiAction.findMany({where:{actorId:actor.id,requestId:clientKey},select:actionSelect}),quota:{used:await countAiQuotaUsage(actor.id,actor.timezone),limit:access.dailyLimit,monthUsed:await countAiQuotaUsage(actor.id,actor.timezone,true),monthlyLimit:access.monthlyLimit}});
+        if(previous.status==='pending'&&previous.createdAt.getTime()>Date.now()-120000)return NextResponse.json({ok:true,pending:true,conversationId:previous.conversationId},{status:202});
+        if(previous.status==='pending')await releaseAiQuotaSlot(clientKey);
+        throw AppError.from("provider","درخواست قبلی کامل نشده است؛ ابتدا گفتگو را بازیابی کن و سپس در صورت نیاز دوباره بفرست.");
+      }
+    }
     const claim = await claimAiQuotaSlot({
       userId: actor.id,
+      requestId: clientKey,
       timezone: actor.timezone,
       limit: access.dailyLimit,
       monthlyLimit: access.monthlyLimit,
@@ -139,6 +151,7 @@ export async function POST(req: Request) {
       conversationId,
     });
     assertQuotaClaim(claim);
+    if(claim.duplicate)return NextResponse.json({ok:true,pending:true,conversationId},{status:202});
     requestId = claim.requestId;
     if (!conversationId) {
       const conversation = await db.aiConversation.create({
@@ -155,7 +168,7 @@ export async function POST(req: Request) {
       data: { conversationId },
     });
     const userMessage = await db.aiMessage.create({
-      data: { conversationId, role: "user", content: body.message },
+      data: { conversationId, requestId, role: "user", content: body.message },
     });
     userMessageId = userMessage.id;
     const history = await db.aiMessage.findMany({
@@ -214,6 +227,7 @@ export async function POST(req: Request) {
       data: {
         conversationId,
         role: "assistant",
+        requestId,
         content: content.slice(0, 16000),
       },
     });

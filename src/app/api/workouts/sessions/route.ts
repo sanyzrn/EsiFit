@@ -1,3 +1,4 @@
+import { AppError } from "@/lib/errors/app-error";
 import { readJson } from "@/lib/http/read-json";
 import { NextRequest, NextResponse } from "next/server";
 import { requireMember } from "@/lib/auth/session";
@@ -170,7 +171,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const created = await db.workoutSession.create({
+    const created = await db.$transaction(async tx=>{
+      await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id"=${session.id} FOR UPDATE`;
+      if(await tx.workoutSession.findFirst({where:{userId:session.id,status:{in:["active","paused"]}},select:{id:true}}))throw AppError.from("conflict","جلسهٔ فعالی وجود دارد؛ دوباره تلاش کن تا همان جلسه ادامه پیدا کند.");
+      if(planDayId){const chosen=await tx.workoutPlanDay.findUnique({where:{id:planDayId},include:{plan:true}});if(!chosen||chosen.plan.status!=="active")throw AppError.from("conflict","برنامه تغییر کرده است؛ صفحهٔ تمرین را تازه کن.");}
+      return tx.workoutSession.create({
       data: {
         userId: session.id,
         planDayId,
@@ -181,6 +186,7 @@ export async function POST(req: NextRequest) {
         clientId: body.clientId ?? null,
       },
       include: { exerciseLogs: { include: { exercise: true, sets: true } } },
+      });
     });
 
     exercises = await attachHistory(session.id, session.timezone, exercises, created.id);

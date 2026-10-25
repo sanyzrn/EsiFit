@@ -2,6 +2,9 @@
 import { safeReturnPath } from "@/lib/auth/return-path";
 
 import * as React from "react";
+import { TrainingPlanner } from "@/features/planning/training-planner";
+import { toJalali } from "@/lib/dates/jalali";
+import { parseAvailableEquipment } from "@/lib/workout/equipment";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -15,7 +18,8 @@ import { cn } from "@/lib/utils";
  * Server computes macro targets (Mifflin-St Jeor) — client never invents them.
  */
 
-const STEPS = ["شما", "بدن شما", "هدف شما"];
+const STEPS = ["شما", "بدن شما", "هدف شما", "شرایط تمرین"];
+export type OnboardingProfile = { birthYear:number|null;sexAtBirth:string|null;heightCm:number|null;weightKg:number|null;primaryGoal:string|null;experienceLevel:string|null;activityLevel:string|null;availableEquipment:string;weeklyWorkoutTarget:number;workoutMinutes:number;medicalReviewRequired:boolean;healthNotes:string };
 
 const GOALS = [
   { value: "lose_weight", label: "کاهش وزن", desc: "چربی‌سوزی با حفظ عضله", emoji: "🔥" },
@@ -49,29 +53,37 @@ const EQUIPMENT_OPTIONS = [
   { value: "cardio", label: "کاردیو" },
 ];
 
-export function OnboardingFlow({ displayName, returnTo }: { displayName: string; returnTo?: string | null }) {
+export function OnboardingFlow({ displayName, returnTo, initialProfile }: { displayName: string; returnTo?: string | null; initialProfile?:OnboardingProfile }) {
   const router = useRouter();
   const cleanupPromise = React.useRef<Promise<void> | null>(null);
   const ensureFreshOfflineState = React.useCallback(() => {
-    if (!cleanupPromise.current) cleanupPromise.current = clearLocalOnboardingState();
+    if (!cleanupPromise.current) cleanupPromise.current = initialProfile ? Promise.resolve() : clearLocalOnboardingState();
     return cleanupPromise.current;
-  }, []);
+  }, [initialProfile]);
   React.useEffect(() => { void ensureFreshOfflineState(); }, [ensureFreshOfflineState]);
+  const [saved, setSaved] = React.useState(false);
+  const [days,setDays]=React.useState(initialProfile?.weeklyWorkoutTarget??3);
+  const [minutes,setMinutes]=React.useState(initialProfile?.workoutMinutes??45);
+  const [medical,setMedical]=React.useState(initialProfile?.medicalReviewRequired??false);
+  const [notes,setNotes]=React.useState(initialProfile?.healthNotes??"");
+  const [hasPain,setHasPain]=React.useState(false);
+  const [region,setRegion]=React.useState("knee");
+  const [severity,setSeverity]=React.useState(3);
   const [step, setStep] = React.useState(0);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const [name, setName] = React.useState(displayName === "ورزشکار اسی‌فیت" ? "" : displayName);
-  const [birthYear, setBirthYear] = React.useState("");
-  const [sex, setSex] = React.useState<"male" | "female" | "undisclosed">("male");
-  const [height, setHeight] = React.useState("");
-  const [weight, setWeight] = React.useState("");
-  const [goal, setGoal] = React.useState("build_muscle");
-  const [level, setLevel] = React.useState("beginner");
-  const [activity, setActivity] = React.useState("moderate");
+  const [birthYear, setBirthYear] = React.useState(initialProfile?.birthYear?.toString()??"");
+  const [sex, setSex] = React.useState<"male" | "female" | "undisclosed">((initialProfile?.sexAtBirth as "male"|"female"|"undisclosed")??"undisclosed");
+  const [height, setHeight] = React.useState(initialProfile?.heightCm?.toString()??"");
+  const [weight, setWeight] = React.useState(initialProfile?.weightKg?.toString()??"");
+  const [goal, setGoal] = React.useState(initialProfile?.primaryGoal??"build_muscle");
+  const [level, setLevel] = React.useState(initialProfile?.experienceLevel??"beginner");
+  const [activity, setActivity] = React.useState(initialProfile?.activityLevel??"moderate");
   /** Empty set = full gym (unrestricted). */
-  const [equipment, setEquipment] = React.useState<string[]>([]);
-  const [fullGym, setFullGym] = React.useState(true);
+  const [equipment, setEquipment] = React.useState<string[]>([...(parseAvailableEquipment(initialProfile?.availableEquipment)??[])]);
+  const [fullGym, setFullGym] = React.useState(!parseAvailableEquipment(initialProfile?.availableEquipment));
 
   const toggleEquipment = (key: string) => {
     setFullGym(false);
@@ -83,7 +95,7 @@ export function OnboardingFlow({ displayName, returnTo }: { displayName: string;
       ? name.trim().length >= 2 &&
         (() => {
           const y = parseLocaleNumber(birthYear);
-          return y != null && y >= 1300 && y <= 1420;
+          return y != null && y >= 1300 && y <= toJalali(new Date()).jy-10;
         })()
       : step === 1
         ? (() => {
@@ -111,14 +123,18 @@ export function OnboardingFlow({ displayName, returnTo }: { displayName: string;
           activityLevel: activity,
           unitSystem: "metric",
           availableEquipment: fullGym ? [] : equipment,
+          weeklyWorkoutTarget: days,workoutMinutes:minutes,medicalReviewRequired:medical,healthNotes:notes,
+          ...(hasPain?{injury:{bodyRegion:region,severity,note:notes.slice(0,280)}}:{}),
         },
       });
-      router.replace(safeReturnPath(returnTo) ?? "/dashboard");
+      setSaved(true);setLoading(false);
     } catch (e) {
       setError(errorMessage(e));
       setLoading(false);
     }
   };
+
+  if(saved)return <div className="w-full max-w-3xl space-y-5"><div className="text-center"><h1 className="text-2xl font-bold">پرونده آماده است؛ حالا برنامهٔ خودت</h1><p className="mt-3 text-sm leading-7 text-esi-text-secondary">برنامه‌ریز شرایطت را بررسی می‌کند. اگر هوش در دسترس نبود، پیشنهاد پایه یا بررسی مربی داریم؛ برنامهٔ قبلی بی‌اجازه تغییر نمی‌کند.</p></div><TrainingPlanner/><Button variant="secondary" className="w-full" onClick={()=>router.replace(safeReturnPath(returnTo)??"/workouts")}>ورود به فضای من؛ ادامهٔ برنامه‌ریزی بعداً</Button></div>;
 
   return (
     <div className="w-full max-w-md">
@@ -130,7 +146,7 @@ export function OnboardingFlow({ displayName, returnTo }: { displayName: string;
           </React.Fragment>
         ))}
       </div>
-      <p className="text-xs text-esi-text-muted mb-1">گام {toPersianDigits(step + 1)} از {toPersianDigits(3)}</p>
+      <p className="text-xs text-esi-text-muted mb-1">گام {toPersianDigits(step + 1)} از {toPersianDigits(STEPS.length)}</p>
 
       <AnimatePresence mode="wait">
         <motion.div
@@ -156,7 +172,7 @@ export function OnboardingFlow({ displayName, returnTo }: { displayName: string;
                     autoFocus
                   />
                 </Field>
-                <Field label="سال تولد (شمسی)" hint="برای محاسبه دقیق متابولیسم پایه — بین ۱۳۰۰ تا ۱۴۲۰" htmlFor="ob-birth">
+                <Field label="سال تولد (شمسی)" hint="سال تولد شمسی؛ سن تقریبی از آن محاسبه می‌شود" htmlFor="ob-birth">
                   <input
                     id="ob-birth"
                     className="input-esi"
@@ -277,6 +293,19 @@ export function OnboardingFlow({ displayName, returnTo }: { displayName: string;
             </>
           )}
 
+          {step === 3 && <>
+            <h1 className="text-2xl font-bold">تمرین باید در زندگی تو جا شود</h1>
+            <div className="mt-5 space-y-5">
+              <Field label="چند روز در هفته وقت داری؟" htmlFor="ob-days"><select id="ob-days" value={days} onChange={e=>setDays(Number(e.target.value))} className="input-esi">{[2,3,4,5,6].map(n=><option key={n} value={n}>{toPersianDigits(n)} روز</option>)}</select><p className="mt-2 text-xs leading-6 text-esi-text-muted">برنامهٔ خودکار برای مبتدی حداکثر ۳ و سطح متوسط حداکثر ۴ جلسه در نظر می‌گیرد؛ برنامهٔ تخصصی با مربی تنظیم می‌شود.</p></Field>
+              <Field label="زمان هر جلسه" htmlFor="ob-minutes"><select id="ob-minutes" value={minutes} onChange={e=>setMinutes(Number(e.target.value))} className="input-esi">{[20,30,45,60,75,90].map(n=><option key={n} value={n}>{toPersianDigits(n)} دقیقه</option>)}</select></Field>
+              <label className="flex min-h-11 items-start gap-3 text-sm leading-7"><input type="checkbox" className="mt-2" checked={hasPain} onChange={e=>setHasPain(e.target.checked)}/>درد یا مصدومیت فعال دارم و باید در پرونده ثبت شود.</label>
+              {hasPain&&<div className="space-y-3"><Field label="ناحیهٔ درد" htmlFor="ob-pain"><select id="ob-pain" className="input-esi" value={region} onChange={e=>setRegion(e.target.value)}>{Object.entries({knee:"زانو",shoulder:"سرشانه",lower_back:"کمر",elbow:"آرنج",wrist:"مچ",hip:"لگن",ankle:"قوزک پا",neck:"گردن",groin:"کشاله ران",ribs:"دنده",other:"سایر"}).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></Field><Field label="شدت فعلی درد از ۱ تا ۱۰" htmlFor="ob-severity"><input id="ob-severity" className="input-esi" type="number" min={1} max={10} value={severity} onChange={e=>setSeverity(Number(e.target.value))}/></Field></div>}
+              <label className="flex min-h-11 items-start gap-3 text-sm leading-7"><input type="checkbox" className="mt-2" checked={medical} onChange={e=>setMedical(e.target.checked)}/>محدودیت پزشکی، بارداری/پس از زایمان یا شرایط خاصی دارم که ورزش باید با نظر متخصص تنظیم شود.</label>
+              <Field label="توضیح محدودیت‌ها برای مربی (اختیاری)" htmlFor="ob-notes"><textarea id="ob-notes" className="input-esi min-h-24 py-3" maxLength={500} value={notes} onChange={e=>setNotes(e.target.value)}/></Field>
+              <p className="text-xs leading-7 text-esi-text-muted">دردهای قبلاً ثبت‌شده تا زمان تعیین وضعیتشان در بخش تمرین، در پرونده باقی می‌مانند. برنامه‌ریز عمومی برای تشخیص یا درمان مصدومیت نیست.</p>
+            </div>
+          </>}
+
           {error && <p role="alert" className="mt-4 text-xs text-destructive">{error}</p>}
 
           <div className="mt-8 flex gap-3">
@@ -285,13 +314,13 @@ export function OnboardingFlow({ displayName, returnTo }: { displayName: string;
                 قبلی
               </Button>
             )}
-            {step < 2 ? (
+            {step < 3 ? (
               <Button type="button" className="h-12 flex-[2]" disabled={!canNext} onClick={() => setStep((s) => s + 1)}>
                 ادامه
               </Button>
             ) : (
-              <Button type="button" className="h-12 flex-[2]" disabled={loading} onClick={() => void submit()}>
-                {loading ? "ساخت برنامه شما…" : "شروع کن 🚀"}
+              <Button type="button" className="h-12 flex-[2]" disabled={loading || (!fullGym && equipment.length===0) || (hasPain && (severity<1||severity>10))} onClick={() => void submit()}>
+                {loading ? "ذخیرهٔ پرونده…" : "ذخیره و رفتن به برنامه‌ریز"}
               </Button>
             )}
           </div>
