@@ -1,5 +1,7 @@
 # EsiFit — maintained component contracts
 
+- Login reuses `PublicPageShell` with `showFooter={false}`: the existing `PublicNavbar` owns the only theme toggle and mobile menu, and shell padding clears the fixed header. `AuthShowcase` fills the remaining grid height rather than forcing an additional viewport below the header. Authentication redirects and return destinations are unchanged.
+
 Updated 2026-10-24. These are actual specifications for components extended by
 the community/focus-workout revision. Reuse the existing UI primitives in
 `src/components/ui`; no parallel button, sheet, card or timer family is introduced.

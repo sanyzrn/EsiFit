@@ -27,7 +27,7 @@ export function AuthShowcase() {
   }, []);
 
   return (
-    <div className="esi-hero-graphite relative isolate hidden h-full min-h-dvh overflow-hidden lg:flex lg:flex-col lg:justify-between p-12 xl:p-16">
+    <div className="esi-hero-graphite relative isolate hidden h-full overflow-hidden lg:flex lg:flex-col lg:justify-between p-12 xl:p-16">
       <div aria-hidden className="esi-aurora -z-10" />
       <div aria-hidden className="absolute inset-0 -z-10 [mask-image:radial-gradient(80%_70%_at_50%_45%,black,transparent)]">
         <div className="esi-pattern" />
