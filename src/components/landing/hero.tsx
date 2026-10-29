@@ -36,7 +36,15 @@ export function LandingHero({ signedIn, continueHref = "/dashboard" }: { signedI
           >
             <span className="esi-campaign-line">هر روز،</span>
             <span className="esi-campaign-line">
-              <span className="esi-campaign-word">قوی‌تر</span>
+              <span className="sr-only">قوی‌تر</span>
+              <span className="esi-campaign-word esi-campaign-word-rotation" aria-hidden="true">
+                <span className="esi-campaign-word-width">سرحال‌تر</span>
+                <span className="esi-campaign-word-item">قوی‌تر</span>
+                <span className="esi-campaign-word-item">شاداب‌تر</span>
+                <span className="esi-campaign-word-item">سرحال‌تر</span>
+                <span className="esi-campaign-word-item">فعال‌تر</span>
+                <span className="esi-campaign-word-item">آماده‌تر</span>
+              </span>
             </span>
             <span className="esi-campaign-line esi-campaign-last-line">از دیروز</span>
           </h1>

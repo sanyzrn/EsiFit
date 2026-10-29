@@ -69,8 +69,8 @@ waist-up portrait with a subtle bottom fade into the shared feature rail. At
 640–1023px the portrait is taller and the title uses three lines. Text never
 overlays the athlete. At 1024px and above the headline returns to three lines.
 Feature benefits reuse the existing three items, arranged in three equal columns.
-The photograph is intentionally static; only a restrained CSS entry animation uses
-the existing smooth duration/easing tokens. Hero content is server rendered and
+The photograph is intentionally static; a restrained CSS entry animation and
+rotating headline word use the existing smooth duration/easing tokens. Hero content is server rendered and
 stays visible even when JavaScript is unavailable; no Framer Motion hydration
 is needed for this section.
 
@@ -86,6 +86,15 @@ is needed for this section.
 - Existing other homepage sections are reused unchanged; no new dependencies.
 - No unrealistic claims (e.g. fake customer satisfaction, calorie burned, or
   AI-generated exercise plans).
+
+## Rotating headline word — 2026-10-30
+
+The emphasized headline word rotates «قوی‌تر» → «شاداب‌تر» → «سرحال‌تر» →
+«فعال‌تر» → «آماده‌تر» every four seconds. The CSS grid reserves room for
+the longest word to avoid layout shifts, with a gentle fade / blur / vertical
+crossfade. This remains server-rendered with no client timer, hydration or new
+dependencies. For screen readers the headline reads a static «قوی‌تر»;
+OS-level reduced-motion and the app's reduced-motion setting freeze the word.
 
 ## Components touched
 - `LandingHero({ signedIn })`: rewritten, same API, no duplicate component.

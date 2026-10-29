@@ -740,6 +740,7 @@ body::after { display: none; }
   --hero-art-width: 400px;
   --hero-display-size: clamp(3.25rem, 13.3vw, 4rem);
   --hero-art-wash: radial-gradient(ellipse at 50% 65%, rgb(249 115 22 / 0.09), transparent 65%);
+  --hero-word-cycle: 20s;
   color: var(--hero-text);
   background:
     radial-gradient(circle at 77% 40%, rgb(245 80 29 / 0.17), transparent 35%),
@@ -815,6 +816,37 @@ body::after { display: none; }
   text-wrap: balance;
 }
 .esi-campaign-word { color: var(--hero-orange); }
+/* The invisible longest word reserves space so the rotating title never jumps. */
+.esi-campaign-word-rotation {
+  display: inline-grid;
+  vertical-align: baseline;
+  white-space: nowrap;
+  isolation: isolate;
+}
+.esi-campaign-word-rotation > span { grid-area: 1 / 1; justify-self: start; }
+.esi-campaign-word-width { visibility: hidden; }
+.esi-campaign-word-item {
+  opacity: 0;
+  animation: esi-campaign-word-swap var(--hero-word-cycle) var(--ease-smooth) infinite both;
+}
+/* Negative phase offsets: first word visible immediately, next word every 4s. */
+.esi-campaign-word-item:nth-child(2) { animation-delay: calc(0s - var(--duration-smooth)); }
+.esi-campaign-word-item:nth-child(3) { animation-delay: calc(-16s - var(--duration-smooth)); }
+.esi-campaign-word-item:nth-child(4) { animation-delay: calc(-12s - var(--duration-smooth)); }
+.esi-campaign-word-item:nth-child(5) { animation-delay: calc(-8s - var(--duration-smooth)); }
+.esi-campaign-word-item:nth-child(6) { animation-delay: calc(-4s - var(--duration-smooth)); }
+@keyframes esi-campaign-word-swap {
+  0% { opacity: 0; transform: translateY(0.08em); filter: blur(4px); }
+  1.6%, 20% { opacity: 1; transform: translateY(0); filter: blur(0); }
+  21.6%, 100% { opacity: 0; transform: translateY(-0.08em); filter: blur(4px); }
+}
+html[data-reduced-motion="1"] .esi-campaign-word-item {
+  animation: none;
+  opacity: 0;
+  transform: none;
+  filter: none;
+}
+html[data-reduced-motion="1"] .esi-campaign-word-item:nth-child(2) { opacity: 1; }
 .esi-campaign-period { color: var(--hero-alert); margin-inline-start: 0.035em; }
 .esi-campaign-signal {
   width: 8px;
@@ -914,6 +946,13 @@ body::after { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .esi-campaign-hero * { scroll-behavior: auto; }
   .esi-campaign-enter { animation: none; }
+  .esi-campaign-word-item {
+    animation: none;
+    opacity: 0;
+    transform: none;
+    filter: none;
+  }
+  .esi-campaign-word-item:nth-child(2) { opacity: 1; }
 }
 
 /* Flat shared surfaces in the authenticated app and non-hero public sections.
